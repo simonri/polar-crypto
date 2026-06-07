@@ -5,7 +5,6 @@ import { useCustomers } from '@/hooks/queries'
 import { useInViewport } from '@/hooks/utils'
 import Close from '@mui/icons-material/Close'
 import Search from '@mui/icons-material/Search'
-import { Avatar } from '@polar-sh/orbit'
 import { Button } from '@polar-sh/orbit'
 import { Input } from '@polar-sh/orbit'
 import { List, ListItem } from '@polar-sh/ui/components/atoms/List'
@@ -124,11 +123,6 @@ export const CustomerSelector = ({
                     }}
                   >
                     <div className="flex flex-row items-center gap-3">
-                      <Avatar
-                        className="size-7"
-                        avatar_url={customer.avatar_url}
-                        name={customer.email ?? customer.name ?? '—'}
-                      />
                       <div className="flex flex-col">
                         <div className="w-full truncate text-sm">
                           {customer.name ?? customer.email ?? '—'}
@@ -159,11 +153,6 @@ export const CustomerSelector = ({
           {selectedCustomers.map((customer) => (
             <ListItem key={customer.id} size="small" className="group px-3">
               <div className="flex flex-row items-center gap-3">
-                <Avatar
-                  className="size-7"
-                  avatar_url={customer.avatar_url}
-                  name={customer.email ?? customer.name ?? '—'}
-                />
                 <div className="flex flex-col">
                   <div className="w-full truncate text-sm">
                     {customer.name ?? customer.email ?? '—'}

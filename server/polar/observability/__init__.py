@@ -16,7 +16,6 @@ from polar.observability.metrics import (
     TASK_RETRIES,
 )
 from polar.observability.operational_errors import OPERATIONAL_ERROR_TOTAL
-from polar.observability.tax_metrics import TAX_CALCULATION_TOTAL
 
 __all__ = [
     # Checkout metrics (anomaly detection)
@@ -35,6 +34,4 @@ __all__ = [
     "TASK_DURATION",
     "TASK_EXECUTIONS",
     "TASK_RETRIES",
-    # Tax metrics
-    "TAX_CALCULATION_TOTAL",
 ]

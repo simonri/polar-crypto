@@ -31,12 +31,6 @@ Localized checkout now respects regional IETF subtags (e.g. `en-CA`, `en-AU`) wh
 </Update>
 
 <Update label="2026-04-14">
-## Meter Units
-
-Meters now support custom units with a value multiplier, so you can ingest raw counts (tokens, requests, bytes) and price in whatever unit makes sense for your customers (millions of tokens, GB, etc.). Configure the unit name and multiplier on each meter in the dashboard, and unit labels flow through to checkout, the customer portal, and invoices.
-
-<img class="border rounded" src="/assets/changelog/2026-04-14/meter-units.png" />
-
 ## Self-Service Payout Account Management
 
 Merchants can now create, switch between, and delete payout accounts directly from the Finance page. A new Manage modal lists every account on the user, lets you set the active one for the organization, and blocks deletion when an account still holds a balance or is linked to an organization. Useful for moving payouts to a new bank entity without contacting support.
@@ -260,17 +254,6 @@ Enhanced member endpoint functionality:
 * App store ready for both platforms
 * Consistent design system across iOS and Android
 
-## Customer Meter Enhancements
-
-Significant improvements to customer meter calculation:
-
-* Speed improvements with optimized queries (avoided cartesian joins)
-* Better activation logic for meters with events
-* Fixed organization ID tracking
-* Increased lock time to 30s for slow queries
-* Debug information in window event spans
-* Proper external customer ID handling
-
 ## Webhook Management
 
 Better webhook health tracking:
@@ -398,7 +381,6 @@ Massive performance improvements:
 * Removed unnecessary ordering from event queries (3x faster)
 * Better customer latest event queries
 * New indexes on events table
-* Optimized IN queries for customer meters
 
 ## Mobile App Improvements
 
@@ -735,14 +717,6 @@ Subscription detail pages now show the upcoming charge amount and date, includin
 * Next billing cycle charges for active subscriptions
 * Automatic updates when subscriptions change
 
-### Usage & Metering View
-
-Improved the customer usage view:
-
-* Respect archived meters - they no longer appear in usage tracking
-* Better empty states for customers with granted credits
-* Create customer meters automatically when meter credits are granted
-
 ### Navigation & UX Improvements
 
 * Fixed navigation highlighting on mobile
@@ -995,12 +969,6 @@ This change ensures that every webhook payload contains precise event timing, ma
 </Update>
 
 <Update label="2025-09-05">
-  ## Meter management improvements
-
-We've made it easier to manage your meters with new UI functionality for archiving and unarchiving meters directly from the dashboard.
-
-You can now archive meters that are no longer needed, which helps keep your meter list organized. Archived meters can be unarchived if you need to use them again. Note that meters cannot be archived if they are still attached to active products or referenced by active benefits.
-
   ## Metrics accuracy improvements
 
 We've improved the accuracy of our metrics by excluding unpaid orders from all calculations. Previously, orders in pending status were included in metrics, which could lead to inflated numbers.

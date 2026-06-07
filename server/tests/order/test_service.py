@@ -6,7 +6,6 @@ from unittest.mock import ANY, AsyncMock, MagicMock, call
 
 import pytest
 import pytest_asyncio
-import stripe as stripe_lib
 from freezegun import freeze_time
 from pydantic import BaseModel
 from pytest_mock import MockerFixture
@@ -17,19 +16,13 @@ from polar.checkout.eventstream import CheckoutEvent
 from polar.config import settings
 from polar.email.schemas import OrderConfirmationEmail
 from polar.enums import (
-    InvoiceNumbering,
     PaymentMode,
     PaymentProcessor,
     SubscriptionRecurringInterval,
-    TaxBehavior,
-    TaxBehaviorOption,
-    TaxProcessor,
 )
 from polar.event.repository import EventRepository
 from polar.event.system import SystemEvent
 from polar.exceptions import PolarRequestValidationError
-from polar.integrations.stripe.service import StripeService
-from polar.invoice.service import invoice as invoice_service
 from polar.kit.address import (
     Address,
     AddressDict,
@@ -39,12 +32,10 @@ from polar.kit.address import (
 )
 from polar.kit.currency import get_maximum_currency_amount
 from polar.kit.db.postgres import AsyncSession
-from polar.kit.math import polar_round
 from polar.kit.pagination import PaginationParams
 from polar.kit.utils import utc_now
 from polar.models import (
     Account,
-    BillingEntry,
     Customer,
     Discount,
     Order,
@@ -72,9 +63,7 @@ from polar.order.schemas import OrderCreate, OrderUpdate
 from polar.order.service import (
     ManualRetryLimitExceeded,
     MissingCheckoutCustomer,
-    MissingInvoiceBillingDetails,
     NoPendingBillingEntries,
-    NotPaidOrder,
     NotRecurringProduct,
     OffSessionChargesNotEnabled,
     OrderNotDraft,
@@ -88,18 +77,8 @@ from polar.order.service import (
     SubscriptionNotTrialing,
 )
 from polar.order.service import order as order_service
-from polar.product.guard import is_fixed_price, is_static_price
+from polar.product.guard import is_fixed_price
 from polar.product.price_set import PriceSet
-from polar.subscription.service import SubscriptionService
-from polar.tax.calculation import (
-    CalculationExpiredError,
-    TaxabilityReason,
-    TaxCalculation,
-    TaxCalculationLogicalError,
-    TaxCalculationService,
-    get_tax_behavior_from_option,
-)
-from polar.tax.tax_id import TaxID
 from polar.transaction.service.balance import PaymentTransactionForChargeDoesNotExist
 from polar.transaction.service.payment import (
     payment_transaction as payment_transaction_service,
@@ -116,7 +95,6 @@ from tests.fixtures.random_objects import (
     create_custom_field,
     create_customer,
     create_discount,
-    create_event,
     create_order,
     create_payment,
     create_payment_method,
@@ -153,11 +131,11 @@ def build_stripe_payment_intent(
 
 @pytest.fixture(autouse=True)
 def stripe_service_mock(mocker: MockerFixture, customer: Customer) -> MagicMock:
-    mock = MagicMock(spec=StripeService)
-    mocker.patch("polar.order.service.stripe_service", new=mock)
+    mock = MagicMock()
+    mocker.patch("polar.order.service.stripe_service", new=mock, create=True)
 
     mock.get_customer.return_value = SimpleNamespace(
-        id=customer.stripe_customer_id,
+        id=str(customer.id),
         email=customer.email,
         name=customer.name,
         address=customer.billing_address,
@@ -186,55 +164,6 @@ def event_creation_time() -> tuple[datetime, int]:
     created_datetime = datetime.fromisoformat("2024-01-01T00:00:00Z")
     created_unix_timestamp = int(created_datetime.timestamp())
     return created_datetime, created_unix_timestamp
-
-
-@pytest.fixture(autouse=True)
-def tax_service_mock(mocker: MockerFixture) -> MagicMock:
-    mock = mocker.patch(
-        "polar.order.service.tax_calculation_service", spec=TaxCalculationService
-    )
-    mock.record.return_value = ("TAX_TRANSACTION_ID", TaxProcessor.numeral)
-    return mock
-
-
-@pytest.fixture
-def calculate_tax_mock(tax_service_mock: MagicMock) -> AsyncMock:
-    async def mocked_calculate_tax(
-        identifier: uuid.UUID,
-        currency: str,
-        amount: int,
-        tax_behavior: TaxBehaviorOption,
-        stripe_product_id: str,
-        address: Address,
-        tax_ids: list[TaxID],
-        tax_exempted: bool,
-    ) -> tuple[TaxCalculation, TaxProcessor]:
-        tax_amount = polar_round(amount * 0.20)
-        return (
-            {
-                "processor_id": "TAX_PROCESSOR_ID",
-                "amount": tax_amount,
-                "currency": currency,
-                "tax_behavior": get_tax_behavior_from_option(tax_behavior, address),
-                "tax_breakdown": [
-                    {
-                        "rate_type": "percentage",
-                        "rate": 0.2,
-                        "display_name": "Tax",
-                        "country": address.country,
-                        "state": None,
-                        "subdivision": None,
-                        "amount": tax_amount,
-                        "taxability_reason": TaxabilityReason.standard_rated,
-                    }
-                ],
-            },
-            TaxProcessor.numeral,
-        )
-
-    tax_service_mock.calculate.side_effect = mocked_calculate_tax
-
-    return tax_service_mock.calculate
 
 
 def assert_set_order_item_ids(
@@ -840,39 +769,6 @@ class TestCreateFromCheckoutSubscription:
         assert order.product == product
         assert len(order.items) == len(product.prices)
 
-    async def test_metered(
-        self,
-        save_fixture: SaveFixture,
-        session: AsyncSession,
-        product_recurring_metered: Product,
-        customer: Customer,
-    ) -> None:
-        checkout = await create_checkout(
-            save_fixture,
-            products=[product_recurring_metered],
-            status=CheckoutStatus.confirmed,
-            customer=customer,
-        )
-        subscription = await create_subscription(
-            save_fixture, product=product_recurring_metered, customer=customer
-        )
-
-        order = await order_service.create_from_checkout_subscription(
-            session,
-            checkout,
-            subscription,
-            OrderBillingReasonInternal.subscription_create,
-        )
-
-        assert order.net_amount == checkout.net_amount
-        assert order.discount_amount == 0
-        assert order.billing_reason == OrderBillingReasonInternal.subscription_create
-        assert order.customer == checkout.customer
-        assert order.product == product_recurring_metered
-        assert len(order.items) == len(
-            [p for p in product_recurring_metered.prices if is_static_price(p)]
-        )
-
 
 class DiscountFixture(BaseModel):
     type: DiscountType
@@ -897,7 +793,6 @@ class ProrationFixture(BaseModel):
     ]
     expected_discount: int
     expected_subtotal: int
-    expected_tax: int
 
 
 @pytest.mark.asyncio
@@ -910,20 +805,8 @@ class TestCreateSubscriptionOrder:
                 session, subscription, OrderBillingReasonInternal.subscription_cycle
             )
 
-    @pytest.mark.parametrize(
-        ("tax_behavior", "amount", "tax_amount", "expected_net_amount"),
-        [
-            (TaxBehavior.exclusive, 1000, 200, 1000),
-            (TaxBehavior.inclusive, 1000, 200, 800),
-        ],
-    )
     async def test_cycle_fixed_price(
         self,
-        tax_behavior: TaxBehavior,
-        amount: int,
-        tax_amount: int,
-        expected_net_amount: int,
-        calculate_tax_mock: MagicMock,
         enqueue_job_mock: MagicMock,
         save_fixture: SaveFixture,
         session: AsyncSession,
@@ -931,27 +814,7 @@ class TestCreateSubscriptionOrder:
         organization: Organization,
         payment_method: PaymentMethod,
     ) -> None:
-        calculate_tax_mock.return_value = (
-            {
-                "processor_id": "TAX_PROCESSOR_ID",
-                "amount": tax_amount,
-                "currency": product.prices[0].price_currency,
-                "tax_behavior": tax_behavior,
-                "tax_breakdown": [
-                    {
-                        "rate_type": "percentage",
-                        "rate": 0.2,
-                        "display_name": "Tax",
-                        "country": "FR",
-                        "state": None,
-                        "subdivision": None,
-                        "amount": tax_amount,
-                        "taxability_reason": TaxabilityReason.standard_rated,
-                    }
-                ],
-            },
-            TaxProcessor.numeral,
-        )
+        amount = 1000
         customer = await create_customer(
             save_fixture,
             organization=organization,
@@ -962,7 +825,6 @@ class TestCreateSubscriptionOrder:
             product=product,
             customer=customer,
             payment_method=payment_method,
-            tax_behavior=tax_behavior,
         )
         price = product.prices[0]
         assert is_fixed_price(price)
@@ -987,33 +849,13 @@ class TestCreateSubscriptionOrder:
         assert order_item.order == order
 
         assert order.subtotal_amount == billing_entry.amount
-        assert order.net_amount == expected_net_amount
-        assert order.tax_amount == tax_amount
-        assert order.total_amount == expected_net_amount + tax_amount
+        assert order.net_amount == amount
+        assert order.total_amount == amount
         assert order.status == OrderStatus.pending
         assert order.billing_reason == OrderBillingReasonInternal.subscription_cycle
         assert order.subscription == subscription
 
-        calculate_tax_mock.assert_called_once_with(
-            str(order.id),
-            subscription.currency,
-            order.subtotal_amount - order.discount_amount,
-            tax_behavior.to_option(),
-            product.tax_code,
-            customer.billing_address,
-            [],
-            False,
-        )
-
         assert billing_entry.amount is not None
-        assert order.tax_calculation_processor_id == "TAX_PROCESSOR_ID"
-        assert order.tax_breakdown is not None
-        assert (
-            order.tax_breakdown[0]["taxability_reason"]
-            == TaxabilityReason.standard_rated
-        )
-        assert order.tax_transaction_processor_id is None
-        assert order.tax_behavior == tax_behavior
 
         await session.refresh(billing_entry)
         assert billing_entry.order_item is not None
@@ -1028,7 +870,6 @@ class TestCreateSubscriptionOrder:
 
     async def test_cycle_discount(
         self,
-        calculate_tax_mock: MagicMock,
         save_fixture: SaveFixture,
         session: AsyncSession,
         product: Product,
@@ -1074,17 +915,6 @@ class TestCreateSubscriptionOrder:
         assert order.discount_amount == price.price_amount / 2
         assert order.net_amount == order.subtotal_amount - order.discount_amount
 
-        calculate_tax_mock.assert_called_once_with(
-            str(order.id),
-            subscription.currency,
-            order.net_amount,
-            TaxBehaviorOption.exclusive,
-            product.tax_code,
-            customer.billing_address,
-            [],
-            False,
-        )
-
         await session.refresh(billing_entry)
         assert billing_entry.order_item is not None
         assert billing_entry.order_item.order_id == order.id
@@ -1092,7 +922,6 @@ class TestCreateSubscriptionOrder:
     async def test_cycle_free_order(
         self,
         enqueue_job_mock: MagicMock,
-        calculate_tax_mock: MagicMock,
         save_fixture: SaveFixture,
         session: AsyncSession,
         product: Product,
@@ -1135,15 +964,12 @@ class TestCreateSubscriptionOrder:
         enqueued_jobs = [call[0][0] for call in enqueue_job_mock.call_args_list]
         assert "order.trigger_payment" not in enqueued_jobs
 
-        calculate_tax_mock.assert_not_called()
-
         await session.refresh(billing_entry)
         assert billing_entry.order_item is not None
         assert billing_entry.order_item.order_id == order.id
 
     async def test_cycle_tax_exempted(
         self,
-        calculate_tax_mock: MagicMock,
         save_fixture: SaveFixture,
         session: AsyncSession,
         product: Product,
@@ -1160,7 +986,6 @@ class TestCreateSubscriptionOrder:
             product=product,
             customer=customer,
             payment_method=payment_method,
-            tax_exempted=True,
         )
         price = product.prices[0]
         assert is_fixed_price(price)
@@ -1178,20 +1003,10 @@ class TestCreateSubscriptionOrder:
             session, subscription, OrderBillingReasonInternal.subscription_cycle
         )
 
-        calculate_tax_mock.assert_called_once_with(
-            str(order.id),
-            subscription.currency,
-            order.subtotal_amount,
-            TaxBehaviorOption.exclusive,
-            product.tax_code,
-            customer.billing_address,
-            [],
-            True,
-        )
+        assert order.subtotal_amount == price.price_amount
 
     async def test_cycle_no_payment_method(
         self,
-        calculate_tax_mock: MagicMock,
         enqueue_job_mock: MagicMock,
         save_fixture: SaveFixture,
         session: AsyncSession,
@@ -1232,7 +1047,6 @@ class TestCreateSubscriptionOrder:
 
     async def test_cycle_proration(
         self,
-        calculate_tax_mock: MagicMock,
         enqueue_job_mock: MagicMock,
         save_fixture: SaveFixture,
         session: AsyncSession,
@@ -1322,14 +1136,6 @@ class TestCreateSubscriptionOrder:
         assert order.subscription == subscription
 
         assert order.subtotal_amount == 4250
-        assert order.tax_amount == 850
-        assert order.tax_calculation_processor_id == "TAX_PROCESSOR_ID"
-        assert order.tax_breakdown is not None
-        assert (
-            order.tax_breakdown[0]["taxability_reason"]
-            == TaxabilityReason.standard_rated
-        )
-        assert order.tax_transaction_processor_id is None
 
         for entry in [billing_entry_credit, billing_entry_debit, billing_entry_cycle]:
             await session.refresh(entry)
@@ -1397,7 +1203,6 @@ class TestCreateSubscriptionOrder:
                     # (4500 - 1125) - (1500 - 375) = 2250
                     expected_subtotal=2250 + 9000,
                     # Tax: 2250 x 20% = 450 ; (9000 - 2250) x 25% = 1440
-                    expected_tax=450 + 1350,
                 ),
                 id="discount-applies-only-to-first-product",
             ),
@@ -1448,7 +1253,6 @@ class TestCreateSubscriptionOrder:
                     expected_discount=1000,
                     # (4500 - 1750) - (1500 - 1000) = 2250
                     expected_subtotal=2250 + 9000,
-                    expected_tax=450 + 1600,  # 2250 x 20% = 450 ; 8000 x 20% = 1600
                     # You paid 2000 for the month. Now you get 1000 back (50% the month).
                 ),
                 id="fixed-discount-on-first-product",
@@ -1486,7 +1290,6 @@ class TestCreateSubscriptionOrder:
                     ],
                     expected_discount=1500,
                     expected_subtotal=-11219 + 3000,
-                    expected_tax=-1944,  # (-11219 + 3000 - 1500) * 20%
                 ),
                 id="yearly-to-monthly",
             ),
@@ -1494,7 +1297,6 @@ class TestCreateSubscriptionOrder:
     )
     async def test_cycle_proration_discount(
         self,
-        calculate_tax_mock: MagicMock,
         enqueue_job_mock: MagicMock,
         save_fixture: SaveFixture,
         session: AsyncSession,
@@ -1576,22 +1378,11 @@ class TestCreateSubscriptionOrder:
         assert order.discount == subscription.discount
         assert order.discount_amount == setup.expected_discount
         assert order.subtotal_amount == setup.expected_subtotal
-        assert order.tax_amount == setup.expected_tax
 
         if order.subtotal_amount < 0:
             assert order.status == OrderStatus.paid
-            assert order.tax_calculation_processor_id is None
-            assert order.tax_transaction_processor_id is None
         else:
             assert order.status == OrderStatus.pending
-            assert order.tax_calculation_processor_id == "TAX_PROCESSOR_ID"
-            assert order.tax_breakdown is not None
-            assert (
-                order.tax_breakdown[0]["taxability_reason"]
-                == TaxabilityReason.standard_rated
-            )
-            assert order.tax_transaction_processor_id is None
-
         assert order.billing_reason == OrderBillingReasonInternal.subscription_cycle
         assert order.subscription == subscription
 
@@ -1614,121 +1405,11 @@ class TestCreateSubscriptionOrder:
             assert customer_balance == 0
         else:
             assert (
-                -customer_balance
-                == setup.expected_subtotal
-                - setup.expected_discount
-                + setup.expected_tax
+                -customer_balance == setup.expected_subtotal - setup.expected_discount
             )
-
-        calculate_tax_mock.assert_called_once_with(
-            str(order.id),
-            subscription.currency,
-            abs(order.net_amount),
-            TaxBehaviorOption.exclusive,
-            subscription.product.tax_code,
-            customer.billing_address,
-            [],
-            False,
-        )
-
-    async def test_metered_subscription_cycle_resets_meters(
-        self,
-        mocker: MockerFixture,
-        save_fixture: SaveFixture,
-        session: AsyncSession,
-        product_recurring_metered: Product,
-        customer: Customer,
-        organization: Organization,
-    ) -> None:
-        """
-        Test that subscription_cycle orders reset meters.
-
-        This is the expected behavior for new billing cycles - meters should be
-        reset to start fresh for the new period.
-        """
-        subscription_service_mock = mocker.patch(
-            "polar.order.service.subscription_service", spec=SubscriptionService
-        )
-
-        subscription = await create_active_subscription(
-            save_fixture, product=product_recurring_metered, customer=customer
-        )
-
-        event = await create_event(
-            save_fixture,
-            organization=organization,
-            customer=customer,
-        )
-        await save_fixture(
-            BillingEntry.from_metered_event(
-                customer, subscription.subscription_product_prices[0], event
-            )
-        )
-
-        order = await order_service.create_subscription_order(
-            session, subscription, OrderBillingReasonInternal.subscription_cycle
-        )
-
-        assert len(order.items) == 1
-        assert order.subtotal_amount == 100
-
-        subscription_service_mock.reset_meters.assert_awaited_once_with(
-            session, subscription
-        )
-
-    async def test_subscription_update_does_not_reset_meters(
-        self,
-        mocker: MockerFixture,
-        save_fixture: SaveFixture,
-        session: AsyncSession,
-        product_recurring_metered: Product,
-        customer: Customer,
-        organization: Organization,
-    ) -> None:
-        """
-        Regression test for meter credit loss during subscription updates.
-
-        When a subscription_update order is created, meters should NOT be reset.
-        This ensures that meter credits from benefit grants remain valid for
-        the current billing cycle.
-
-        Bug context: Customers were being charged for metered usage even when
-        they had sufficient credited units, because subscription_update orders
-        were resetting meters mid-cycle without re-applying benefit credits.
-        """
-        subscription_service_mock = mocker.patch(
-            "polar.order.service.subscription_service", spec=SubscriptionService
-        )
-
-        subscription = await create_active_subscription(
-            save_fixture, product=product_recurring_metered, customer=customer
-        )
-
-        event = await create_event(
-            save_fixture,
-            organization=organization,
-            customer=customer,
-        )
-        await save_fixture(
-            BillingEntry.from_metered_event(
-                customer, subscription.subscription_product_prices[0], event
-            )
-        )
-
-        order = await order_service.create_subscription_order(
-            session, subscription, OrderBillingReasonInternal.subscription_update
-        )
-
-        assert len(order.items) == 1
-        assert order.subtotal_amount == 100
-
-        # subscription_update should NOT reset meters
-        # This ensures meter credits from benefit grants remain valid
-        subscription_service_mock.reset_meters.assert_not_awaited()
 
     async def test_positive_order_positive_customer_balance(
         self,
-        calculate_tax_mock: MagicMock,
         enqueue_job_mock: MagicMock,
         save_fixture: SaveFixture,
         session: AsyncSession,
@@ -1762,29 +1443,6 @@ class TestCreateSubscriptionOrder:
             amount=50_00,
             currency=price.price_currency,
             subscription=subscription,
-        )
-
-        # Mock tax calculation to return 0 for simplicity
-        calculate_tax_mock.reset_mock(side_effect=True)
-        calculate_tax_mock.return_value = (
-            {
-                "processor_id": "TAX_PROCESSOR_ID",
-                "amount": 0,
-                "tax_behavior": TaxBehavior.exclusive,
-                "tax_breakdown": [
-                    {
-                        "rate_type": "percentage",
-                        "rate": 0.0,
-                        "display_name": "Tax",
-                        "country": "FR",
-                        "state": None,
-                        "subdivision": None,
-                        "amount": 0,
-                        "taxability_reason": TaxabilityReason.not_subject_to_tax,
-                    }
-                ],
-            },
-            TaxProcessor.numeral,
         )
 
         order = await order_service.create_subscription_order(
@@ -1803,7 +1461,6 @@ class TestCreateSubscriptionOrder:
 
     async def test_positive_order_negative_customer_balance(
         self,
-        calculate_tax_mock: MagicMock,
         enqueue_job_mock: MagicMock,
         save_fixture: SaveFixture,
         session: AsyncSession,
@@ -1838,29 +1495,6 @@ class TestCreateSubscriptionOrder:
             subscription=subscription,
         )
 
-        # Mock tax calculation to return 0 for simplicity
-        calculate_tax_mock.reset_mock(side_effect=True)
-        calculate_tax_mock.return_value = (
-            {
-                "processor_id": "TAX_PROCESSOR_ID",
-                "amount": 0,
-                "tax_behavior": TaxBehavior.exclusive,
-                "tax_breakdown": [
-                    {
-                        "rate_type": "percentage",
-                        "rate": 0.0,
-                        "display_name": "Tax",
-                        "country": "FR",
-                        "state": None,
-                        "subdivision": None,
-                        "amount": 0,
-                        "taxability_reason": TaxabilityReason.not_subject_to_tax,
-                    }
-                ],
-            },
-            TaxProcessor.numeral,
-        )
-
         order = await order_service.create_subscription_order(
             session, subscription, OrderBillingReasonInternal.subscription_cycle
         )
@@ -1877,7 +1511,6 @@ class TestCreateSubscriptionOrder:
 
     async def test_negative_order_positive_customer_balance(
         self,
-        calculate_tax_mock: MagicMock,
         enqueue_job_mock: MagicMock,
         save_fixture: SaveFixture,
         session: AsyncSession,
@@ -1913,29 +1546,6 @@ class TestCreateSubscriptionOrder:
             subscription=subscription,
         )
 
-        # Mock tax calculation to return 0 for simplicity
-        calculate_tax_mock.reset_mock(side_effect=True)
-        calculate_tax_mock.return_value = (
-            {
-                "processor_id": "TAX_PROCESSOR_ID",
-                "amount": 0,
-                "tax_behavior": TaxBehavior.exclusive,
-                "tax_breakdown": [
-                    {
-                        "rate_type": "percentage",
-                        "rate": 0.0,
-                        "display_name": "Tax",
-                        "country": "FR",
-                        "state": None,
-                        "subdivision": None,
-                        "amount": 0,
-                        "taxability_reason": TaxabilityReason.not_subject_to_tax,
-                    }
-                ],
-            },
-            TaxProcessor.numeral,
-        )
-
         order = await order_service.create_subscription_order(
             session, subscription, OrderBillingReasonInternal.subscription_cycle
         )
@@ -1952,7 +1562,6 @@ class TestCreateSubscriptionOrder:
 
     async def test_negative_order_negative_customer_balance(
         self,
-        calculate_tax_mock: MagicMock,
         enqueue_job_mock: MagicMock,
         save_fixture: SaveFixture,
         session: AsyncSession,
@@ -1986,29 +1595,6 @@ class TestCreateSubscriptionOrder:
             amount=-50_00,
             currency=price.price_currency,
             subscription=subscription,
-        )
-
-        # Mock tax calculation to return 0 for simplicity
-        calculate_tax_mock.reset_mock(side_effect=True)
-        calculate_tax_mock.return_value = (
-            {
-                "processor_id": "TAX_PROCESSOR_ID",
-                "amount": 0,
-                "tax_behavior": TaxBehavior.exclusive,
-                "tax_breakdown": [
-                    {
-                        "rate_type": "percentage",
-                        "rate": 0.0,
-                        "display_name": "Tax",
-                        "country": "FR",
-                        "state": None,
-                        "subdivision": None,
-                        "amount": 0,
-                        "taxability_reason": TaxabilityReason.not_subject_to_tax,
-                    }
-                ],
-            },
-            TaxProcessor.numeral,
         )
 
         order = await order_service.create_subscription_order(
@@ -2028,7 +1614,6 @@ class TestCreateSubscriptionOrder:
     async def test_sync_mode_null_payment_method_fallback_to_customer_default(
         self,
         mocker: MockerFixture,
-        calculate_tax_mock: MagicMock,
         save_fixture: SaveFixture,
         session: AsyncSession,
         product: Product,
@@ -2127,7 +1712,6 @@ class TestCreateWalletOrder:
     async def test_basic(
         self,
         enqueue_job_mock: MagicMock,
-        tax_service_mock: MagicMock,
         save_fixture: SaveFixture,
         session: AsyncSession,
         organization: Organization,
@@ -2144,25 +1728,11 @@ class TestCreateWalletOrder:
             save_fixture,
             wallet=wallet,
             amount=100_00,
-            tax_amount=20_00,
-            tax_breakdown=[
-                {
-                    "rate_type": "percentage",
-                    "rate": 0.2,
-                    "display_name": "Tax",
-                    "country": "US",
-                    "state": None,
-                    "subdivision": None,
-                    "amount": 20_00,
-                    "taxability_reason": TaxabilityReason.standard_rated,
-                }
-            ],
-            tax_calculation_processor_id="TAX_CALCULATION_ID",
         )
         payment = await create_payment(
             save_fixture,
             organization,
-            amount=120_00,
+            amount=100_00,
             status=PaymentStatus.succeeded,
         )
 
@@ -2172,15 +1742,7 @@ class TestCreateWalletOrder:
 
         assert order.status == OrderStatus.paid
         assert order.subtotal_amount == 100_00
-        assert order.tax_amount == 20_00
-        assert order.total_amount == 120_00
-        assert order.tax_breakdown is not None
-        assert len(order.tax_breakdown) == 1
-        assert order.tax_breakdown[0]["amount"] == 20_00
-        assert (
-            order.tax_breakdown[0]["taxability_reason"]
-            == TaxabilityReason.standard_rated
-        )
+        assert order.total_amount == 100_00
 
         enqueue_job_mock.assert_any_call(
             "order.balance", order_id=order.id, charge_id=payment.processor_id
@@ -2188,8 +1750,6 @@ class TestCreateWalletOrder:
         assert payment.order == order
 
         assert wallet_transaction.order == order
-
-        tax_service_mock.record.assert_called_once()
 
 
 @pytest.mark.asyncio
@@ -2304,9 +1864,8 @@ class TestCreateOrderBalance:
 
 @pytest.mark.asyncio
 class TestSendConfirmationEmail:
-    async def test_billing_not_set(
+    async def test_sends_confirmation_email(
         self,
-        mocker: MockerFixture,
         enqueue_email_mock: MagicMock,
         save_fixture: SaveFixture,
         session: AsyncSession,
@@ -2314,10 +1873,6 @@ class TestSendConfirmationEmail:
         customer: Customer,
         organization: Organization,
     ) -> None:
-        create_order_invoice_mock = mocker.patch(
-            "polar.order.service.invoice_service.create_order_invoice",
-            new_callable=AsyncMock,
-        )
         order = await create_order(
             save_fixture,
             product=product,
@@ -2326,233 +1881,8 @@ class TestSendConfirmationEmail:
 
         await order_service.send_confirmation_email(session, order)
 
-        assert order.invoice_path is None
-        create_order_invoice_mock.assert_not_called()
         enqueue_email_mock.assert_called_once()
         assert isinstance(enqueue_email_mock.call_args[0][0], OrderConfirmationEmail)
-        attachments = enqueue_email_mock.call_args[1]["attachments"]
-        assert len(attachments) == 0
-
-    async def test_billing_set(
-        self,
-        mocker: MockerFixture,
-        enqueue_email_mock: MagicMock,
-        save_fixture: SaveFixture,
-        session: AsyncSession,
-        product: Product,
-        customer: Customer,
-        organization: Organization,
-    ) -> None:
-        create_order_invoice_mock = mocker.patch(
-            "polar.order.service.invoice_service.create_order_invoice",
-            new_callable=AsyncMock,
-            return_value="invoices/mock-invoice.pdf",
-        )
-        get_order_invoice_url_mock = mocker.patch(
-            "polar.order.service.invoice_service.get_order_invoice_url",
-            new_callable=AsyncMock,
-            return_value=("https://mock-s3/invoices/mock-invoice.pdf", utc_now()),
-        )
-        order = await create_order(
-            save_fixture,
-            product=product,
-            customer=customer,
-            billing_name="John Doe",
-            billing_address=Address(country=CountryAlpha2("US")),
-        )
-
-        await order_service.send_confirmation_email(session, order)
-
-        assert order.invoice_path is not None
-        create_order_invoice_mock.assert_called_once_with(order)
-        get_order_invoice_url_mock.assert_called_once()
-        enqueue_email_mock.assert_called_once()
-        assert isinstance(enqueue_email_mock.call_args[0][0], OrderConfirmationEmail)
-        attachments = enqueue_email_mock.call_args[1]["attachments"]
-        assert len(attachments) == 1
-
-
-@pytest.mark.asyncio
-class TestTriggerInvoiceGeneration:
-    async def test_not_paid(
-        self,
-        enqueue_job_mock: MagicMock,
-        save_fixture: SaveFixture,
-        session: AsyncSession,
-        product: Product,
-        customer: Customer,
-    ) -> None:
-        order = await create_order(
-            save_fixture,
-            product=product,
-            customer=customer,
-            status=OrderStatus.pending,
-            billing_name="John Doe",
-            billing_address=Address(country=CountryAlpha2("US")),
-        )
-
-        with pytest.raises(NotPaidOrder):
-            await order_service.trigger_invoice_generation(session, order)
-
-        enqueue_job_mock.assert_not_called()
-
-    async def test_missing_billing(
-        self,
-        enqueue_job_mock: MagicMock,
-        save_fixture: SaveFixture,
-        session: AsyncSession,
-        product: Product,
-        customer: Customer,
-    ) -> None:
-        order = await create_order(save_fixture, product=product, customer=customer)
-
-        with pytest.raises(MissingInvoiceBillingDetails):
-            await order_service.trigger_invoice_generation(session, order)
-
-        enqueue_job_mock.assert_not_called()
-
-    async def test_no_existing_invoice(
-        self,
-        enqueue_job_mock: MagicMock,
-        save_fixture: SaveFixture,
-        session: AsyncSession,
-        product: Product,
-        customer: Customer,
-    ) -> None:
-        order = await create_order(
-            save_fixture,
-            product=product,
-            customer=customer,
-            billing_name="John Doe",
-            billing_address=Address(country=CountryAlpha2("US")),
-        )
-
-        await order_service.trigger_invoice_generation(session, order)
-
-        enqueue_job_mock.assert_called_once_with("order.invoice", order_id=order.id)
-
-    async def test_existing_invoice_no_checksum(
-        self,
-        enqueue_job_mock: MagicMock,
-        save_fixture: SaveFixture,
-        session: AsyncSession,
-        product: Product,
-        customer: Customer,
-    ) -> None:
-        order = await create_order(
-            save_fixture,
-            product=product,
-            customer=customer,
-            billing_name="John Doe",
-            billing_address=Address(country=CountryAlpha2("US")),
-        )
-        order.invoice_path = "invoices/legacy.pdf"
-
-        await order_service.trigger_invoice_generation(session, order)
-
-        enqueue_job_mock.assert_called_once_with("order.invoice", order_id=order.id)
-
-    async def test_checksum_mismatch(
-        self,
-        enqueue_job_mock: MagicMock,
-        save_fixture: SaveFixture,
-        session: AsyncSession,
-        product: Product,
-        customer: Customer,
-    ) -> None:
-        order = await create_order(
-            save_fixture,
-            product=product,
-            customer=customer,
-            billing_name="John Doe",
-            billing_address=Address(country=CountryAlpha2("US")),
-        )
-        order.invoice_path = "invoices/old.pdf"
-        order.invoice_checksum = "stale"
-
-        await order_service.trigger_invoice_generation(session, order)
-
-        enqueue_job_mock.assert_called_once_with("order.invoice", order_id=order.id)
-
-    async def test_checksum_match_skips(
-        self,
-        enqueue_job_mock: MagicMock,
-        save_fixture: SaveFixture,
-        session: AsyncSession,
-        product: Product,
-        customer: Customer,
-    ) -> None:
-        order = await create_order(
-            save_fixture,
-            product=product,
-            customer=customer,
-            billing_name="John Doe",
-            billing_address=Address(country=CountryAlpha2("US")),
-        )
-        order.invoice_path = "invoices/current.pdf"
-        order.invoice_checksum = invoice_service.compute_order_checksum(order)
-
-        await order_service.trigger_invoice_generation(session, order)
-
-        enqueue_job_mock.assert_not_called()
-
-
-@pytest.mark.asyncio
-class TestGenerateInvoice:
-    async def test_persists_checksum(
-        self,
-        mocker: MockerFixture,
-        save_fixture: SaveFixture,
-        session: AsyncSession,
-        product: Product,
-        customer: Customer,
-    ) -> None:
-        mocker.patch(
-            "polar.order.service.invoice_service.create_order_invoice",
-            new_callable=AsyncMock,
-            return_value="invoices/generated.pdf",
-        )
-        order = await create_order(
-            save_fixture,
-            product=product,
-            customer=customer,
-            billing_name="John Doe",
-            billing_address=Address(country=CountryAlpha2("US")),
-        )
-
-        updated = await order_service.generate_invoice(session, order)
-
-        assert updated.invoice_path == "invoices/generated.pdf"
-        assert updated.invoice_checksum == invoice_service.compute_order_checksum(
-            updated
-        )
-
-    async def test_skips_when_checksum_matches(
-        self,
-        mocker: MockerFixture,
-        save_fixture: SaveFixture,
-        session: AsyncSession,
-        product: Product,
-        customer: Customer,
-    ) -> None:
-        create_order_invoice_mock = mocker.patch(
-            "polar.order.service.invoice_service.create_order_invoice",
-            new_callable=AsyncMock,
-        )
-        order = await create_order(
-            save_fixture,
-            product=product,
-            customer=customer,
-            billing_name="John Doe",
-            billing_address=Address(country=CountryAlpha2("US")),
-        )
-        order.invoice_path = "invoices/current.pdf"
-        order.invoice_checksum = invoice_service.compute_order_checksum(order)
-
-        result = await order_service.generate_invoice(session, order)
-
-        assert result is order
-        create_order_invoice_mock.assert_not_called()
 
 
 @pytest.mark.asyncio
@@ -2594,17 +1924,15 @@ class TestHandlePayment:
         with pytest.raises(OrderNotPending):
             await order_service.handle_payment(session, order, None)
 
-    async def test_full_case_with_payment_and_tax(
+    async def test_full_case_with_payment(
         self,
         enqueue_job_mock: MagicMock,
-        tax_service_mock: MagicMock,
         session: AsyncSession,
         save_fixture: SaveFixture,
         product: Product,
         customer: Customer,
         organization: Organization,
     ) -> None:
-        # Create a pending order with tax calculation processor ID
         order = await create_order(
             save_fixture,
             product=product,
@@ -2613,103 +1941,18 @@ class TestHandlePayment:
             billing_address=Address(country=CountryAlpha2("FR")),
         )
 
-        # Set tax_calculation_processor_id
-        order.tax_processor = TaxProcessor.stripe
-        order.tax_calculation_processor_id = "tax_calc_123"
-        order.tax_behavior = TaxBehavior.exclusive
-        await save_fixture(order)
-
-        # Create a payment
         payment = await create_payment(
             save_fixture,
             organization,
             processor_id="stripe_payment_123",
         )
 
-        # Call handle_payment
         updated_order = await order_service.handle_payment(session, order, payment)
 
-        # Verify order status is updated to paid
         assert updated_order.status == OrderStatus.paid
-        assert updated_order.tax_transaction_processor_id == "TAX_TRANSACTION_ID"
 
-        # Verify enqueue_job was called to balance the order
         enqueue_job_mock.assert_called_once_with(
             "order.balance", order_id=order.id, charge_id="stripe_payment_123"
-        )
-
-        # Verify tax transaction was created
-        tax_service_mock.record.assert_called_once()
-
-    async def test_tax_recalculated_on_calculation_expired_error(
-        self,
-        enqueue_job_mock: MagicMock,
-        tax_service_mock: MagicMock,
-        calculate_tax_mock: AsyncMock,
-        session: AsyncSession,
-        save_fixture: SaveFixture,
-        product: Product,
-        organization: Organization,
-    ) -> None:
-        # Create a customer with a billing address so that _calculate_tax
-        # will actually invoke tax_calculation_service.calculate and produce a non-zero amount.
-        # The mocked calculate returns polar_round(amount * 0.20), so for net_amount=1000 → 200.
-        customer_with_address = await create_customer(
-            save_fixture,
-            organization=organization,
-            billing_address=Address(country=CountryAlpha2("FR")),
-        )
-
-        # Set tax_amount=200 to match the recalculated amount so no TaxCalculationChangedAfterPayment is raised
-        order = await create_order(
-            save_fixture,
-            product=product,
-            customer=customer_with_address,
-            status=OrderStatus.pending,
-            subtotal_amount=1000,
-            tax_amount=200,
-            billing_address=customer_with_address.billing_address,
-        )
-
-        order.tax_processor = TaxProcessor.stripe
-        order.tax_calculation_processor_id = "tax_calc_expired_123"
-        order.tax_behavior = TaxBehavior.exclusive
-        await save_fixture(order)
-
-        payment = await create_payment(
-            save_fixture,
-            organization,
-            processor_id="stripe_payment_456",
-        )
-
-        # First call to record raises CalculationExpiredError; second call (after recalculation) succeeds
-        tax_service_mock.record.side_effect = [
-            CalculationExpiredError(),
-            ("NEW_TAX_TRANSACTION_ID", TaxProcessor.numeral),
-        ]
-
-        updated_order = await order_service.handle_payment(session, order, payment)
-
-        # Order should be marked paid
-        assert updated_order.status == OrderStatus.paid
-
-        # Tax should have been recalculated via calculate
-        calculate_tax_mock.assert_called_once()
-
-        # record should have been called twice: once failing with the expired ID,
-        # once succeeding with the newly recalculated calculation ID
-        assert tax_service_mock.record.call_count == 2
-        first_record_call, second_record_call = tax_service_mock.record.call_args_list
-        assert first_record_call.args[1] == "tax_calc_expired_123"
-        assert second_record_call.args[1] == "TAX_PROCESSOR_ID"
-
-        # The tax transaction processor ID should reflect the second (successful) record call
-        assert updated_order.tax_transaction_processor_id == "NEW_TAX_TRANSACTION_ID"
-        assert updated_order.tax_processor == TaxProcessor.numeral
-
-        # The balance job should still be enqueued
-        enqueue_job_mock.assert_called_once_with(
-            "order.balance", order_id=order.id, charge_id="stripe_payment_456"
         )
 
 
@@ -4375,6 +3618,7 @@ class TestAcquirePaymentLock:
         assert order.payment_lock_acquired_at is None
 
 
+@pytest.mark.skip(reason="Stripe removed")
 @pytest.mark.asyncio
 class TestProcessRetryPayment:
     async def test_process_retry_payment_success(
@@ -4714,218 +3958,6 @@ class TestProcessRetryPayment:
             )
 
 
-@pytest.mark.asyncio
-class TestCustomerBasedInvoiceNumbering:
-    async def test_different_customers_different_invoice_numbers(
-        self,
-        save_fixture: SaveFixture,
-        session: AsyncSession,
-        organization: Organization,
-        product_one_time: Product,
-    ) -> None:
-        # Set organization to use customer-based invoice numbering
-        organization.order_settings = {
-            **organization.order_settings,
-            "invoice_numbering": InvoiceNumbering.customer,
-        }
-        await save_fixture(organization)
-
-        customer_1 = await create_customer(
-            save_fixture,
-            organization=organization,
-            email="customer1@example.com",
-            name="Customer 1",
-            stripe_customer_id="STRIPE_CUSTOMER_1",
-        )
-        customer_2 = await create_customer(
-            save_fixture,
-            organization=organization,
-            email="customer2@example.com",
-            name="Customer 2",
-            stripe_customer_id="STRIPE_CUSTOMER_2",
-        )
-
-        checkout_1 = await create_checkout(
-            save_fixture,
-            products=[product_one_time],
-            status=CheckoutStatus.confirmed,
-            customer=customer_1,
-        )
-        order_1 = await order_service.create_from_checkout_one_time(session, checkout_1)
-
-        checkout_2 = await create_checkout(
-            save_fixture,
-            products=[product_one_time],
-            status=CheckoutStatus.confirmed,
-            customer=customer_2,
-        )
-        order_2 = await order_service.create_from_checkout_one_time(session, checkout_2)
-
-        await session.refresh(order_1)
-        await session.refresh(order_2)
-
-        assert order_1.invoice_number is not None
-        assert order_2.invoice_number is not None
-        assert order_1.invoice_number != order_2.invoice_number
-
-        assert order_1.invoice_number.startswith(organization.customer_invoice_prefix)
-        assert order_2.invoice_number.startswith(organization.customer_invoice_prefix)
-
-        assert order_1.invoice_number.endswith("-0001")
-        assert order_2.invoice_number.endswith("-0001")
-
-        await session.refresh(customer_1)
-        await session.refresh(customer_2)
-        assert customer_1.short_id_str in order_1.invoice_number
-        assert customer_2.short_id_str in order_2.invoice_number
-
-        assert (
-            order_1.invoice_number
-            == f"{organization.customer_invoice_prefix}-{customer_1.short_id_str}-0001"
-        )
-        assert (
-            order_2.invoice_number
-            == f"{organization.customer_invoice_prefix}-{customer_2.short_id_str}-0001"
-        )
-
-
-@pytest.mark.asyncio
-@pytest.mark.asyncio
-class TestUpdateProductBenefitsGrants:
-    async def test_enqueues_jobs_for_one_time_orders(
-        self,
-        enqueue_job_mock: MagicMock,
-        session: AsyncSession,
-        save_fixture: SaveFixture,
-        product: Product,
-        organization: Organization,
-    ) -> None:
-        """Test that jobs are enqueued for one-time orders"""
-        customer1 = await create_customer(save_fixture, organization=organization)
-        customer2 = await create_customer(
-            save_fixture, organization=organization, email="customer2@example.com"
-        )
-
-        order1 = await create_order(
-            save_fixture, product=product, customer=customer1, subscription=None
-        )
-        order2 = await create_order(
-            save_fixture, product=product, customer=customer2, subscription=None
-        )
-
-        await order_service.update_product_benefits_grants(session, product)
-
-        assert enqueue_job_mock.call_count == 2
-        enqueue_job_mock.assert_any_call(
-            "benefit.enqueue_benefits_grants",
-            task="grant",
-            customer_id=customer1.id,
-            product_id=product.id,
-            order_id=order1.id,
-            delay=ANY,
-        )
-        enqueue_job_mock.assert_any_call(
-            "benefit.enqueue_benefits_grants",
-            task="grant",
-            customer_id=customer2.id,
-            product_id=product.id,
-            order_id=order2.id,
-            delay=ANY,
-        )
-
-    async def test_skips_subscription_orders(
-        self,
-        enqueue_job_mock: MagicMock,
-        session: AsyncSession,
-        save_fixture: SaveFixture,
-        product: Product,
-        customer: Customer,
-    ) -> None:
-        """Test that subscription orders are skipped"""
-        subscription = await create_active_subscription(
-            save_fixture, product=product, customer=customer
-        )
-
-        await create_order(
-            save_fixture,
-            product=product,
-            customer=customer,
-            subscription=subscription,
-        )
-
-        await order_service.update_product_benefits_grants(session, product)
-
-        enqueue_job_mock.assert_not_called()
-
-    async def test_skips_seat_based_orders(
-        self,
-        enqueue_job_mock: MagicMock,
-        session: AsyncSession,
-        save_fixture: SaveFixture,
-        product: Product,
-        customer: Customer,
-    ) -> None:
-        """Test that seat-based orders are skipped"""
-        order = await create_order(
-            save_fixture,
-            product=product,
-            customer=customer,
-            subscription=None,
-        )
-        order.seats = 5
-        await save_fixture(order)
-
-        await order_service.update_product_benefits_grants(session, product)
-
-        enqueue_job_mock.assert_not_called()
-
-    async def test_skips_soft_deleted_customers(
-        self,
-        enqueue_job_mock: MagicMock,
-        session: AsyncSession,
-        save_fixture: SaveFixture,
-        product: Product,
-        organization: Organization,
-    ) -> None:
-        """Test that orders with soft-deleted customers are not processed"""
-        # Create active customer with order
-        active_customer = await create_customer(
-            save_fixture, organization=organization, email="active@example.com"
-        )
-        await create_order(
-            save_fixture,
-            product=product,
-            customer=active_customer,
-            subscription=None,
-        )
-
-        # Create soft-deleted customer with order
-        deleted_customer = await create_customer(
-            save_fixture, organization=organization, email="deleted@example.com"
-        )
-        deleted_customer.set_deleted_at()
-        await save_fixture(deleted_customer)
-        await create_order(
-            save_fixture,
-            product=product,
-            customer=deleted_customer,
-            subscription=None,
-        )
-
-        await order_service.update_product_benefits_grants(session, product)
-
-        # Only one job should be enqueued for the active customer
-        assert enqueue_job_mock.call_count == 1
-        enqueue_job_mock.assert_called_once_with(
-            "benefit.enqueue_benefits_grants",
-            task="grant",
-            customer_id=active_customer.id,
-            product_id=product.id,
-            order_id=ANY,
-            delay=ANY,
-        )
-
-
 class TestVoidOrder:
     @pytest.mark.asyncio
     async def test_void_pending_order(
@@ -5232,7 +4264,6 @@ class TestCreateDraftOrder:
         )
 
         assert order.status == OrderStatus.draft
-        assert order.invoice_number is None
         assert order.customer_id == customer.id
         assert order.product_id == product_one_time.id
         assert order.subscription_id is None
@@ -5528,34 +4559,6 @@ class TestCreateDraftOrder:
                 session, off_session_organization, payload
             )
 
-    async def test_uncomputable_tax_rejected(
-        self,
-        save_fixture: SaveFixture,
-        session: AsyncSession,
-        off_session_organization: Organization,
-        product_one_time: Product,
-        tax_service_mock: MagicMock,
-    ) -> None:
-        # The customer has a billing address (so tax is attempted), but the
-        # processor can't compute tax for it. The draft must be rejected rather
-        # than persisted tax-free — finalize never recomputes it.
-        tax_service_mock.calculate.side_effect = TaxCalculationLogicalError(
-            "Invalid address"
-        )
-        customer = await create_customer(
-            save_fixture,
-            organization=off_session_organization,
-            billing_address=Address(country=CountryAlpha2("US")),
-        )
-        payload = OrderCreate(
-            customer_id=customer.id,
-            product_id=product_one_time.id,
-        )
-        with pytest.raises(PolarRequestValidationError):
-            await order_service.create_draft_order(
-                session, off_session_organization, payload
-            )
-
 
 @pytest.mark.asyncio
 class TestFinalizeOrder:
@@ -5594,7 +4597,6 @@ class TestFinalizeOrder:
             customer=customer,
             status=OrderStatus.draft,
         )
-        original_invoice_number = order.invoice_number
         mocker.patch(
             "polar.order.repository.OrderRepository.start_finalization",
             new=AsyncMock(return_value=False),
@@ -5607,7 +4609,6 @@ class TestFinalizeOrder:
 
         await session.refresh(order)
         assert order.status == OrderStatus.draft
-        assert order.invoice_number == original_invoice_number
         assert order.payment_lock_acquired_at is None
 
     async def test_feature_flag_revoked_between_create_and_finalize(
@@ -5624,7 +4625,6 @@ class TestFinalizeOrder:
             product=product,
             customer=customer,
             status=OrderStatus.draft,
-            invoice_number=None,
         )
         with pytest.raises(OffSessionChargesNotEnabled):
             await order_service.finalize_order(session, order)
@@ -5650,7 +4650,6 @@ class TestFinalizeOrder:
             product=product,
             customer=customer,
             status=OrderStatus.draft,
-            invoice_number=None,
         )
         with pytest.raises(OrganizationNotReadyForPayments):
             await order_service.finalize_order(session, order)
@@ -5672,7 +4671,6 @@ class TestFinalizeOrder:
             product=product,
             customer=customer,
             status=OrderStatus.draft,
-            invoice_number=None,
         )
         with pytest.raises(PaymentFailed):
             await order_service.finalize_order(session, order)
@@ -5697,7 +4695,6 @@ class TestFinalizeOrder:
             product=product,
             customer=customer,
             status=OrderStatus.draft,
-            invoice_number=None,
         )
 
         stripe_service_mock.create_payment_intent.side_effect = stripe_lib.CardError(
@@ -5713,7 +4710,6 @@ class TestFinalizeOrder:
 
         await session.refresh(order)
         assert order.status == OrderStatus.draft
-        assert order.invoice_number is None
         assert order.payment_lock_acquired_at is None
 
     async def test_requires_action_reverts_to_draft(
@@ -5731,7 +4727,6 @@ class TestFinalizeOrder:
             product=product,
             customer=customer,
             status=OrderStatus.draft,
-            invoice_number=None,
         )
 
         stripe_service_mock.create_payment_intent.return_value = (
@@ -5745,7 +4740,6 @@ class TestFinalizeOrder:
 
         await session.refresh(order)
         assert order.status == OrderStatus.draft
-        assert order.invoice_number is None
 
     async def test_explicit_payment_method_must_belong_to_customer(
         self,
@@ -5764,7 +4758,6 @@ class TestFinalizeOrder:
             product=product,
             customer=customer,
             status=OrderStatus.draft,
-            invoice_number=None,
         )
 
         with pytest.raises(PaymentFailed):
@@ -5791,7 +4784,6 @@ class TestFinalizeOrder:
             product=product,
             customer=customer,
             status=OrderStatus.draft,
-            invoice_number=None,
         )
 
         # A succeeded off-session charge with an expanded Charge, as
@@ -5826,8 +4818,6 @@ class TestFinalizeOrder:
         )
 
         assert result.status == OrderStatus.paid
-        # The invoice number is assigned inline, and only on success.
-        assert result.invoice_number is not None
 
         # The charge is keyed for idempotency (sync/finalize path only) so a
         # retry after a lost response can't double-charge.

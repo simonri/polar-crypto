@@ -4,6 +4,7 @@ import { usePathname, useSearchParams } from 'next/navigation'
 import {
   createContext,
   PropsWithChildren,
+  Suspense,
   useCallback,
   useContext,
   useEffect,
@@ -26,7 +27,7 @@ const NavigationHistoryContext = createContext<NavigationHistoryContextValue>({
 
 export const useNavigationHistory = () => useContext(NavigationHistoryContext)
 
-export const NavigationHistoryProvider = ({ children }: PropsWithChildren) => {
+const NavigationHistoryProviderInner = ({ children }: PropsWithChildren) => {
   const pathname = usePathname()
   const searchParams = useSearchParams()
 
@@ -64,5 +65,13 @@ export const NavigationHistoryProvider = ({ children }: PropsWithChildren) => {
     >
       {children}
     </NavigationHistoryContext.Provider>
+  )
+}
+
+export const NavigationHistoryProvider = ({ children }: PropsWithChildren) => {
+  return (
+    <Suspense fallback={<>{children}</>}>
+      <NavigationHistoryProviderInner>{children}</NavigationHistoryProviderInner>
+    </Suspense>
   )
 }

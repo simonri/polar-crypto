@@ -17,7 +17,6 @@ from polar.models import (
     Organization,
     Product,
     Subscription,
-    SubscriptionMeter,
 )
 from polar.models.subscription import CustomerCancellationReason
 from polar.subscription.service import SubscriptionUpdateContext
@@ -27,7 +26,6 @@ from ..schemas.subscription import (
     CustomerSubscriptionUpdate,
     CustomerSubscriptionUpdateClear,
     CustomerSubscriptionUpdateProduct,
-    CustomerSubscriptionUpdateSeats,
 )
 from ..utils import get_customer_id
 
@@ -38,11 +36,6 @@ class CustomerSubscriptionError(PolarError): ...
 class UpdateSubscriptionPlanNotAllowed(CustomerSubscriptionError):
     def __init__(self) -> None:
         super().__init__("Updating subscription plan is not allowed.", 403)
-
-
-class UpdateSubscriptionSeatsNotAllowed(CustomerSubscriptionError):
-    def __init__(self) -> None:
-        super().__init__("Updating subscription seats is not allowed.", 403)
 
 
 class CustomerSubscriptionSortProperty(StrEnum):
@@ -77,10 +70,8 @@ class CustomerSubscriptionService(ResourceServiceReader[Subscription]):
             .options(
                 joinedload(Subscription.customer).joinedload(Customer.organization),
                 contains_eager(Subscription.product).options(
-                    selectinload(Product.product_medias),
                     contains_eager(Product.organization),
                 ),
-                selectinload(Subscription.meters).joinedload(SubscriptionMeter.meter),
                 joinedload(Subscription.pending_update),
             )
         )
@@ -129,10 +120,8 @@ class CustomerSubscriptionService(ResourceServiceReader[Subscription]):
                 joinedload(Subscription.customer),
                 joinedload(Subscription.organization),
                 joinedload(Subscription.product).options(
-                    selectinload(Product.product_medias),
                     joinedload(Product.organization),
                 ),
-                selectinload(Subscription.meters).joinedload(SubscriptionMeter.meter),
                 joinedload(Subscription.pending_update),
             )
         )
@@ -160,21 +149,6 @@ class CustomerSubscriptionService(ResourceServiceReader[Subscription]):
                 subscription,
                 product_id=updates.product_id,
             )
-
-        if isinstance(updates, CustomerSubscriptionUpdateSeats):
-            if not organization.customer_portal_subscription_update_seats:
-                raise UpdateSubscriptionSeatsNotAllowed()
-
-            async with SubscriptionUpdateContext(
-                session, subscription, subscription_service
-            ) as ctx:
-                return await subscription_service.update_seats(
-                    session,
-                    ctx,
-                    subscription,
-                    seats=updates.seats,
-                    proration_behavior=updates.proration_behavior,
-                )
 
         if isinstance(updates, CustomerSubscriptionUpdateClear):
             async with SubscriptionUpdateContext(

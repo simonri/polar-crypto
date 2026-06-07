@@ -9,16 +9,3 @@ export const hasLegacyRecurringPrices = (
 ): prices is schemas['LegacyRecurringProductPrice'][] =>
   prices.some(isLegacyRecurringPrice)
 
-export const isMeteredPrice = (
-  price: schemas['ProductPrice'] | schemas['LegacyRecurringProductPrice'],
-): price is schemas['ProductPriceMeteredUnit'] =>
-  price.amount_type === 'metered_unit'
-
-export const getMeteredPrices = (
-  prices: schemas['ProductPrice'][],
-  currency?: string | null,
-): schemas['ProductPriceMeteredUnit'][] =>
-  prices.filter(
-    (price): price is schemas['ProductPriceMeteredUnit'] =>
-      isMeteredPrice(price) && (!currency || price.price_currency === currency),
-  )

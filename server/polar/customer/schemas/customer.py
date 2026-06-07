@@ -15,7 +15,6 @@ from pydantic import (
 )
 from pydantic.aliases import AliasChoices
 
-from polar.config import settings
 from polar.kit.address import Address, AddressInput
 from polar.kit.email import EmailStrDNS
 from polar.kit.locale import Locale
@@ -38,7 +37,6 @@ from polar.member import MemberOwnerCreate
 from polar.models.customer import CustomerType
 from polar.organization.schemas import OrganizationID
 from polar.payment_method.schemas import PaymentMethodCard, PaymentMethodGeneric
-from polar.tax.tax_id import TaxID
 
 CustomerID = Annotated[UUID4, Path(description="The customer ID.")]
 ExternalCustomerID = Annotated[str, Path(description="The customer external ID.")]
@@ -75,7 +73,6 @@ class CustomerCreateBase(MetadataInputMixin, Schema):
     )
     name: CustomerNameInput | None = None
     billing_address: AddressInput | None = None
-    tax_id: Annotated[str | None, EmptyStrToNoneValidator] = None
     locale: Locale | None = None
     organization_id: OrganizationID | None = Field(
         default=None,
@@ -146,7 +143,6 @@ class CustomerUpdateBase(MetadataInputMixin, Schema):
     )
     name: CustomerNameInput | None = None
     billing_address: AddressInput | None = None
-    tax_id: Annotated[str | None, EmptyStrToNoneValidator] = None
     locale: Locale | None = None
 
 
@@ -170,19 +166,6 @@ class CustomerUpdateExternalID(CustomerUpdateBase): ...
 
 
 # --- Read schemas ---
-
-
-def _avatar_url_for_email(email: str) -> str:
-    domain = email.split("@")[-1].lower()
-
-    if (
-        not settings.LOGO_DEV_PUBLISHABLE_KEY
-        or domain in settings.PERSONAL_EMAIL_DOMAINS
-    ):
-        email_hash = hashlib.sha256(email.lower().encode()).hexdigest()
-        return f"https://www.gravatar.com/avatar/{email_hash}?d=404"
-
-    return f"https://img.logo.dev/{domain}?size=64&retina=true&token={settings.LOGO_DEV_PUBLISHABLE_KEY}&fallback=404"
 
 
 class CustomerBase(MetadataOutputMixin, TimestampedSchema, IDSchema):
@@ -220,7 +203,6 @@ class CustomerBase(MetadataOutputMixin, TimestampedSchema, IDSchema):
     )
     name: str | None = Field(description=_name_description, examples=[_name_example])
     billing_address: Address | None
-    tax_id: TaxID | None
     locale: str | None = None
     organization_id: UUID4 = Field(
         description="The ID of the organization owning the customer.",
@@ -241,9 +223,7 @@ class CustomerBase(MetadataOutputMixin, TimestampedSchema, IDSchema):
     @computed_field(examples=["https://www.gravatar.com/avatar/xxx?d=404"])  # type: ignore[prop-decorator]
     @property
     def avatar_url(self) -> str:
-        if self.email is not None:
-            return _avatar_url_for_email(self.email)
-        identifier = self.name or str(self.id)
+        identifier = self.email or self.name or str(self.id)
         email_hash = hashlib.sha256(identifier.lower().encode()).hexdigest()
         return f"https://www.gravatar.com/avatar/{email_hash}?d=404"
 

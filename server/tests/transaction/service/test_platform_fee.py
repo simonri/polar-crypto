@@ -3,12 +3,10 @@ from unittest.mock import MagicMock
 
 import pytest
 import pytest_asyncio
-import stripe as stripe_lib
 from pytest_mock import MockerFixture
 from sqlalchemy.orm import joinedload
 
 from polar.enums import PayoutAccountType
-from polar.integrations.stripe.service import StripeService
 from polar.models import (
     Account,
     IssueReward,
@@ -45,12 +43,11 @@ async def create_balance_transactions(
 ) -> tuple[Transaction, Transaction]:
     payment_transaction = Transaction(
         type=TransactionType.payment,
-        processor=Processor.stripe,
+        processor=Processor.crypto,
         currency="usd",
         amount=10000,
         account_currency="usd",
         account_amount=10000,
-        tax_amount=2000,
         pledge=pledge,
         issue_reward=issue_reward,
         order=order,
@@ -60,12 +57,11 @@ async def create_balance_transactions(
 
     payment_transaction_fee = Transaction(
         type=TransactionType.processor_fee,
-        processor=Processor.stripe,
+        processor=Processor.crypto,
         currency="usd",
         amount=-500,
         account_currency="usd",
         account_amount=-500,
-        tax_amount=0,
         incurred_by_transaction=payment_transaction,
     )
     await save_fixture(payment_transaction_fee)
@@ -77,7 +73,6 @@ async def create_balance_transactions(
         amount=-10000,
         account_currency="usd",
         account_amount=-10000,
-        tax_amount=0,
         pledge=pledge,
         issue_reward=issue_reward,
         order=order,
@@ -92,7 +87,6 @@ async def create_balance_transactions(
         account_currency="usd",
         account_amount=10000,
         account=account,
-        tax_amount=0,
         pledge=pledge,
         issue_reward=issue_reward,
         order=order,
@@ -238,6 +232,7 @@ class TestCreateFeesReversalBalances:
         assert reversal_incoming.platform_fee_type == PlatformFeeType.subscription
         assert reversal_incoming.incurred_by_transaction == outgoing
 
+    @pytest.mark.skip(reason="Stripe removed")
     async def test_international_payment(
         self,
         mocker: MockerFixture,
@@ -246,10 +241,11 @@ class TestCreateFeesReversalBalances:
         account_processor_fees: Account,
         transaction_order_subscription: Order,
     ) -> None:
-        stripe_service_mock = MagicMock(spec=StripeService)
+        stripe_service_mock = MagicMock()
         mocker.patch(
             "polar.transaction.service.platform_fee.stripe_service",
             new=stripe_service_mock,
+            create=True,
         )
         stripe_service_mock.get_charge.return_value = stripe_lib.Charge.construct_from(
             {
@@ -314,6 +310,7 @@ class TestCreateFeesReversalBalances:
         )
         assert reversal_incoming.incurred_by_transaction == outgoing
 
+    @pytest.mark.skip(reason="Stripe removed")
     async def test_link_payment(
         self,
         mocker: MockerFixture,
@@ -322,10 +319,11 @@ class TestCreateFeesReversalBalances:
         account_processor_fees: Account,
         transaction_order_subscription: Order,
     ) -> None:
-        stripe_service_mock = MagicMock(spec=StripeService)
+        stripe_service_mock = MagicMock()
         mocker.patch(
             "polar.transaction.service.platform_fee.stripe_service",
             new=stripe_service_mock,
+            create=True,
         )
         stripe_service_mock.get_charge.return_value = stripe_lib.Charge.construct_from(
             {
@@ -395,13 +393,12 @@ class TestCreateDisputeFeesBalances:
 
         dispute_fee = Transaction(
             type=TransactionType.processor_fee,
-            processor=Processor.stripe,
+            processor=Processor.crypto,
             processor_fee_type=ProcessorFeeType.dispute,
             currency="usd",
             amount=-1500,
             account_currency="usd",
             account_amount=-1500,
-            tax_amount=0,
         )
         await save_fixture(dispute_fee)
 
@@ -448,7 +445,7 @@ class TestCreatePayoutFeesBalances:
             processor_fees_applicable=False,
         )
         payout_account = await create_payout_account(
-            save_fixture, organization, user, type=PayoutAccountType.stripe
+            save_fixture, organization, user, type=PayoutAccountType.manual
         )
 
         (
@@ -489,20 +486,22 @@ class TestCreatePayoutFeesBalances:
         assert balance_amount == 10000
         assert payout_fees_balances == []
 
+    @pytest.mark.skip(reason="Stripe removed")
     async def test_stripe_amount_too_low(
         self,
         session: AsyncSession,
         account_processor_fees: Account,
-        stripe_payout_account: PayoutAccount,
+        payout_account: PayoutAccount,
     ) -> None:
         with pytest.raises(PayoutAmountTooLow):
             await platform_fee_transaction_service.create_payout_fees_balances(
                 session,
                 account=account_processor_fees,
-                payout_account=stripe_payout_account,
+                payout_account=payout_account,
                 balance_amount=1,
             )
 
+    @pytest.mark.skip(reason="Stripe removed")
     @pytest.mark.parametrize(
         "payout_created_at", [None, datetime.now(UTC) - timedelta(days=31)]
     )
@@ -512,19 +511,18 @@ class TestCreatePayoutFeesBalances:
         session: AsyncSession,
         save_fixture: SaveFixture,
         account_processor_fees: Account,
-        stripe_payout_account: PayoutAccount,
+        payout_account: PayoutAccount,
     ) -> None:
         if payout_created_at is not None:
             payout_transaction = Transaction(
                 created_at=payout_created_at,
                 type=TransactionType.payout,
-                processor=Processor.stripe,
+                processor=Processor.crypto,
                 currency="usd",
                 amount=-10000,
                 account_currency="usd",
                 account_amount=-10000,
                 account=account_processor_fees,
-                tax_amount=0,
             )
             await save_fixture(payout_transaction)
 
@@ -534,7 +532,7 @@ class TestCreatePayoutFeesBalances:
         ) = await platform_fee_transaction_service.create_payout_fees_balances(
             session,
             account=account_processor_fees,
-            payout_account=stripe_payout_account,
+            payout_account=payout_account,
             balance_amount=10000,
         )
 
@@ -553,23 +551,23 @@ class TestCreatePayoutFeesBalances:
             == 10000 + account_fee_outgoing.amount + payout_fee_outgoing.amount
         )
 
+    @pytest.mark.skip(reason="Stripe removed")
     async def test_stripe_last_payout(
         self,
         session: AsyncSession,
         save_fixture: SaveFixture,
         account_processor_fees: Account,
-        stripe_payout_account: PayoutAccount,
+        payout_account: PayoutAccount,
     ) -> None:
         payout_transaction = Transaction(
             created_at=datetime.now(UTC) - timedelta(days=7),
             type=TransactionType.payout,
-            processor=Processor.stripe,
+            processor=Processor.crypto,
             currency="usd",
             amount=-10000,
             account_currency="usd",
             account_amount=-10000,
             account=account_processor_fees,
-            tax_amount=0,
         )
         await save_fixture(payout_transaction)
 
@@ -579,7 +577,7 @@ class TestCreatePayoutFeesBalances:
         ) = await platform_fee_transaction_service.create_payout_fees_balances(
             session,
             account=account_processor_fees,
-            payout_account=stripe_payout_account,
+            payout_account=payout_account,
             balance_amount=10000,
         )
 
@@ -591,6 +589,7 @@ class TestCreatePayoutFeesBalances:
 
         assert balance_amount == 10000 + payout_fee_outgoing.amount
 
+    @pytest.mark.skip(reason="Stripe removed")
     async def test_stripe_cross_border(
         self,
         session: AsyncSession,
@@ -603,7 +602,7 @@ class TestCreatePayoutFeesBalances:
             save_fixture,
             organization,
             user,
-            type=PayoutAccountType.stripe,
+            type=PayoutAccountType.manual,
             country="FR",
             currency="eur",
         )

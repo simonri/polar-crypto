@@ -5,17 +5,10 @@ from pydantic import UUID4, AliasChoices, Discriminator, Field
 from pydantic.aliases import AliasPath
 from pydantic.json_schema import SkipJsonSchema
 
-from polar.benefit.strategies import BenefitGrantProperties
 from polar.custom_field.data import CustomFieldDataOutputMixin
 from polar.enums import SubscriptionRecurringInterval
-from polar.kit.metadata import (
-    MetadataOutputMixin,
-    MetadataOutputType,
-)
+from polar.kit.metadata import MetadataOutputMixin
 from polar.kit.schemas import (
-    BENEFIT_GRANT_ID_EXAMPLE,
-    BENEFIT_ID_EXAMPLE,
-    METER_ID_EXAMPLE,
     PRICE_ID_EXAMPLE,
     PRODUCT_ID_EXAMPLE,
     SUBSCRIPTION_ID_EXAMPLE,
@@ -23,18 +16,12 @@ from polar.kit.schemas import (
     SetSchemaReference,
     TimestampedSchema,
 )
-from polar.models.benefit import BenefitType
 from polar.models.subscription import SubscriptionStatus
-from polar.subscription.schemas import SubscriptionMeterBase
 
 from .customer import (
     CustomerIndividual,
     CustomerTeam,
 )
-
-
-class CustomerStateSubscriptionMeter(SubscriptionMeterBase):
-    """Current consumption and spending for a subscription meter."""
 
 
 class CustomerStateSubscription(
@@ -111,67 +98,6 @@ class CustomerStateSubscription(
             AliasPath("prices", 0, "id"),
         ),
     )
-    meters: list[CustomerStateSubscriptionMeter] = Field(
-        description="List of meters associated with the subscription."
-    )
-
-
-class CustomerStateBenefitGrant(TimestampedSchema, IDSchema):
-    """An active benefit grant for a customer."""
-
-    id: UUID4 = Field(
-        description="The ID of the grant.", examples=[BENEFIT_GRANT_ID_EXAMPLE]
-    )
-    granted_at: datetime = Field(
-        description="The timestamp when the benefit was granted.",
-        examples=["2025-01-03T13:37:00Z"],
-    )
-    benefit_id: UUID4 = Field(
-        description="The ID of the benefit concerned by this grant.",
-        examples=[BENEFIT_ID_EXAMPLE],
-    )
-    benefit_type: BenefitType = Field(
-        description="The type of the benefit concerned by this grant.",
-        validation_alias=AliasChoices(
-            # Validate from stored webhook payload
-            "benefit_type",
-            # Validate from ORM model
-            AliasPath("benefit", "type"),
-        ),
-        examples=[BenefitType.custom],
-    )
-    benefit_metadata: MetadataOutputType = Field(
-        description="The metadata of the benefit concerned by this grant.",
-        examples=[{"key": "value"}],
-        validation_alias=AliasChoices(
-            # Validate from stored webhook payload
-            "benefit_metadata",
-            # Validate from ORM model
-            AliasPath("benefit", "user_metadata"),
-        ),
-    )
-    properties: BenefitGrantProperties
-
-
-class CustomerStateMeter(TimestampedSchema, IDSchema):
-    """An active meter for a customer, with latest consumed and credited units."""
-
-    meter_id: UUID4 = Field(
-        description="The ID of the meter.", examples=[METER_ID_EXAMPLE]
-    )
-    consumed_units: float = Field(
-        description="The number of consumed units.", examples=[25.0]
-    )
-    credited_units: int = Field(
-        description="The number of credited units.", examples=[100]
-    )
-    balance: float = Field(
-        description=(
-            "The balance of the meter, "
-            "i.e. the difference between credited and consumed units."
-        ),
-        examples=[75.0],
-    )
 
 
 class _CustomerStateFields:
@@ -180,12 +106,6 @@ class _CustomerStateFields:
     active_subscriptions: list[CustomerStateSubscription] = Field(
         description="The customer's active subscriptions."
     )
-    granted_benefits: list[CustomerStateBenefitGrant] = Field(
-        description="The customer's active benefit grants."
-    )
-    active_meters: list[CustomerStateMeter] = Field(
-        description="The customer's active meters.",
-    )
 
 
 class CustomerStateIndividual(_CustomerStateFields, CustomerIndividual):
@@ -193,8 +113,6 @@ class CustomerStateIndividual(_CustomerStateFields, CustomerIndividual):
     A customer along with additional state information:
 
     * Active subscriptions
-    * Granted benefits
-    * Active meters
     """
 
 
@@ -203,8 +121,6 @@ class CustomerStateTeam(_CustomerStateFields, CustomerTeam):
     A team customer along with additional state information:
 
     * Active subscriptions
-    * Granted benefits
-    * Active meters
     """
 
 

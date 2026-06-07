@@ -276,7 +276,6 @@ export default {
     github_repository: 'Acceso a repositorio de GitHub',
     discord: 'Invitación a Discord',
     downloadables: 'Descargas de archivos',
-    meter_credit: 'Créditos de consumo',
     feature_flag: 'Feature flag',
   },
   ordinal: {

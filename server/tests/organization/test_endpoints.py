@@ -939,7 +939,6 @@ class TestDeleteOrganization:
             save_fixture,
             organization=organization,
             email="customer@example.com",
-            stripe_customer_id="STRIPE_CUSTOMER_ID",
         )
         await create_order(save_fixture, customer=customer, product=product)
 
@@ -972,7 +971,6 @@ class TestDeleteOrganization:
             save_fixture,
             organization=organization,
             email="customer@example.com",
-            stripe_customer_id="STRIPE_CUSTOMER_ID",
         )
         await create_subscription(
             save_fixture,
@@ -1002,7 +1000,7 @@ class TestDeleteOrganization:
         save_fixture: SaveFixture,
         organization: Organization,
         account: Account,
-        stripe_payout_account: Account,
+        payout_account: Account,
         user_organization: UserOrganization,
         user: User,
         mocker: MockerFixture,
@@ -1034,7 +1032,7 @@ class TestDeleteOrganization:
         save_fixture: SaveFixture,
         organization: Organization,
         account: Account,
-        stripe_payout_account: Account,
+        payout_account: Account,
         user_organization: UserOrganization,
         user: User,
         mocker: MockerFixture,

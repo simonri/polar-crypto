@@ -1,12 +1,10 @@
-import asyncio
 import uuid
 from collections.abc import Sequence
-from datetime import UTC, datetime, timedelta
-from typing import Any, assert_never, cast
+from datetime import UTC, datetime
+from typing import Any, cast
 from urllib.parse import urlparse
 from uuid import UUID
 
-import email_validator
 import structlog
 from pydantic import BaseModel, Field, TypeAdapter
 from pydantic import ValidationError as PydanticValidationError
@@ -15,19 +13,15 @@ from sqlalchemy.exc import IntegrityError
 from polar.account.service import account as account_service
 from polar.auth.models import AuthSubject
 from polar.authz.service import get_accessible_org_ids
-from polar.checkout_link.repository import CheckoutLinkRepository
 from polar.config import settings
 from polar.customer.repository import CustomerRepository
-from polar.enums import InvoiceNumbering, SubscriptionProrationBehavior
 from polar.exceptions import (
     PolarError,
     PolarRequestValidationError,
-    ValidationError,
 )
 from polar.integrations.polar.service import polar_self as polar_self_service
 from polar.kit.anonymization import anonymize_email_for_deletion, anonymize_for_deletion
 from polar.kit.currency import PresentmentCurrency
-from polar.kit.http import check_url_reachable
 from polar.kit.pagination import PaginationParams
 from polar.kit.repository import Options
 from polar.kit.sorting import Sorting
@@ -40,61 +34,32 @@ from polar.models import (
     User,
     UserOrganization,
 )
-from polar.models.benefit import BenefitType
 from polar.models.member import MemberRole
 from polar.models.organization import (
-    FIRST_REVIEW_THRESHOLD_CENTS,
     STATUS_CAPABILITIES,
     CapabilityName,
     OrganizationCapabilities,
     OrganizationDetails,
     OrganizationStatus,
-    SnoozeType,
 )
-from polar.models.organization_review import OrganizationReview
 from polar.models.transaction import TransactionType
-from polar.models.user import IdentityVerificationStatus
 from polar.models.user_organization import OrganizationRole
 from polar.models.webhook_endpoint import WebhookEventType
-from polar.organization_access_token.repository import (
-    OrganizationAccessTokenRepository,
-)
-from polar.organization_review.repository import (
-    OrganizationReviewRepository as AgentReviewRepository,
-)
-from polar.organization_review.schemas import (
-    ActorType,
-    DecisionType,
-    ReviewContext,
-    ReviewVerdict,
-)
 from polar.payout_account.repository import PayoutAccountRepository
 from polar.payout_account.service import payout_account as payout_account_service
 from polar.postgres import AsyncReadSession, AsyncSession, sql
-from polar.posthog import posthog
 from polar.product.repository import ProductRepository
 from polar.transaction.service.transaction import transaction as transaction_service
 from polar.user_organization.service import (
     user_organization as user_organization_service,
 )
-from polar.webhook.repository import WebhookEndpointRepository
 from polar.webhook.service import webhook as webhook_service
 from polar.worker import enqueue_job
 
-from .repository import OrganizationRepository, OrganizationReviewRepository
+from .repository import OrganizationRepository
 from .schemas import (
     OrganizationCreate,
     OrganizationDeletionBlockedReason,
-    OrganizationReviewAppeal,
-    OrganizationReviewCheck,
-    OrganizationReviewCheckKey,
-    OrganizationReviewCheckReason,
-    OrganizationReviewCheckStatus,
-    OrganizationReviewState,
-    OrganizationReviewSubCheck,
-    OrganizationReviewSubCheckKey,
-    OrganizationReviewSubmissionBody,
-    OrganizationReviewVerdict,
     OrganizationSlugAvailability,
     OrganizationUpdate,
     SlugInput,
@@ -104,20 +69,6 @@ from .sorting import OrganizationSortProperty
 log = structlog.get_logger()
 
 _slug_input_adapter: TypeAdapter[str] = TypeAdapter(SlugInput)
-
-_MIN_REVIEW_THRESHOLD = 10_000
-SNOOZE_MIN_DAYS = 1
-SNOOZE_MAX_DAYS = 7
-
-# Benefit types Polar fulfills without merchant API integration.
-_CHECKOUT_FULFILLABLE_BENEFITS: frozenset[BenefitType] = frozenset(
-    {
-        BenefitType.downloadables,
-        BenefitType.license_keys,
-        BenefitType.github_repository,
-        BenefitType.discord,
-    }
-)
 
 # Hosting domains where it's unreasonable to expect the organization's support email to
 # match the website domain — e.g. a user whose product is hosted at `x.framer.com`
@@ -308,23 +259,17 @@ class OrganizationService:
         create_data = create_schema.model_dump(exclude_unset=True, exclude_none=True)
         feature_settings = create_data.get("feature_settings", {})
         feature_settings["member_model_enabled"] = True
-        feature_settings["seat_based_pricing_enabled"] = True
-        feature_settings["account_review_v2_enabled"] = True
         create_data["feature_settings"] = feature_settings
 
-        if settings.is_sandbox():
-            create_data["status"] = OrganizationStatus.ACTIVE
-            create_data["capabilities"] = {
-                **STATUS_CAPABILITIES[OrganizationStatus.ACTIVE]
-            }
-            create_data["status_updated_at"] = datetime.now(UTC)
+        create_data["status"] = OrganizationStatus.ACTIVE
+        create_data["capabilities"] = {**STATUS_CAPABILITIES[OrganizationStatus.ACTIVE]}
+        create_data["status_updated_at"] = datetime.now(UTC)
 
         nested = await session.begin_nested()
         try:
             organization = await repository.create(
                 Organization(
                     **create_data,
-                    customer_invoice_prefix=create_schema.slug.upper(),
                 )
             )
             organization.account = await account_service.create(session)
@@ -348,7 +293,7 @@ class OrganizationService:
             slug=organization.slug,
             owner_external_id=str(owner.id),
             owner_email=owner.email,
-            owner_name=owner.full_name or owner.email.split("@", 1)[0],
+            owner_name=owner.email.split("@", 1)[0],
         )
         await self.add_user(
             session,
@@ -360,17 +305,6 @@ class OrganizationService:
 
         enqueue_job("organization.created", organization_id=organization.id)
 
-        posthog.auth_subject_event(
-            auth_subject,
-            "organizations",
-            "create",
-            "done",
-            {
-                "id": organization.id,
-                "name": organization.name,
-                "slug": organization.slug,
-            },
-        )
         return organization
 
     async def _validate_currency_change(
@@ -417,9 +351,6 @@ class OrganizationService:
             old_member_model = organization.feature_settings.get(
                 "member_model_enabled", False
             )
-            old_seat_based = organization.feature_settings.get(
-                "seat_based_pricing_enabled", False
-            )
 
             organization.feature_settings = {
                 **organization.feature_settings,
@@ -428,44 +359,9 @@ class OrganizationService:
                 ),
             }
 
-            new_seat_based = organization.feature_settings.get(
-                "seat_based_pricing_enabled", False
-            )
             new_member_model = organization.feature_settings.get(
                 "member_model_enabled", False
             )
-
-            if old_seat_based and not new_seat_based:
-                raise PolarRequestValidationError(
-                    [
-                        {
-                            "loc": (
-                                "body",
-                                "feature_settings",
-                                "seat_based_pricing_enabled",
-                            ),
-                            "msg": "Seat-based pricing cannot be disabled once enabled.",
-                            "type": "value_error",
-                            "input": False,
-                        }
-                    ]
-                )
-
-            if not old_seat_based and new_seat_based and not new_member_model:
-                raise PolarRequestValidationError(
-                    [
-                        {
-                            "loc": (
-                                "body",
-                                "feature_settings",
-                                "seat_based_pricing_enabled",
-                            ),
-                            "msg": "Member model must be enabled before enabling seat-based pricing.",
-                            "type": "value_error",
-                            "input": True,
-                        }
-                    ]
-                )
 
             if not old_member_model and new_member_model:
                 enqueue_job(
@@ -474,33 +370,7 @@ class OrganizationService:
                 )
 
         if update_schema.subscription_settings is not None:
-            if (
-                update_schema.subscription_settings.get("proration_behavior")
-                == SubscriptionProrationBehavior.reset
-                and not organization.feature_settings.get(
-                    "reset_proration_behavior_enabled"
-                )
-            ):
-                raise PolarRequestValidationError(
-                    [
-                        {
-                            "type": "value_error",
-                            "loc": (
-                                "body",
-                                "subscription_settings",
-                                "proration_behavior",
-                            ),
-                            "msg": "The 'reset' proration behavior is not enabled for this organization.",
-                            "input": update_schema.subscription_settings[
-                                "proration_behavior"
-                            ],
-                        }
-                    ]
-                )
             organization.subscription_settings = update_schema.subscription_settings
-
-        if update_schema.notification_settings is not None:
-            organization.notification_settings = update_schema.notification_settings
 
         if update_schema.default_presentment_currency is not None:
             await self._validate_currency_change(
@@ -528,29 +398,6 @@ class OrganizationService:
         await self._after_update(session, organization)
         return organization
 
-    async def submit_for_review(
-        self, session: AsyncSession, organization: Organization
-    ) -> Organization:
-        try:
-            OrganizationReviewSubmissionBody.model_validate({"body": organization})
-        except PydanticValidationError as e:
-            raise PolarRequestValidationError(
-                cast(Sequence[ValidationError], e.errors())
-            ) from e
-
-        if organization.details_submitted_at is None:
-            organization.details_submitted_at = datetime.now(UTC)
-            enqueue_job(
-                "organization_review.run_agent",
-                organization_id=organization.id,
-                context=ReviewContext.SUBMISSION,
-            )
-
-        session.add(organization)
-
-        await self._after_update(session, organization)
-        return organization
-
     async def delete(
         self,
         session: AsyncSession,
@@ -562,15 +409,14 @@ class OrganizationService:
         DOES NOT:
         - Delete or anonymize Users related Organization
         - Delete or anonymize Account of the Organization
-        - Delete or anonymize Customers, Products, Discounts, Benefits, Checkouts of the Organization
-        - Revoke Benefits granted
+        - Delete or anonymize Customers, Products, Discounts, Checkouts of the Organization
         - Remove API tokens (organization or personal)
         """
         repository = OrganizationRepository.from_session(session)
 
         update_dict: dict[str, Any] = {}
 
-        pii_fields = ["name", "slug", "website", "customer_invoice_prefix"]
+        pii_fields = ["name", "slug", "website"]
         github_fields = ["bio", "company", "blog", "location", "twitter_username"]
         for pii_field in pii_fields + github_fields:
             value = getattr(organization, pii_field)
@@ -584,11 +430,6 @@ class OrganizationService:
                 organization.email, organization.created_at
             )
 
-        if organization._avatar_url:
-            # Anonymize by setting to Polar logo
-            update_dict["avatar_url"] = (
-                "https://avatars.githubusercontent.com/u/105373340?s=48&v=4"
-            )
         if organization.details:
             update_dict["details"] = {}
 
@@ -724,7 +565,7 @@ class OrganizationService:
             "slug": f"__deleted__-{organization.slug}-{organization.id}",
         }
 
-        pii_fields = ["name", "website", "customer_invoice_prefix"]
+        pii_fields = ["name", "website"]
         github_fields = ["bio", "company", "blog", "location", "twitter_username"]
         for pii_field in pii_fields + github_fields:
             value = getattr(organization, pii_field)
@@ -736,12 +577,6 @@ class OrganizationService:
         if organization.email:
             update_dict["email"] = anonymize_email_for_deletion(
                 organization.email, organization.created_at
-            )
-
-        if organization._avatar_url:
-            # Anonymize by setting to Polar logo
-            update_dict["avatar_url"] = (
-                "https://avatars.githubusercontent.com/u/105373340?s=48&v=4"
             )
 
         if organization.details:
@@ -796,28 +631,6 @@ class OrganizationService:
             update_dict={"payout_account_id": payout_account.id},
             flush=True,
         )
-
-        # A held payout pins the payout account it was created against, so a
-        # rebind would release to a stale account. Cancel held payouts on swap
-        # (they refund their fees, so re-requesting is safe); leave pending ones,
-        # whose transfer may already be in flight. Scope the cancel to the
-        # previous payout account so a held payout already created against the
-        # new account isn't swept up. Emitted as an event to keep the payout
-        # layer out of this service.
-        account_changed = (
-            previous_payout_account_id is not None
-            and previous_payout_account_id != payout_account.id
-        )
-        if account_changed and organization.account_id is not None:
-            enqueue_job(
-                "payout.cancel_held_payouts",
-                account_id=organization.account_id,
-                payout_account_id=previous_payout_account_id,
-            )
-
-        # Reusing an already-ready payout account doesn't fire a Stripe
-        # `account.updated` webhook, so attempt activation here too.
-        await self.maybe_activate(session, organization)
         return organization
 
     async def add_user(
@@ -873,7 +686,7 @@ class OrganizationService:
                 polar_self_service.enqueue_add_member(
                     external_customer_id=str(organization.id),
                     email=user.email,
-                    name=user.full_name or user.email.split("@", 1)[0],
+                    name=user.email.split("@", 1)[0],
                     external_id=str(user.id),
                     delay=polar_self_member_delay,
                 )
@@ -937,29 +750,6 @@ class OrganizationService:
                 allow_ownership_transfer=True,
             )
 
-    async def get_next_invoice_number(
-        self,
-        session: AsyncSession,
-        organization: Organization,
-        customer: "Customer",
-    ) -> str:
-        match organization.invoice_numbering:
-            case InvoiceNumbering.customer:
-                customer_repository = CustomerRepository.from_session(session)
-                invoice_number = (
-                    await customer_repository.increment_invoice_next_number(customer.id)
-                )
-                return f"{organization.customer_invoice_prefix}-{customer.short_id_str}-{invoice_number:04d}"
-
-            case InvoiceNumbering.organization:
-                repository = OrganizationRepository.from_session(session)
-                invoice_number = (
-                    await repository.increment_customer_invoice_next_number(
-                        organization.id
-                    )
-                )
-                return f"{organization.customer_invoice_prefix}-{invoice_number:04d}"
-
     async def _after_update(
         self,
         session: AsyncSession,
@@ -969,44 +759,14 @@ class OrganizationService:
             session, organization, WebhookEventType.organization_updated, organization
         )
 
-    async def check_review_threshold(
+    async def update_total_balance(
         self, session: AsyncSession, organization: Organization
     ) -> Organization:
         transfers_sum = await transaction_service.get_transactions_sum(
             session, organization.account_id, type=TransactionType.balance
         )
-
-        # Always keep total_balance in sync
         organization.total_balance = transfers_sum
         session.add(organization)
-
-        if settings.is_sandbox():
-            return organization
-
-        # Time-based snoozes are handled exclusively by
-        # ``organization.unsnooze_expired``; only next-sale snoozes
-        # transition here when their deadline has passed.
-        if (
-            organization.status == OrganizationStatus.SNOOZED
-            and organization.snooze_type == SnoozeType.NEXT_SALE
-            and organization.snoozed_until is not None
-            and datetime.now(UTC) >= organization.snoozed_until
-        ):
-            await self._exit_snooze_to_review(session, organization)
-            return organization
-
-        if organization.status != OrganizationStatus.ACTIVE:
-            return organization
-
-        if (
-            organization.next_review_threshold >= 0
-            and transfers_sum >= organization.next_review_threshold
-        ):
-            organization.set_status(OrganizationStatus.REVIEW)
-            session.add(organization)
-
-            enqueue_job("organization.under_review", organization_id=organization.id)
-
         return organization
 
     def _enqueue_cancel_pending_payouts(self, organization: Organization) -> None:
@@ -1029,390 +789,28 @@ class OrganizationService:
         self._enqueue_cancel_pending_payouts(organization)
         return organization
 
-    async def confirm_organization_reviewed(
-        self,
-        session: AsyncSession,
-        organization: Organization,
-        next_review_threshold: int | None = None,
-    ) -> Organization | None:
-        """Atomically transition a REVIEW or SNOOZED organization to ACTIVE.
-
-        Returns the (refreshed) organization, or ``None`` if the transition
-        did not happen — typically because another worker already confirmed
-        the org first. Callers in the auto-approve path should treat
-        ``None`` as "race lost, the other worker is canonical".
-
-        The threshold doubling is computed server-side so that concurrent
-        confirms cannot collapse onto each other's stale in-memory snapshot
-        (workers that loaded the org before a 30s LLM call would otherwise
-        all double from the same value).
-
-        For DENIED/BLOCKED reactivation, use ``backoffice_approve``. For
-        post-appeal-approval transitions, use ``approve_appeal``.
-        """
-        if organization.status not in (
-            OrganizationStatus.REVIEW,
-            OrganizationStatus.SNOOZED,
-        ):
-            raise OrganizationError(
-                f"Cannot confirm organization {organization.id}: requires "
-                f"REVIEW or SNOOZED status, got "
-                f"{organization.status.get_display_name()}.",
-                409,
-            )
-
-        repository = OrganizationRepository.from_session(session)
-        confirmed = await repository.confirm_review_atomic(
-            organization.id,
-            next_review_threshold=next_review_threshold,
-            min_threshold=_MIN_REVIEW_THRESHOLD,
-            active_capabilities={**STATUS_CAPABILITIES[OrganizationStatus.ACTIVE]},
-            now=datetime.now(UTC),
-        )
-
-        # Only the worker that actually flipped the org to ACTIVE releases its
-        # held payouts; a lost race returns None and does nothing.
-        if confirmed is not None and confirmed.account_id is not None:
-            enqueue_job(
-                "payout.release_held_payouts",
-                account_id=confirmed.account_id,
-            )
-
-        return confirmed
-
-    async def _is_activation_ready(
-        self, session: AsyncSession, organization: Organization
-    ) -> bool:
-        """Whether onboarding gates (details, payout account, KYC) are met.
-
-        Mirrors the non-review gates checked by `maybe_activate` so the
-        backoffice approval path can decide whether a reactivation should go
-        straight to ACTIVE or revert to CREATED to finish onboarding.
-        """
-        if not organization.details_submitted_at or not organization.details:
-            return False
-
-        if organization.payout_account_id is None:
-            return False
-
-        payout_account_repository = PayoutAccountRepository.from_session(session)
-        payout_account = await payout_account_repository.get_by_id(
-            organization.payout_account_id,
-        )
-        if payout_account is None or not payout_account.is_payout_ready:
-            return False
-
-        organization_repository = OrganizationRepository.from_session(session)
-        owner_user = await organization_repository.get_owner_user(organization)
-        if (
-            owner_user is None
-            or owner_user.identity_verification_status
-            != IdentityVerificationStatus.verified
-        ):
-            return False
-
-        return True
-
-    async def maybe_activate(
-        self, session: AsyncSession, organization: Organization
-    ) -> bool:
-        """Transition CREATED → ACTIVE when every onboarding gate passes.
-
-        Gates:
-          1. Status is CREATED.
-          2. Review is approved: verdict PASS, or verdict FAIL with an
-             APPROVED appeal.
-          3. Details submitted, payout account ready, owner identity
-             verified (see `_is_activation_ready`).
-
-        Idempotent — safe to call from automated triggers (AI review, Stripe
-        ``account.updated``, identity verification). Returns True iff the org
-        was transitioned.
-
-        Re-activation from DENIED/BLOCKED is synchronous and explicit, via
-        `approve_appeal` (post-appeal-approval) or `backoffice_approve`
-        (admin override). Webhooks never transition out of DENIED — the org's
-        current status is the sole source of truth for what's authorized.
-        """
-        if organization.status != OrganizationStatus.CREATED:
-            return False
-
-        review_repository = OrganizationReviewRepository.from_session(session)
-        review = await review_repository.get_by_organization(organization.id)
-        if review is None or not review.is_approved:
-            return False
-
-        if not await self._is_activation_ready(session, organization):
-            return False
-
-        organization.set_status(OrganizationStatus.ACTIVE)
-        if organization.initially_reviewed_at is None:
-            # First activation: keep the small default threshold so the next
-            # review fires quickly once the merchant starts taking payments.
-            organization.initially_reviewed_at = datetime.now(UTC)
-        else:
-            organization.next_review_threshold = max(
-                organization.next_review_threshold * 2, _MIN_REVIEW_THRESHOLD
-            )
-        session.add(organization)
-        log.info(
-            "organization.maybe_activate.activated",
-            organization_id=str(organization.id),
-            slug=organization.slug,
-        )
-        return True
-
-    async def _reactivate_organization(
-        self,
-        session: AsyncSession,
-        organization: Organization,
-        *,
-        note: str,
-        reason: str | None,
-        next_review_threshold: int | None = None,
-    ) -> OrganizationStatus:
-        """Synchronously transition a DENIED/BLOCKED org to ACTIVE or CREATED.
-
-        Goes to ACTIVE if every onboarding gate passes; otherwise to CREATED so
-        the merchant can finish Stripe onboarding (a later `maybe_activate`
-        then promotes them to ACTIVE).
-        """
-        if next_review_threshold is None:
-            next_review_threshold = FIRST_REVIEW_THRESHOLD_CENTS
-
-        is_ready = await self._is_activation_ready(session, organization)
-        target_status = (
-            OrganizationStatus.ACTIVE if is_ready else OrganizationStatus.CREATED
-        )
-
-        full_note = note
-        if not is_ready:
-            full_note += (
-                " Status reverted to created — pending Stripe Identity and "
-                "Stripe Connect Express completion before activation."
-            )
-
-        organization.set_status(target_status)
-        organization.next_review_threshold = next_review_threshold
-        _append_internal_note(organization, full_note, reason=reason)
-
-        if organization.initially_reviewed_at is None:
-            organization.initially_reviewed_at = datetime.now(UTC)
-
-        session.add(organization)
-        return target_status
-
     async def backoffice_approve(
         self,
         session: AsyncSession,
         organization: Organization,
-        next_review_threshold: int | None = None,
         *,
         reason: str,
     ) -> Organization:
-        """Backoffice override to re-activate a DENIED or BLOCKED organization.
-
-        Use for support-contact escalations where an admin overrides a denial
-        without going through the appeal flow (or after the AI auto-rejected
-        an appeal). Synchronously transitions to ACTIVE if onboarding is
-        complete, otherwise to CREATED.
-
-        If a review with a submitted appeal exists, the appeal is recorded as
-        APPROVED so the merchant's frontend reflects the approval.
-        """
-        notes = {
-            OrganizationStatus.DENIED: "Organization reactivated from denied.",
-            OrganizationStatus.BLOCKED: "Organization unblocked.",
-        }
-        if organization.status not in notes:
+        """Backoffice override to re-activate a BLOCKED organization."""
+        if organization.status != OrganizationStatus.BLOCKED:
             raise OrganizationError(
-                "backoffice_approve requires DENIED or BLOCKED status, got "
+                "backoffice_approve requires BLOCKED status, got "
                 f"{organization.status.get_display_name()}.",
                 400,
             )
-
-        review_repository = OrganizationReviewRepository.from_session(session)
-        review = await review_repository.get_by_organization(organization.id)
-        if (
-            review
-            and review.appeal_submitted_at
-            and review.appeal_decision != OrganizationReview.AppealDecision.APPROVED
-        ):
-            review.appeal_decision = OrganizationReview.AppealDecision.APPROVED
-            review.appeal_reviewed_at = datetime.now(UTC)
-            session.add(review)
-
-        target_status = await self._reactivate_organization(
-            session,
-            organization,
-            note=notes[organization.status],
-            reason=reason,
-            next_review_threshold=next_review_threshold,
-        )
+        organization.set_status(OrganizationStatus.ACTIVE)
+        _append_internal_note(organization, "Organization unblocked.", reason=reason)
+        session.add(organization)
         log.info(
-            "organization.backoffice_approve.activated"
-            if target_status == OrganizationStatus.ACTIVE
-            else "organization.backoffice_approve.reverted_to_created",
+            "organization.backoffice_approve.activated",
             organization_id=str(organization.id),
             slug=organization.slug,
         )
-        return organization
-
-    async def handle_ongoing_review_verdict(
-        self,
-        session: AsyncSession,
-        organization: Organization,
-        verdict: ReviewVerdict,
-    ) -> bool:
-        """Handle AI agent verdict for an ongoing threshold review.
-
-        Returns True if THIS worker auto-approved (won the race). Returns
-        False otherwise — either the verdict was not APPROVE, the org was
-        not in REVIEW, or another concurrent worker already confirmed it.
-        Only the winner should record the agent decision and side-effects.
-        """
-        is_eligible = (
-            organization.status == OrganizationStatus.REVIEW
-            and verdict == ReviewVerdict.APPROVE
-        )
-        if not is_eligible:
-            return False
-
-        confirmed = await self.confirm_organization_reviewed(session, organization)
-        return confirmed is not None
-
-    async def deny_organization(
-        self, session: AsyncSession, organization: Organization
-    ) -> Organization:
-        organization.set_status(OrganizationStatus.DENIED)
-        session.add(organization)
-
-        self._enqueue_cancel_pending_payouts(organization)
-
-        # If there's a pending appeal, mark it as rejected
-        review_repository = OrganizationReviewRepository.from_session(session)
-        review = await review_repository.get_by_organization(organization.id)
-        if review and review.appeal_submitted_at and review.appeal_decision is None:
-            review.appeal_decision = OrganizationReview.AppealDecision.REJECTED
-            review.appeal_reviewed_at = datetime.now(UTC)
-            session.add(review)
-
-        return organization
-
-    async def snooze_organization(
-        self,
-        session: AsyncSession,
-        organization: Organization,
-        *,
-        days: int,
-        snooze_type: SnoozeType,
-        reason: str | None = None,
-    ) -> Organization:
-        """Snooze an organization under review for ``days`` days.
-
-        Two modes are supported via ``snooze_type``:
-
-        * ``TIME_BASED``: the org returns to REVIEW automatically once the
-          deadline passes (handled by the ``organization.unsnooze_expired``
-          periodic task).
-        * ``NEXT_SALE``: the org stays snoozed past the deadline until the
-          next sale arrives, which triggers re-review via
-          ``check_review_threshold``.
-        """
-        if organization.status != OrganizationStatus.REVIEW:
-            raise OrganizationError(
-                "Only organizations under review can be snoozed.", 403
-            )
-
-        if not SNOOZE_MIN_DAYS <= days <= SNOOZE_MAX_DAYS:
-            raise OrganizationError(
-                f"Snooze duration must be between {SNOOZE_MIN_DAYS} and "
-                f"{SNOOZE_MAX_DAYS} days.",
-                400,
-            )
-
-        organization.set_status(OrganizationStatus.SNOOZED)
-        organization.snooze_count += 1
-        organization.snoozed_until = datetime.now(UTC) + timedelta(days=days)
-        organization.snooze_type = snooze_type
-
-        trigger = (
-            "auto re-review afterwards"
-            if snooze_type == SnoozeType.TIME_BASED
-            else "re-review on next sale afterwards"
-        )
-        _append_internal_note(
-            organization,
-            f"Organization snoozed (#{organization.snooze_count}) "
-            f"for {days} day(s) — {trigger}.",
-            reason=reason,
-        )
-        session.add(organization)
-        return organization
-
-    async def unsnooze_organization(
-        self,
-        session: AsyncSession,
-        organization: Organization,
-    ) -> Organization:
-        """Manually move a snoozed organization back to review."""
-        if organization.status != OrganizationStatus.SNOOZED:
-            raise OrganizationError("Only snoozed organizations can be unsnoozed.", 403)
-
-        await self._exit_snooze_to_review(session, organization)
-        return organization
-
-    async def unsnooze_expired_organizations(
-        self, session: AsyncSession
-    ) -> Sequence[Organization]:
-        """Auto-unsnooze TIME_BASED snoozes whose deadline has passed.
-
-        Run periodically by a worker. Returns the orgs transitioned.
-        """
-        repository = OrganizationRepository.from_session(session)
-        candidates = await repository.get_expired_time_based_snoozes(datetime.now(UTC))
-        transitioned: list[Organization] = []
-        for organization in candidates:
-            # Skip if a concurrent admin action already moved the org out of
-            # SNOOZED — set_status would raise InvalidStatusTransitionError
-            # and abort the whole batch otherwise.
-            if organization.status != OrganizationStatus.SNOOZED:
-                continue
-            await self._exit_snooze_to_review(session, organization)
-            transitioned.append(organization)
-        return transitioned
-
-    async def _exit_snooze_to_review(
-        self, session: AsyncSession, organization: Organization
-    ) -> None:
-        organization.set_status(OrganizationStatus.REVIEW)
-        organization.snoozed_until = None
-        organization.snooze_type = None
-        session.add(organization)
-        enqueue_job("organization.under_review", organization_id=organization.id)
-
-    async def set_organization_under_review(
-        self,
-        session: AsyncSession,
-        organization: Organization,
-        *,
-        enqueue_review: bool = True,
-    ) -> Organization:
-        organization.set_status(OrganizationStatus.REVIEW)
-        session.add(organization)
-
-        # Record a human ESCALATE decision so the agent knows not to auto-act
-        review_repository = AgentReviewRepository.from_session(session)
-        await review_repository.deactivate_current_decisions(organization.id)
-        await review_repository.save_review_decision(
-            organization_id=organization.id,
-            actor_type=ActorType.HUMAN,
-            decision=DecisionType.ESCALATE,
-            review_context=ReviewContext.MANUAL,
-        )
-
-        if enqueue_review:
-            enqueue_job("organization.under_review", organization_id=organization.id)
         return organization
 
     async def set_organization_offboarding(
@@ -1422,11 +820,6 @@ class OrganizationService:
         *,
         reason: str | None = None,
     ) -> Organization:
-        if organization.status != OrganizationStatus.REVIEW:
-            raise OrganizationError(
-                "Only organizations under review can be set to offboarding.",
-                403,
-            )
         organization.set_status(OrganizationStatus.OFFBOARDING)
         _append_internal_note(
             organization, "Organization set to offboarding.", reason=reason
@@ -1441,514 +834,6 @@ class OrganizationService:
             payment_ready=organization.can_accept_payments,
             organization_status=organization.status,
         )
-
-    async def get_ai_review(
-        self, session: AsyncSession, organization: Organization
-    ) -> OrganizationReview | None:
-        """Get the existing AI review for an organization, if any.
-
-        The actual AI review is triggered asynchronously via a background
-        task when organization details are submitted for review.
-        """
-        repository = OrganizationReviewRepository.from_session(session)
-        return await repository.get_by_organization(organization.id)
-
-    async def get_review_state(
-        self,
-        session: AsyncReadSession,
-        organization: Organization,
-    ) -> OrganizationReviewState:
-        """Build the merchant self-review checklist state.
-
-        Pre-submission, the response surfaces gating checks that block
-        submission until resolved. Once submitted, ``submitted_at`` is set
-        and the response also carries the AI verdict and any appeal state.
-        """
-        payout_account: PayoutAccount | None = None
-        if organization.payout_account_id is not None:
-            payout_account_repository = PayoutAccountRepository.from_session(session)
-            payout_account = await payout_account_repository.get_by_id(
-                organization.payout_account_id
-            )
-
-        organization_repository = OrganizationRepository.from_session(session)
-        owner_user = await organization_repository.get_owner_user(organization)
-
-        review_repository = OrganizationReviewRepository.from_session(session)
-        review = await review_repository.get_by_organization(organization.id)
-
-        # Run the HTTP-bound product-URL check concurrently with the DB-bound
-        # builders so the outbound fetch overlaps with the rest of the work.
-        product_url_task = asyncio.create_task(
-            self._build_product_url_check(organization)
-        )
-        product_configuration_check = await self._build_product_configuration_check(
-            session, organization
-        )
-        setup_readiness_check = await self._build_setup_readiness_check(
-            session, organization
-        )
-
-        preliminary_steps = [
-            self._build_product_description_check(organization),
-            product_configuration_check,
-            setup_readiness_check,
-            self._build_identity_verification_check(owner_user),
-            self._build_payout_account_check(payout_account),
-            self._build_socials_check(organization),
-            await product_url_task,
-            self._build_email_check(organization),
-        ]
-
-        submitted_at = organization.details_submitted_at
-        is_blocked = any(
-            step.status
-            in (
-                OrganizationReviewCheckStatus.FAILED,
-                OrganizationReviewCheckStatus.PENDING,
-            )
-            for step in preliminary_steps
-        )
-        can_submit = submitted_at is None and not is_blocked
-
-        verdict: OrganizationReviewVerdict | None = None
-        appeal: OrganizationReviewAppeal | None = None
-        if review is not None:
-            if review.verdict == OrganizationReview.Verdict.PASS:
-                verdict = "pass"
-            elif review.verdict == OrganizationReview.Verdict.FAIL:
-                verdict = "fail"
-            if review.appeal_submitted_at is not None:
-                appeal = OrganizationReviewAppeal(
-                    submitted_at=review.appeal_submitted_at,
-                    reviewed_at=review.appeal_reviewed_at,
-                    decision=review.appeal_decision,
-                )
-
-        return OrganizationReviewState(
-            can_submit=can_submit,
-            submitted_at=submitted_at,
-            verdict=verdict,
-            appeal=appeal,
-            preliminary_steps=preliminary_steps,
-        )
-
-    @staticmethod
-    def _not_started_check(
-        key: OrganizationReviewCheckKey,
-    ) -> OrganizationReviewCheck:
-        return OrganizationReviewCheck(
-            key=key,
-            status=OrganizationReviewCheckStatus.PENDING,
-            reasons=[OrganizationReviewCheckReason.NOT_STARTED],
-        )
-
-    @staticmethod
-    def _passed_check(key: OrganizationReviewCheckKey) -> OrganizationReviewCheck:
-        return OrganizationReviewCheck(
-            key=key, status=OrganizationReviewCheckStatus.PASSED
-        )
-
-    def _build_email_check(self, organization: Organization) -> OrganizationReviewCheck:
-        key = OrganizationReviewCheckKey.IDENTITY_EMAIL
-        if not organization.email:
-            return self._not_started_check(key)
-
-        try:
-            email_domain = email_validator.validate_email(
-                organization.email, check_deliverability=False
-            ).domain
-        except email_validator.EmailNotValidError:
-            return self._passed_check(key)
-
-        website_domain = _website_domain(organization.website)
-        reasons: list[OrganizationReviewCheckReason] = []
-
-        if email_domain in settings.PERSONAL_EMAIL_DOMAINS:
-            reasons.append(OrganizationReviewCheckReason.IDENTITY_PERSONAL_EMAIL)
-
-        if (
-            website_domain
-            and email_domain != website_domain
-            and not _is_hosted_website_domain(website_domain)
-        ):
-            reasons.append(OrganizationReviewCheckReason.IDENTITY_DOMAIN_MISMATCH)
-
-        if reasons:
-            return OrganizationReviewCheck(
-                key=key,
-                status=OrganizationReviewCheckStatus.WARNING,
-                reasons=reasons,
-            )
-        return self._passed_check(key)
-
-    async def _build_product_url_check(
-        self, organization: Organization
-    ) -> OrganizationReviewCheck:
-        key = OrganizationReviewCheckKey.PRODUCT_URL
-        if not organization.website:
-            return self._not_started_check(key)
-
-        result = await check_url_reachable(organization.website)
-        if not result.reachable:
-            return OrganizationReviewCheck(
-                key=key,
-                status=OrganizationReviewCheckStatus.FAILED,
-                reasons=[OrganizationReviewCheckReason.PRODUCT_URL_UNREACHABLE],
-                value=organization.website,
-            )
-
-        return OrganizationReviewCheck(
-            key=key,
-            status=OrganizationReviewCheckStatus.PASSED,
-            value=organization.website,
-        )
-
-    def _build_socials_check(
-        self, organization: Organization
-    ) -> OrganizationReviewCheck:
-        key = OrganizationReviewCheckKey.IDENTITY_SOCIAL_LINKS
-        if not organization.socials:
-            return self._not_started_check(key)
-        return self._passed_check(key)
-
-    def _build_identity_verification_check(
-        self, owner_user: User | None
-    ) -> OrganizationReviewCheck:
-        key = OrganizationReviewCheckKey.IDENTITY_STRIPE_VERIFICATION
-        if owner_user is None:
-            return self._not_started_check(key)
-
-        status = owner_user.identity_verification_status
-        match status:
-            case IdentityVerificationStatus.verified:
-                return self._passed_check(key)
-            case IdentityVerificationStatus.pending:
-                return OrganizationReviewCheck(
-                    key=key,
-                    status=OrganizationReviewCheckStatus.PENDING,
-                    reasons=[OrganizationReviewCheckReason.EXTERNAL_PENDING],
-                )
-            case IdentityVerificationStatus.failed:
-                return OrganizationReviewCheck(
-                    key=key,
-                    status=OrganizationReviewCheckStatus.FAILED,
-                    reasons=[OrganizationReviewCheckReason.IDENTITY_REJECTED],
-                )
-            case IdentityVerificationStatus.unverified:
-                return self._not_started_check(key)
-            case _:
-                assert_never(status)
-
-    def _build_product_description_check(
-        self, organization: Organization
-    ) -> OrganizationReviewCheck:
-        key = OrganizationReviewCheckKey.PRODUCT_DESCRIPTION
-        description = organization.details.get("product_description")
-        # ``details`` is JSONB — defend against non-string values written by
-        # legacy migrations or backoffice tooling.
-        if not isinstance(description, str) or not description.strip():
-            return self._not_started_check(key)
-        # Mirrors OrganizationReviewSubmissionDetails: min_length=30 after strip.
-        if len(description.strip()) < 30:
-            return OrganizationReviewCheck(
-                key=key,
-                status=OrganizationReviewCheckStatus.FAILED,
-                reasons=[OrganizationReviewCheckReason.IN_PROGRESS],
-            )
-        return self._passed_check(key)
-
-    def _build_payout_account_check(
-        self, payout_account: PayoutAccount | None
-    ) -> OrganizationReviewCheck:
-        key = OrganizationReviewCheckKey.PAYOUT_ACCOUNT
-        if payout_account is None:
-            return self._not_started_check(key)
-        if payout_account.is_payout_ready:
-            return self._passed_check(key)
-        # Reserve PAYOUTS_DISABLED for the case where Stripe explicitly blocked
-        # payouts on an otherwise-complete account; everything else (incomplete
-        # onboarding, charges off, missing details) is a requirements gap that
-        # the merchant can resolve by finishing Stripe Connect.
-        stripe_blocked_payouts = (
-            payout_account.is_details_submitted
-            and payout_account.is_charges_enabled
-            and not payout_account.is_payouts_enabled
-        )
-        reason = (
-            OrganizationReviewCheckReason.PAYOUT_ACCOUNT_PAYOUTS_DISABLED
-            if stripe_blocked_payouts
-            else OrganizationReviewCheckReason.PAYOUT_ACCOUNT_REQUIREMENTS_DUE
-        )
-        return OrganizationReviewCheck(
-            key=key,
-            status=OrganizationReviewCheckStatus.FAILED,
-            reasons=[reason],
-        )
-
-    async def _build_product_configuration_check(
-        self, session: AsyncReadSession, organization: Organization
-    ) -> OrganizationReviewCheck:
-        key = OrganizationReviewCheckKey.PRODUCT_CONFIGURATION
-        product_repository = ProductRepository.from_session(session)
-        product_count = await product_repository.count_by_organization_id(
-            organization.id, is_archived=False
-        )
-        if product_count == 0:
-            return self._not_started_check(key)
-        return self._passed_check(key)
-
-    async def _build_setup_readiness_check(
-        self, session: AsyncReadSession, organization: Organization
-    ) -> OrganizationReviewCheck:
-        """Setup readiness passes when the merchant has at least one
-        auto-fulfillable checkout link (selling a Polar-fulfilled benefit,
-        or with a success_url so the merchant handles fulfillment via
-        redirect), or has both an organization access token and a webhook
-        endpoint.
-
-        A checkout link with neither benefits nor a success_url has no
-        automatic fulfillment path, which is a broken integration.
-
-        An access token without a webhook is a non-blocking warning rather
-        than a failure: the merchant can still fulfill via success_url +
-        API calls, we just can't observe state changes (refunds,
-        cancellations) without webhooks during review. Aggregate checks
-        expose per-component state via `sub_checks`; the parent `status`
-        remains the source of truth for gating.
-        """
-        key = OrganizationReviewCheckKey.SETUP_READINESS
-
-        checkout_link_repository = CheckoutLinkRepository.from_session(session)
-        access_token_repository = OrganizationAccessTokenRepository.from_session(
-            session
-        )
-        webhook_repository = WebhookEndpointRepository.from_session(session)
-
-        has_checkout_link_with_fulfillable_benefit = (
-            await checkout_link_repository.has_with_benefit_types(
-                organization.id, _CHECKOUT_FULFILLABLE_BENEFITS
-            )
-        )
-        has_checkout_link_with_success_url = (
-            await checkout_link_repository.has_with_success_url(organization.id)
-        )
-        has_fulfillable_checkout_link = (
-            has_checkout_link_with_fulfillable_benefit
-            or has_checkout_link_with_success_url
-        )
-        has_any_checkout_link = await checkout_link_repository.has_any(organization.id)
-        has_access_token = await access_token_repository.has_by_organization_id(
-            organization.id
-        )
-        has_webhook = await webhook_repository.has_by_organization_id(organization.id)
-
-        def _sub(
-            sub_key: OrganizationReviewSubCheckKey, ok: bool
-        ) -> OrganizationReviewSubCheck:
-            return OrganizationReviewSubCheck(
-                key=sub_key,
-                status=OrganizationReviewCheckStatus.PASSED
-                if ok
-                else OrganizationReviewCheckStatus.PENDING,
-                reasons=[] if ok else [OrganizationReviewCheckReason.NOT_STARTED],
-            )
-
-        # Checkout link escalates to WARNING when the merchant has created a
-        # checkout link but it neither sells a fulfillable benefit nor sets a
-        # success_url — i.e. the link exists but won't actually deliver
-        # anything to the customer post-purchase.
-        if has_fulfillable_checkout_link:
-            checkout_link_sub = _sub(
-                OrganizationReviewSubCheckKey.SETUP_READINESS_CHECKOUT_LINK,
-                True,
-            )
-        elif has_any_checkout_link:
-            # The merchant created a checkout link but it neither sells a
-            # fulfillable benefit nor sets a success_url — it can't actually
-            # deliver anything post-purchase. Treat as a hard failure so the
-            # row surfaces it clearly; the parent rollup still falls back to
-            # PASSED if the API path is fully configured.
-            checkout_link_sub = OrganizationReviewSubCheck(
-                key=OrganizationReviewSubCheckKey.SETUP_READINESS_CHECKOUT_LINK,
-                status=OrganizationReviewCheckStatus.FAILED,
-                reasons=[
-                    OrganizationReviewCheckReason.SETUP_READINESS_CHECKOUT_LINK_NOT_FULFILLABLE
-                ],
-            )
-        else:
-            checkout_link_sub = _sub(
-                OrganizationReviewSubCheckKey.SETUP_READINESS_CHECKOUT_LINK,
-                False,
-            )
-        access_token_sub = _sub(
-            OrganizationReviewSubCheckKey.SETUP_READINESS_ACCESS_TOKEN,
-            has_access_token,
-        )
-
-        # Webhook escalates to WARNING (not just PENDING) when the merchant
-        # has chosen the API path: at that point we expect a webhook for
-        # observability, and its absence is a non-blocking flag rather than
-        # a "not started yet" state.
-        if has_access_token and not has_webhook:
-            webhook_sub = OrganizationReviewSubCheck(
-                key=OrganizationReviewSubCheckKey.SETUP_READINESS_WEBHOOK,
-                status=OrganizationReviewCheckStatus.WARNING,
-                reasons=[OrganizationReviewCheckReason.SETUP_READINESS_WEBHOOK_MISSING],
-            )
-        else:
-            webhook_sub = _sub(
-                OrganizationReviewSubCheckKey.SETUP_READINESS_WEBHOOK, has_webhook
-            )
-
-        api_path_passed = (
-            access_token_sub.status == OrganizationReviewCheckStatus.PASSED
-            and webhook_sub.status == OrganizationReviewCheckStatus.PASSED
-        )
-
-        if (
-            checkout_link_sub.status == OrganizationReviewCheckStatus.PASSED
-            or api_path_passed
-        ):
-            parent_status = OrganizationReviewCheckStatus.PASSED
-        elif checkout_link_sub.status == OrganizationReviewCheckStatus.FAILED:
-            # No-code path attempted but the link can't fulfill — surface as
-            # a hard failure so the user can't submit without fixing it.
-            parent_status = OrganizationReviewCheckStatus.FAILED
-        elif access_token_sub.status == OrganizationReviewCheckStatus.PASSED:
-            # API path partially configured — token present, webhook missing.
-            parent_status = OrganizationReviewCheckStatus.WARNING
-        else:
-            parent_status = OrganizationReviewCheckStatus.PENDING
-
-        # Propagate failure/warning-level reasons from sub-checks to the
-        # parent so the row header can surface a single, actionable hint
-        # without the frontend re-deriving which sub-check produced it. Skip
-        # propagation when the parent is already PASSED — one complete path
-        # makes any partial state on the other path irrelevant for the rollup
-        # message.
-        sub_checks = [checkout_link_sub, access_token_sub, webhook_sub]
-        parent_reasons: list[OrganizationReviewCheckReason] = []
-        if parent_status != OrganizationReviewCheckStatus.PASSED:
-            propagated_statuses = {
-                OrganizationReviewCheckStatus.WARNING,
-                OrganizationReviewCheckStatus.FAILED,
-            }
-            seen: set[OrganizationReviewCheckReason] = set()
-            for sub in sub_checks:
-                if sub.status not in propagated_statuses:
-                    continue
-                for reason in sub.reasons:
-                    if reason in seen:
-                        continue
-                    seen.add(reason)
-                    parent_reasons.append(reason)
-
-        return OrganizationReviewCheck(
-            key=key,
-            status=parent_status,
-            reasons=parent_reasons,
-            sub_checks=sub_checks,
-        )
-
-    async def submit_appeal(
-        self, session: AsyncSession, organization: Organization, appeal_reason: str
-    ) -> OrganizationReview:
-        """Submit an appeal and enqueue the AI agent to decide it.
-
-        The appeal is decisive: the agent either approves the org or rejects
-        the appeal with a "contact support" message. No Plain ticket is
-        created automatically.
-        """
-
-        repository = OrganizationReviewRepository.from_session(session)
-        review = await repository.get_by_organization(organization.id)
-
-        if review is None:
-            raise ValueError("Organization must have a review before submitting appeal")
-
-        if review.verdict == OrganizationReview.Verdict.PASS:
-            raise ValueError("Cannot submit appeal for a passed review")
-
-        if review.appeal_submitted_at is not None:
-            raise ValueError("Appeal has already been submitted for this organization")
-
-        review.appeal_submitted_at = datetime.now(UTC)
-        review.appeal_reason = appeal_reason
-
-        session.add(review)
-
-        enqueue_job("organization_review.appeal_submitted", organization.id)
-
-        return review
-
-    async def approve_appeal(
-        self, session: AsyncSession, organization: Organization
-    ) -> OrganizationReview:
-        """Approve an appeal and synchronously transition the organization.
-
-        Sets ``review.appeal_decision = APPROVED`` and immediately moves the
-        org out of DENIED — to ACTIVE if every onboarding gate passes,
-        otherwise to CREATED so the merchant can finish Stripe onboarding. A
-        later `maybe_activate` then promotes a CREATED org to ACTIVE.
-        """
-
-        repository = OrganizationReviewRepository.from_session(session)
-        review = await repository.get_by_organization(organization.id)
-
-        if review is None:
-            raise ValueError("Organization must have a review before approving appeal")
-
-        if review.appeal_submitted_at is None:
-            raise ValueError("No appeal has been submitted for this organization")
-
-        if review.appeal_decision is not None:
-            raise ValueError("Appeal has already been reviewed")
-
-        review.appeal_decision = OrganizationReview.AppealDecision.APPROVED
-        review.appeal_reviewed_at = datetime.now(UTC)
-        session.add(review)
-
-        if organization.status == OrganizationStatus.DENIED:
-            target_status = await self._reactivate_organization(
-                session,
-                organization,
-                note="Appeal approved.",
-                reason=review.appeal_reason,
-            )
-            log.info(
-                "organization.approve_appeal.activated"
-                if target_status == OrganizationStatus.ACTIVE
-                else "organization.approve_appeal.reverted_to_created",
-                organization_id=str(organization.id),
-                slug=organization.slug,
-            )
-
-        return review
-
-    async def deny_appeal(
-        self, session: AsyncSession, organization: Organization
-    ) -> OrganizationReview:
-        """Deny an organization's appeal and keep payment access blocked."""
-
-        repository = OrganizationReviewRepository.from_session(session)
-        review = await repository.get_by_organization(organization.id)
-
-        if review is None:
-            raise ValueError("Organization must have a review before denying appeal")
-
-        if review.appeal_submitted_at is None:
-            raise ValueError("No appeal has been submitted for this organization")
-
-        if review.appeal_decision is not None:
-            raise ValueError("Appeal has already been reviewed")
-
-        review.appeal_decision = OrganizationReview.AppealDecision.REJECTED
-        review.appeal_reviewed_at = datetime.now(UTC)
-
-        session.add(review)
-
-        return review
 
     async def mark_ai_onboarding_complete(
         self, session: AsyncSession, organization: Organization

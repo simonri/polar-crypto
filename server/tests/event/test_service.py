@@ -2,7 +2,7 @@ import uuid
 from collections.abc import Awaitable, Callable
 from datetime import timedelta
 from typing import Any
-from unittest.mock import AsyncMock, MagicMock, call
+from unittest.mock import AsyncMock, MagicMock
 from zoneinfo import ZoneInfo
 
 import pytest
@@ -10,6 +10,7 @@ from pydantic import ValidationError
 from pytest_mock import MockerFixture
 
 from polar.auth.models import AuthSubject, is_user
+from polar.event.filter import Filter, FilterClause, FilterConjunction, FilterOperator
 from polar.event.repository import EventRepository
 from polar.event.schemas import (
     EventCreateCustomer,
@@ -25,13 +26,9 @@ from polar.integrations.tinybird.service import TinybirdEventTypeStats
 from polar.kit.pagination import PaginationParams
 from polar.kit.time_queries import TimeInterval
 from polar.kit.utils import utc_now
-from polar.meter.aggregation import AggregationFunction, PropertyAggregation
-from polar.meter.filter import Filter, FilterClause, FilterConjunction, FilterOperator
 from polar.models import (
     Customer,
-    CustomerMeter,
     EventType,
-    Meter,
     Organization,
     Product,
     User,
@@ -1646,14 +1643,6 @@ class TestIngested:
 
         await event_service.ingested(session, [event.id for event in events])
 
-        enqueue_job_mock.assert_has_calls(
-            [
-                call("customer_meter.update_customer", customer.id),
-                call("customer_meter.update_customer", customer_second.id),
-            ],
-            any_order=True,
-        )
-
         tinybird_calls = [
             c for c in enqueue_job_mock.call_args_list if c.args[0] == "tinybird.ingest"
         ]
@@ -1661,210 +1650,6 @@ class TestIngested:
         tinybird_payload = tinybird_calls[0].args[1]
         assert len(tinybird_payload) == len(events)
         assert {tb["id"] for tb in tinybird_payload} == {str(e.id) for e in events}
-
-    async def test_activates_matching_customer_meter(
-        self,
-        save_fixture: SaveFixture,
-        session: AsyncSession,
-        organization: Organization,
-        customer: Customer,
-    ) -> None:
-        meter = Meter(
-            name="Test Meter",
-            organization=organization,
-            filter=Filter(
-                conjunction=FilterConjunction.and_,
-                clauses=[
-                    FilterClause(
-                        property="model", operator=FilterOperator.eq, value="lite"
-                    )
-                ],
-            ),
-            aggregation=PropertyAggregation(
-                func=AggregationFunction.sum, property="tokens"
-            ),
-        )
-        await save_fixture(meter)
-
-        customer_meter = CustomerMeter(
-            customer=customer,
-            meter=meter,
-            activated_at=None,
-        )
-        await save_fixture(customer_meter)
-
-        assert customer_meter.activated_at is None
-
-        event = await create_event(
-            save_fixture,
-            customer=customer,
-            organization=organization,
-            source=EventSource.user,
-            metadata={"model": "lite", "tokens": 10},
-        )
-
-        await event_service.ingested(session, [event.id])
-
-        await session.refresh(customer_meter)
-        assert customer_meter.activated_at is not None
-
-    async def test_does_not_activate_non_matching_customer_meter(
-        self,
-        save_fixture: SaveFixture,
-        session: AsyncSession,
-        organization: Organization,
-        customer: Customer,
-    ) -> None:
-        meter = Meter(
-            name="Test Meter",
-            organization=organization,
-            filter=Filter(
-                conjunction=FilterConjunction.and_,
-                clauses=[
-                    FilterClause(
-                        property="model", operator=FilterOperator.eq, value="lite"
-                    )
-                ],
-            ),
-            aggregation=PropertyAggregation(
-                func=AggregationFunction.sum, property="tokens"
-            ),
-        )
-        await save_fixture(meter)
-
-        customer_meter = CustomerMeter(
-            customer=customer,
-            meter=meter,
-            activated_at=None,
-        )
-        await save_fixture(customer_meter)
-
-        assert customer_meter.activated_at is None
-
-        event = await create_event(
-            save_fixture,
-            customer=customer,
-            organization=organization,
-            source=EventSource.user,
-            metadata={"model": "pro", "tokens": 10},
-        )
-
-        await event_service.ingested(session, [event.id])
-
-        await session.refresh(customer_meter)
-        assert customer_meter.activated_at is None
-
-    async def test_activates_matching_customer_meter_with_external_customer_id(
-        self,
-        save_fixture: SaveFixture,
-        session: AsyncSession,
-        organization: Organization,
-    ) -> None:
-        customer = await create_customer(
-            save_fixture,
-            organization=organization,
-            external_id="ext-customer-123",
-            email="external@example.com",
-        )
-
-        meter = Meter(
-            name="Test Meter",
-            organization=organization,
-            filter=Filter(
-                conjunction=FilterConjunction.and_,
-                clauses=[
-                    FilterClause(
-                        property="model", operator=FilterOperator.eq, value="lite"
-                    )
-                ],
-            ),
-            aggregation=PropertyAggregation(
-                func=AggregationFunction.sum, property="tokens"
-            ),
-        )
-        await save_fixture(meter)
-
-        customer_meter = CustomerMeter(
-            customer=customer,
-            meter=meter,
-            activated_at=None,
-        )
-        await save_fixture(customer_meter)
-
-        assert customer_meter.activated_at is None
-
-        event = await create_event(
-            save_fixture,
-            external_customer_id="ext-customer-123",
-            organization=organization,
-            source=EventSource.user,
-            metadata={"model": "lite", "tokens": 10},
-        )
-
-        await event_service.ingested(session, [event.id])
-
-        await session.refresh(customer_meter)
-        assert customer_meter.activated_at is not None
-
-    # async def test_creates_meter_events_for_matching_events(
-    #     self,
-    #     save_fixture: SaveFixture,
-    #     session: AsyncSession,
-    #     organization: Organization,
-    #     customer: Customer,
-    # ) -> None:
-    #     meter = Meter(
-    #         name="Test Meter",
-    #         organization=organization,
-    #         filter=Filter(
-    #             conjunction=FilterConjunction.and_,
-    #             clauses=[
-    #                 FilterClause(
-    #                     property="name", operator=FilterOperator.eq, value="api.request"
-    #                 )
-    #             ],
-    #         ),
-    #         aggregation=PropertyAggregation(
-    #             func=AggregationFunction.sum, property="tokens"
-    #         ),
-    #     )
-    #     await save_fixture(meter)
-
-    #     matching_event = await create_event(
-    #         save_fixture,
-    #         customer=customer,
-    #         organization=organization,
-    #         source=EventSource.user,
-    #         name="api.request",
-    #         metadata={"tokens": 100},
-    #     )
-    #     non_matching_event = await create_event(
-    #         save_fixture,
-    #         customer=customer,
-    #         organization=organization,
-    #         source=EventSource.user,
-    #         name="other.event",
-    #         metadata={"tokens": 50},
-    #     )
-
-    #     await event_service.ingested(
-    #         session, [matching_event.id, non_matching_event.id]
-    #     )
-
-    #     count_result = await session.execute(
-    #         select(func.count())
-    #         .select_from(MeterEvent)
-    #         .where(MeterEvent.meter_id == meter.id)
-    #     )
-    #     meter_events_count = count_result.scalar_one()
-    #     assert meter_events_count == 1
-
-    #     meter_event_result = await session.execute(
-    #         select(MeterEvent).where(MeterEvent.meter_id == meter.id)
-    #     )
-    #     meter_event = meter_event_result.scalar_one()
-    #     assert meter_event.event_id == matching_event.id
-    #     assert meter_event.customer_id == customer.id
 
 
 @pytest.mark.asyncio
@@ -1903,7 +1688,6 @@ class TestSystemEvents:
         assert event.user_metadata["amount"] == order.total_amount
         assert event.user_metadata["currency"] == order.currency
         assert event.user_metadata["net_amount"] == order.net_amount
-        assert event.user_metadata["tax_amount"] == order.tax_amount
         assert (
             event.user_metadata["applied_balance_amount"]
             == order.applied_balance_amount

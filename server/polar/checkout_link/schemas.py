@@ -22,9 +22,7 @@ from polar.kit.schemas import (
 from polar.kit.trial import TrialConfigurationInputMixin, TrialConfigurationOutputMixin
 from polar.organization.schemas import OrganizationID
 from polar.product.schemas import (
-    BenefitPublicList,
     ProductBase,
-    ProductMediaList,
     ProductPrice,
     ProductPriceList,
 )
@@ -55,12 +53,6 @@ _allow_discount_codes_description = (
     "If you apply a discount through `discount_id`, it'll still be applied, "
     "but the customer won't be able to change it."
 )
-_require_billing_address_description = (
-    "Whether to require the customer to fill their full billing address, instead of "
-    "just the country. "
-    "Customers in the US will always be required to fill their full address, "
-    "regardless of this setting."
-)
 _discount_id_description = (
     "ID of the discount to apply to the checkout. "
     "If the discount is not applicable anymore when opening the checkout link, "
@@ -69,17 +61,14 @@ _discount_id_description = (
 
 
 class CheckoutLinkCreateBase(TrialConfigurationInputMixin, MetadataInputMixin, Schema):
-    payment_processor: Literal[PaymentProcessor.stripe] = Field(
-        description="Payment processor to use. Currently only Stripe is supported."
+    payment_processor: Literal[PaymentProcessor.crypto] = Field(
+        description="Payment processor to use. Currently only crypto is supported."
     )
     label: str | None = Field(
         description="Optional label to distinguish links internally", default=None
     )
     allow_discount_codes: bool = Field(
         default=True, description=_allow_discount_codes_description
-    )
-    require_billing_address: bool = Field(
-        default=False, description=_require_billing_address_description
     )
     discount_id: UUID4 | None = Field(
         default=None, description=_discount_id_description
@@ -137,9 +126,6 @@ class CheckoutLinkUpdate(MetadataInputMixin, TrialConfigurationInputMixin):
     allow_discount_codes: bool | None = Field(
         default=None, description=_allow_discount_codes_description
     )
-    require_billing_address: bool | None = Field(
-        default=None, description=_require_billing_address_description
-    )
     discount_id: UUID4 | None = Field(
         default=None, description=_discount_id_description
     )
@@ -169,9 +155,6 @@ class CheckoutLinkBase(
         description="Optional label to distinguish links internally"
     )
     allow_discount_codes: bool = Field(description=_allow_discount_codes_description)
-    require_billing_address: bool = Field(
-        description=_require_billing_address_description
-    )
     discount_id: UUID4 | None = Field(description=_discount_id_description)
     organization_id: OrganizationID
 
@@ -185,8 +168,6 @@ class CheckoutLinkProduct(ProductBase, MetadataOutputMixin):
     """Product data for a checkout link."""
 
     prices: ProductPriceList
-    benefits: BenefitPublicList
-    medias: ProductMediaList
 
 
 CheckoutLinkDiscount = Annotated[

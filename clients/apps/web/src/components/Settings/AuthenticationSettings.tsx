@@ -3,15 +3,12 @@
 import {
   useAuth,
   useDisconnectOAuthAccount,
-  useGitHubAccount,
   useGoogleAccount,
 } from '@/hooks'
 import {
-  getGitHubAuthorizeLinkURL,
   getGoogleAuthorizeLinkURL,
 } from '@/utils/auth'
 import AlternateEmailOutlined from '@mui/icons-material/AlternateEmailOutlined'
-import GitHub from '@mui/icons-material/GitHub'
 import Google from '@mui/icons-material/Google'
 import { schemas } from '@polar-sh/client'
 import { Button } from '@polar-sh/orbit'
@@ -58,56 +55,6 @@ const AuthenticationMethod = ({
         <div className="flex justify-end text-sm text-red-500">{error}</div>
       )}
     </div>
-  )
-}
-
-const GitHubAuthenticationMethod = ({
-  oauthAccount,
-  returnTo,
-  onDisconnect,
-  isDisconnecting,
-  error,
-}: {
-  oauthAccount: schemas['OAuthAccountRead'] | undefined
-  returnTo: string
-  onDisconnect: () => void
-  isDisconnecting: boolean
-  error?: string
-}) => {
-  const authorizeURL = getGitHubAuthorizeLinkURL(returnTo)
-
-  return (
-    <AuthenticationMethod
-      icon={<GitHub />}
-      title={
-        oauthAccount
-          ? oauthAccount.account_username
-            ? `${oauthAccount.account_username} (${oauthAccount.account_email})`
-            : oauthAccount.account_email
-          : 'Connect GitHub'
-      }
-      subtitle={
-        oauthAccount
-          ? 'You can sign in with your GitHub account.'
-          : 'Sync your profile and get a better experience.'
-      }
-      action={
-        oauthAccount ? (
-          <Button
-            variant="secondary"
-            onClick={onDisconnect}
-            loading={isDisconnecting}
-          >
-            Disconnect
-          </Button>
-        ) : (
-          <Button asChild>
-            <a href={authorizeURL}>Connect</a>
-          </Button>
-        )
-      }
-      error={error}
-    />
   )
 }
 
@@ -158,7 +105,6 @@ const GoogleAuthenticationMethod = ({
 const AuthenticationSettings = () => {
   const { currentUser, reloadUser } = useAuth()
   const pathname = usePathname()
-  const githubAccount = useGitHubAccount()
   const googleAccount = useGoogleAccount()
   const disconnectOAuth = useDisconnectOAuthAccount()
   const listGroupRef = useRef<HTMLDivElement>(null)
@@ -226,20 +172,6 @@ const AuthenticationSettings = () => {
   return (
     <div ref={listGroupRef}>
       <ListGroup>
-        <ListGroup.Item>
-          <GitHubAuthenticationMethod
-            oauthAccount={githubAccount}
-            returnTo={pathname || '/start'}
-            onDisconnect={() => disconnectOAuth.mutate('github')}
-            isDisconnecting={disconnectOAuth.isPending}
-            error={
-              oauthLinkError && oauthLinkFactor === 'github'
-                ? oauthLinkError
-                : undefined
-            }
-          />
-        </ListGroup.Item>
-
         <ListGroup.Item>
           <GoogleAuthenticationMethod
             oauthAccount={googleAccount}

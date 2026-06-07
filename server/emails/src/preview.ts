@@ -56,12 +56,6 @@ I'm a dense thank you note with:
       description: 'Receive license keys for our software',
       properties: {},
     },
-    {
-      id: 'benefit-6',
-      type: 'meter_credit',
-      description: 'Get meter credits for additional usage',
-      properties: {},
-    },
   ],
 }
 

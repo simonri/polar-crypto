@@ -62,7 +62,6 @@ class OrderBase(TimestampedSchema, IDSchema):
         examples=[9000],
     )
 
-    tax_amount: int = Field(description="Sales tax amount in cents.", examples=[720])
     total_amount: int = Field(
         description="Amount in cents, after discounts and taxes.", examples=[9720]
     )
@@ -80,9 +79,6 @@ class OrderBase(TimestampedSchema, IDSchema):
         description="Amount in cents that is due for this order.", examples=[0]
     )
     refunded_amount: int = Field(description="Amount refunded in cents.", examples=[0])
-    refunded_tax_amount: int = Field(
-        description="Sales tax refunded in cents.", examples=[0]
-    )
     currency: str = Field(examples=["usd"])
     billing_reason: OrderBillingReasonInternal
     billing_name: str | None = Field(
@@ -100,24 +96,6 @@ class OrderBase(TimestampedSchema, IDSchema):
         ):
             return OrderBillingReason.subscription_cycle
         return OrderBillingReason(value)
-
-    invoice_number: str | None = Field(
-        description=(
-            "The invoice number associated with this order. "
-            "`null` while the order is in `draft` status; assigned at finalize."
-        )
-    )
-    is_invoice_generated: bool = Field(
-        description="Whether an invoice has been generated for this order."
-    )
-
-    receipt_number: str | None = Field(
-        description=(
-            "The receipt number for this order. "
-            "Set once the order is paid for organizations with receipts enabled. "
-            "When set, a downloadable receipt PDF can be obtained via the receipt endpoint."
-        ),
-    )
 
     seats: int | None = Field(
         None, description="Number of seats purchased (for seat-based one-time orders)."
@@ -163,16 +141,6 @@ class OrderBase(TimestampedSchema, IDSchema):
         return max(
             0, self.net_amount + self.applied_balance_amount - self.refunded_amount
         )
-
-    @computed_field(
-        description=(
-            "Sales tax in cents that would be refunded if the full refundable "
-            "amount is refunded."
-        ),
-        examples=[720],
-    )
-    def refundable_tax_amount(self) -> int:
-        return max(0, self.tax_amount - self.refunded_tax_amount)
 
     def get_amount_display(self) -> str:
         return format_currency(self.net_amount, self.currency)
@@ -235,7 +203,6 @@ class OrderItemSchema(IDSchema, TimestampedSchema):
     amount: int = Field(
         description="Amount in cents, before discounts and taxes.", examples=[10000]
     )
-    tax_amount: int = Field(description="Sales tax amount in cents.", examples=[720])
     proration: bool = Field(
         description="Whether this charge is due to a proration.", examples=[False]
     )
@@ -369,13 +336,3 @@ class OrderFinalize(Schema):
     )
 
 
-class OrderInvoice(Schema):
-    """Order's invoice data."""
-
-    url: str = Field(..., description="The URL to the invoice.")
-
-
-class OrderReceipt(Schema):
-    """Order's receipt data."""
-
-    url: str = Field(..., description="The URL to the receipt PDF.")

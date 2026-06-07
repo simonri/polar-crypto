@@ -12,7 +12,6 @@ from polar.email.schemas import (
 )
 from polar.email.sender import enqueue_email_template
 from polar.exceptions import PolarError, PolarRequestValidationError
-from polar.integrations.stripe.service import stripe as stripe_service
 from polar.kit.crypto import generate_token_hash_pair, get_token_hash
 from polar.kit.utils import utc_now
 from polar.member.service import member_service
@@ -159,11 +158,6 @@ class CustomerEmailUpdateService:
         )
 
         await member_service.sync_owner_email(session, customer)
-
-        if customer.stripe_customer_id is not None and customer.email is not None:
-            await stripe_service.update_customer(
-                customer.stripe_customer_id, email=customer.email
-            )
 
         # Delete the verification record
         await session.delete(record)

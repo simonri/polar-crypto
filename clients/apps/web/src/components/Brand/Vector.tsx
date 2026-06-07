@@ -155,6 +155,7 @@ function parseDAttribute(d: string): PathCommand[] {
 }
 
 function parseSVG(svgString: string): { paths: ParsedPath[]; viewBox: string } {
+  if (typeof DOMParser === 'undefined') return { paths: [], viewBox: '0 0 100 100' }
   const parser = new DOMParser()
   const doc = parser.parseFromString(svgString, 'image/svg+xml')
   const svgEl = doc.querySelector('svg')
@@ -206,6 +207,7 @@ function serializeToSVG(
   viewBox: string,
   originalSvg: string,
 ): string {
+  if (typeof DOMParser === 'undefined') return originalSvg
   const parser = new DOMParser()
   const doc = parser.parseFromString(originalSvg, 'image/svg+xml')
   const pathEls = doc.querySelectorAll('path')
@@ -543,8 +545,9 @@ export function VectorEditor({
   // Detect dark mode
   const [isDark, setIsDark] = useState(
     () =>
-      document.documentElement.classList.contains('dark') ||
-      window.matchMedia('(prefers-color-scheme: dark)').matches,
+      typeof document !== 'undefined' &&
+      (document.documentElement.classList.contains('dark') ||
+        window.matchMedia('(prefers-color-scheme: dark)').matches),
   )
   useEffect(() => {
     const mq = window.matchMedia('(prefers-color-scheme: dark)')

@@ -7,9 +7,7 @@ from polar.enums import PaymentProcessor
 from polar.kit.schemas import Schema
 from polar.order.schemas import OrderBase, OrderItemSchema, OrderUpdateBase
 from polar.product.schemas import (
-    BenefitPublicList,
     ProductBase,
-    ProductMediaList,
     ProductPrice,
     ProductPriceList,
 )
@@ -20,8 +18,6 @@ from .organization import CustomerOrganization
 
 class CustomerOrderProduct(ProductBase):
     prices: ProductPriceList
-    benefits: BenefitPublicList
-    medias: ProductMediaList
     organization: CustomerOrganization
 
 
@@ -58,18 +54,6 @@ class CustomerOrder(OrderBase):
     )
 
 
-class CustomerOrderInvoice(Schema):
-    """Order's invoice data."""
-
-    url: str = Field(..., description="The URL to the invoice.")
-
-
-class CustomerOrderReceipt(Schema):
-    """Order's receipt data."""
-
-    url: str = Field(..., description="The URL to the receipt PDF.")
-
-
 class CustomerOrderUpdate(OrderUpdateBase):
     """Schema to update an order."""
 
@@ -87,13 +71,13 @@ class CustomerOrderConfirmPayment(Schema):
     """Schema to confirm a retry payment using either a saved payment method or a new confirmation token."""
 
     confirmation_token_id: str | None = Field(
-        None, description="ID of the Stripe confirmation token for new payment methods."
+        None, description="Confirmation token (unused with crypto payments)."
     )
     payment_method_id: UUID4 | None = Field(
         None, description="ID of an existing saved payment method."
     )
     payment_processor: PaymentProcessor = Field(
-        PaymentProcessor.stripe, description="Payment processor used."
+        PaymentProcessor.crypto, description="Payment processor used."
     )
 
     @model_validator(mode="after")

@@ -1,24 +1,20 @@
 import pytest
-import stripe as stripe_lib
-from pytest_mock import MockerFixture
 from sqlalchemy import select
 
 from polar.kit.utils import utc_now
 from polar.models import (
-    NotificationRecipient,
     OAuthAccount,
     Organization,
     User,
     UserOrganization,
 )
-from polar.models.user import IdentityVerificationStatus, OAuthPlatform
+from polar.models.user import OAuthPlatform
 from polar.models.user_organization import OrganizationRole
 from polar.postgres import AsyncSession
-from polar.user.schemas import UserDeletionBlockedReason, UserUpdate
+from polar.user.schemas import UserDeletionBlockedReason
 from polar.user.service import user as user_service
 from tests.fixtures.database import SaveFixture
 from tests.fixtures.random_objects import (
-    create_notification_recipient,
     create_oauth_account,
     create_payout_account,
 )
@@ -87,82 +83,6 @@ class TestCheckCanDelete:
 
         assert result.blocked_reasons == []
         assert result.blocking_organizations == []
-
-
-@pytest.mark.asyncio
-class TestUpdate:
-    async def test_enqueues_member_name_update_when_name_changes(
-        self,
-        mocker: MockerFixture,
-        session: AsyncSession,
-        save_fixture: SaveFixture,
-        user: User,
-        organization: Organization,
-        user_organization: UserOrganization,
-    ) -> None:
-        user.first_name = "Old"
-        user.last_name = "Name"
-        await save_fixture(user)
-
-        enqueue_mock = mocker.patch(
-            "polar.user.service.polar_self_service.enqueue_update_member"
-        )
-
-        await user_service.update(
-            session, user, UserUpdate(first_name="New", last_name="Name")
-        )
-
-        enqueue_mock.assert_called_once_with(
-            external_customer_id=str(organization.id),
-            external_id=str(user.id),
-            name="New Name",
-        )
-
-    async def test_skips_when_name_cleared(
-        self,
-        mocker: MockerFixture,
-        session: AsyncSession,
-        save_fixture: SaveFixture,
-        user: User,
-        organization: Organization,
-        user_organization: UserOrganization,
-    ) -> None:
-        user.first_name = "Old"
-        user.last_name = "Name"
-        await save_fixture(user)
-
-        enqueue_mock = mocker.patch(
-            "polar.user.service.polar_self_service.enqueue_update_member"
-        )
-
-        await user_service.update(
-            session, user, UserUpdate(first_name=None, last_name=None)
-        )
-
-        enqueue_mock.assert_not_called()
-
-    async def test_skips_when_name_unchanged(
-        self,
-        mocker: MockerFixture,
-        session: AsyncSession,
-        save_fixture: SaveFixture,
-        user: User,
-        organization: Organization,
-        user_organization: UserOrganization,
-    ) -> None:
-        user.first_name = "Same"
-        user.last_name = "Name"
-        await save_fixture(user)
-
-        enqueue_mock = mocker.patch(
-            "polar.user.service.polar_self_service.enqueue_update_member"
-        )
-
-        await user_service.update(
-            session, user, UserUpdate(first_name="Same", last_name="Name")
-        )
-
-        enqueue_mock.assert_not_called()
 
 
 @pytest.mark.asyncio
@@ -242,101 +162,3 @@ class TestRequestDeletion:
 
         result = await session.execute(stmt)
         assert len(result.scalars().all()) == 0
-
-    async def test_notification_recipients_deleted(
-        self,
-        session: AsyncSession,
-        save_fixture: SaveFixture,
-        user: User,
-    ) -> None:
-        """Notification recipients are soft-deleted when user is deleted."""
-        await create_notification_recipient(
-            save_fixture, user=user, expo_push_token="ExponentPushToken[token1]"
-        )
-        await create_notification_recipient(
-            save_fixture, user=user, expo_push_token="ExponentPushToken[token2]"
-        )
-
-        stmt = select(NotificationRecipient).where(
-            NotificationRecipient.user_id == user.id,
-            NotificationRecipient.deleted_at.is_(None),
-        )
-        result = await session.execute(stmt)
-        assert len(result.scalars().all()) == 2
-
-        deletion_result = await user_service.request_deletion(session, user)
-
-        assert deletion_result.deleted is True
-
-        result = await session.execute(stmt)
-        assert len(result.scalars().all()) == 0
-
-        stmt_all = select(NotificationRecipient).where(
-            NotificationRecipient.user_id == user.id,
-        )
-        result = await session.execute(stmt_all)
-        recipients = result.scalars().all()
-        assert len(recipients) == 2
-        assert all(r.deleted_at is not None for r in recipients)
-
-
-@pytest.mark.asyncio
-class TestIdentityVerificationVerified:
-    async def test_activates_organizations_owned_by_user(
-        self,
-        mocker: MockerFixture,
-        save_fixture: SaveFixture,
-        session: AsyncSession,
-        user: User,
-        organization: Organization,
-        organization_second: Organization,
-    ) -> None:
-        """The webhook activates orgs where the verified user is the owner,
-        not orgs where they are merely the (static) payout account admin.
-        """
-        user.identity_verification_id = "vs_owner_test"
-        await save_fixture(user)
-
-        # User owns `organization`.
-        await save_fixture(
-            UserOrganization(
-                user_id=user.id,
-                organization_id=organization.id,
-                role=OrganizationRole.owner,
-            )
-        )
-
-        # User is only the payout account admin of `organization_second`
-        # (not the owner) — the old behavior would have tried to activate it.
-        await save_fixture(
-            UserOrganization(
-                user_id=user.id,
-                organization_id=organization_second.id,
-                role=OrganizationRole.member,
-            )
-        )
-        await create_payout_account(save_fixture, organization_second, user)
-
-        maybe_activate_mock = mocker.patch(
-            "polar.user.service.organization_service.maybe_activate",
-            new_callable=mocker.AsyncMock,
-        )
-
-        verification_session = stripe_lib.identity.VerificationSession.construct_from(
-            {"id": "vs_owner_test", "status": "verified"}, None
-        )
-
-        updated_user = await user_service.identity_verification_verified(
-            session, verification_session
-        )
-
-        assert (
-            updated_user.identity_verification_status
-            == IdentityVerificationStatus.verified
-        )
-
-        activated_org_ids = {
-            call.args[1].id for call in maybe_activate_mock.call_args_list
-        }
-        assert organization.id in activated_org_ids
-        assert organization_second.id not in activated_org_ids

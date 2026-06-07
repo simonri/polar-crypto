@@ -11,14 +11,10 @@ import { formatDate } from '@polar-sh/i18n/formatters/date'
 import { addDays, addMonths, addWeeks, addYears } from 'date-fns'
 import { useMemo } from 'react'
 import { hasProductCheckout, isLegacyRecurringProductPrice } from '../guards'
-import { getSeatRows } from '../utils/seats'
 import { getDiscountDisplay } from '../utils/discount'
-import { getMeteredPrices } from '../utils/product'
 import { unreachable } from '../utils/unreachable'
 import AmountLabel from './AmountLabel'
 import DetailRow from './DetailRow'
-import MeteredPriceLabel from './MeteredPriceLabel'
-import SeatDetailRow from './SeatDetailRow'
 
 function formatShortDate(date: Date, locale: AcceptedLocale): string {
   const isCurrentYear = date.getFullYear() === new Date().getFullYear()
@@ -85,13 +81,6 @@ const CheckoutPricingBreakdown = ({
     ? checkout.product.recurring_interval_count
     : null
 
-  const { product, prices, currency } = checkout
-  const meteredPrices = useMemo(
-    () =>
-      product && prices ? getMeteredPrices(prices[product.id], currency) : [],
-    [product, prices, currency],
-  )
-
   const discountEndLabel = useMemo(() => {
     if (!checkout.discount || checkout.discount.duration === 'forever') {
       return ''
@@ -156,8 +145,6 @@ const CheckoutPricingBreakdown = ({
     }
   }, [interval, intervalCount, t])
 
-  const seatRows = useMemo(() => getSeatRows(checkout), [checkout])
-
   if (checkout.is_free_product_price) {
     return null
   }
@@ -166,27 +153,12 @@ const CheckoutPricingBreakdown = ({
     <div className="flex flex-col gap-y-2">
       {checkout.currency ? (
         <>
-          {seatRows?.map((row, i) => (
-            <SeatDetailRow
-              key={i}
-              row={row}
-              currency={checkout.currency!}
-              interval={interval}
-              intervalCount={intervalCount}
-              locale={locale}
-            />
-          ))}
           <DetailRow
             title={t('checkout.pricing.subtotal')}
             className="text-gray-600"
           >
             <AmountLabel
-              amount={
-                checkout.tax_behavior === 'inclusive' &&
-                checkout.tax_amount !== null
-                  ? checkout.total_amount - checkout.tax_amount
-                  : checkout.amount
-              }
+              amount={checkout.amount}
               currency={checkout.currency}
               interval={interval}
               intervalCount={intervalCount}
@@ -228,22 +200,6 @@ const CheckoutPricingBreakdown = ({
             </>
           )}
 
-          <DetailRow
-            title={
-              checkout.tax_behavior === 'inclusive'
-                ? t('checkout.pricing.inclTax')
-                : t('checkout.pricing.taxes')
-            }
-            className="text-gray-600"
-          >
-            {checkout.tax_amount !== null
-              ? formatCurrency('standard', locale)(
-                  checkout.tax_amount,
-                  checkout.currency,
-                )
-              : '—'}
-          </DetailRow>
-
           <DetailRow title={totalLabel} emphasis>
             <AmountLabel
               amount={checkout.total_amount}
@@ -254,25 +210,6 @@ const CheckoutPricingBreakdown = ({
               locale={locale}
             />
           </DetailRow>
-          {meteredPrices.length > 0 && (
-            <DetailRow
-              title={t('checkout.pricing.additionalMeteredUsage')}
-              className="dark:border-polar-700 mt-2 border-t border-gray-200 pt-4"
-            />
-          )}
-          {meteredPrices.map((meteredPrice) => (
-            <DetailRow
-              title={meteredPrice.meter.name}
-              key={meteredPrice.id}
-              emphasis
-            >
-              <MeteredPriceLabel
-                price={meteredPrice}
-                locale={locale}
-                discount={checkout.discount}
-              />
-            </DetailRow>
-          ))}
         </>
       ) : (
         <span>{t('checkout.pricing.free')}</span>

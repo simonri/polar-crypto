@@ -4,11 +4,8 @@ import structlog
 from sqlalchemy import select
 from sqlalchemy.orm import joinedload
 
-from polar.enums import PaymentProcessor
 from polar.event.service import event as event_service
 from polar.event.system import BalanceDisputeMetadata, SystemEvent, build_system_event
-from polar.integrations.stripe.service import stripe as stripe_service
-from polar.kit.math import polar_round
 from polar.logging import Logger
 from polar.models import Customer, Dispute, Transaction
 from polar.models.transaction import Processor, TransactionType
@@ -68,26 +65,10 @@ class DisputeTransactionService(BaseTransactionService):
         if await repository.get_by_dispute_id(dispute.id) is not None:
             raise DisputeTransactionAlreadyExistsError(dispute)
 
-        if dispute.payment_processor == PaymentProcessor.stripe:
-            assert dispute.payment_processor_id is not None
-            stripe_dispute = await stripe_service.get_dispute(
-                dispute.payment_processor_id, expand=["balance_transactions"]
-            )
-            try:
-                balance_transaction = next(
-                    bt
-                    for bt in stripe_dispute.balance_transactions
-                    if bt.reporting_category == "dispute"
-                )
-            except StopIteration as e:
-                raise BalanceTransactionNotAvailableError(stripe_dispute.id) from e
-
-            settlement_amount = balance_transaction.amount
-            settlement_currency = balance_transaction.currency
-            exchange_rate = -settlement_amount / (dispute.amount + dispute.tax_amount)
-            settlement_tax_amount = -polar_round(dispute.tax_amount * exchange_rate)
-        else:
-            raise NotImplementedError()
+        # Disputes don't exist for crypto payments
+        settlement_amount = -dispute.amount
+        settlement_currency = dispute.currency
+        exchange_rate: float | None = None
 
         payment_transaction_repository = PaymentTransactionRepository.from_session(
             session
@@ -107,17 +88,13 @@ class DisputeTransactionService(BaseTransactionService):
         # Create the dispute, i.e. the transaction withdrawing the amount
         dispute_transaction = Transaction(
             type=TransactionType.dispute,
-            processor=Processor.stripe,
+            processor=Processor.crypto,
             currency=settlement_currency,
-            amount=settlement_amount - settlement_tax_amount,
+            amount=settlement_amount,
             account_currency=settlement_currency,
-            account_amount=settlement_amount - settlement_tax_amount,
-            tax_amount=settlement_tax_amount,
-            tax_country=payment_transaction.tax_country,
-            tax_state=payment_transaction.tax_state,
+            account_amount=settlement_amount,
             presentment_currency=dispute.currency,
             presentment_amount=-dispute.amount,
-            presentment_tax_amount=-dispute.tax_amount,
             exchange_rate=exchange_rate,
             dispute=dispute,
             customer_id=payment_transaction.customer_id,
@@ -144,17 +121,13 @@ class DisputeTransactionService(BaseTransactionService):
         if dispute.status == "won":
             dispute_reversal_transaction = Transaction(
                 type=TransactionType.dispute_reversal,
-                processor=Processor.stripe,
+                processor=Processor.crypto,
                 currency=settlement_currency,
-                amount=-settlement_amount + settlement_tax_amount,
+                amount=-settlement_amount,
                 account_currency=settlement_currency,
-                account_amount=-settlement_amount + settlement_tax_amount,
-                tax_amount=-settlement_tax_amount,
-                tax_country=payment_transaction.tax_country,
-                tax_state=payment_transaction.tax_state,
+                account_amount=-settlement_amount,
                 presentment_currency=dispute.currency,
                 presentment_amount=dispute.amount,
-                presentment_tax_amount=dispute.tax_amount,
                 exchange_rate=exchange_rate,
                 customer_id=payment_transaction.customer_id,
                 charge_id=payment_transaction.charge_id,
@@ -218,11 +191,7 @@ class DisputeTransactionService(BaseTransactionService):
                     "currency": dispute_transaction.currency,
                     "presentment_amount": dispute_transaction.presentment_amount,
                     "presentment_currency": dispute_transaction.presentment_currency,
-                    "tax_amount": settlement_tax_amount,
-                    "tax_state": payment_transaction.tax_state,
-                    "tax_country": payment_transaction.tax_country,
                     "fee": sum(-fee.amount for fee in dispute_fees),
-                    "exchange_rate": exchange_rate,
                 }
                 if order is not None:
                     metadata["order_id"] = str(order.id)
@@ -249,11 +218,7 @@ class DisputeTransactionService(BaseTransactionService):
                         "currency": dispute_reversal_transaction.currency,
                         "presentment_amount": dispute_reversal_transaction.presentment_amount,
                         "presentment_currency": dispute_reversal_transaction.presentment_currency,
-                        "tax_amount": -settlement_tax_amount,
-                        "tax_state": payment_transaction.tax_state,
-                        "tax_country": payment_transaction.tax_country,
                         "fee": sum(-fee.amount for fee in dispute_reversal_fees),
-                        "exchange_rate": exchange_rate,
                     }
                     if order is not None:
                         reversal_metadata["order_id"] = str(order.id)

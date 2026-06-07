@@ -8,7 +8,6 @@ import {
   useCustomerUncancelSubscription,
 } from '@/hooks/queries/customerPortal'
 import { Client, schemas } from '@polar-sh/client'
-import { formatCurrency } from '@polar-sh/currency'
 import { Button } from '@polar-sh/orbit'
 import FormattedDateTime from '@polar-sh/ui/components/atoms/FormattedDateTime'
 import ShadowBox from '@polar-sh/ui/components/atoms/ShadowBox'
@@ -45,9 +44,9 @@ const CustomerSubscriptionDetails = ({
     useState(false)
 
   const {
-    isShown: isBenefitGrantsModalOpen,
-    hide: hideBenefitGrantsModal,
-    show: showBenefitGrantsModal,
+    isShown: isManageModalOpen,
+    hide: hideManageModal,
+    show: showManageModal,
   } = useModal()
 
   const cancelSubscription = useCustomerCancelSubscription(api)
@@ -123,23 +122,6 @@ const CustomerSubscriptionDetails = ({
             />
           )
         )}
-        {subscription.meters.length > 0 && (
-          <div className="flex flex-col gap-y-4 py-2">
-            <span className="text-lg">Metered Usage</span>
-            <div className="flex flex-col gap-y-2">
-              {subscription.meters.map((subscriptionMeter) => (
-                <DetailRow
-                  key={subscriptionMeter.meter.id}
-                  label={subscriptionMeter.meter.name}
-                  value={formatCurrency('compact')(
-                    subscriptionMeter.amount,
-                    subscription.currency,
-                  )}
-                />
-              ))}
-            </div>
-          </div>
-        )}
         {subscription.ended_at && (
           <DetailRow
             label="Expired"
@@ -170,12 +152,6 @@ const CustomerSubscriptionDetails = ({
                 <DetailRow
                   label="New Product"
                   value={`${subscription.product.name} -> ${pendingProduct?.name}`}
-                />
-              )}
-              {pendingUpdate.seats !== null && (
-                <DetailRow
-                  label="Seats"
-                  value={`${subscription.seats} -> ${pendingUpdate.seats}`}
                 />
               )}
               <DetailRow
@@ -209,7 +185,7 @@ const CustomerSubscriptionDetails = ({
             </Button>
           )}
 
-        <Button className="hidden md:flex" onClick={showBenefitGrantsModal}>
+        <Button className="hidden md:flex" onClick={showManageModal}>
           Manage subscription
         </Button>
         <Link
@@ -252,8 +228,8 @@ const CustomerSubscriptionDetails = ({
       />
 
       <InlineModal
-        isShown={isBenefitGrantsModalOpen}
-        hide={hideBenefitGrantsModal}
+        isShown={isManageModalOpen}
+        hide={hideManageModal}
         modalContent={
           <div className="flex flex-col overflow-y-auto p-8">
             <CustomerPortalSubscription

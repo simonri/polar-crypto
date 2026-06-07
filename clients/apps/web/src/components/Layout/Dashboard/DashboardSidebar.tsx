@@ -1,5 +1,3 @@
-import { SupportButton } from '@/components/Feedback/SupportButton'
-import { NotificationsPopover } from '@/components/Notifications/NotificationsPopover'
 import { OmniSearch } from '@/components/Search/OmniSearch'
 import { CONFIG } from '@/utils/config'
 import { isImpersonating } from '@/utils/impersonation'
@@ -7,7 +5,6 @@ import ArrowOutwardOutlined from '@mui/icons-material/ArrowOutwardOutlined'
 import KeyboardArrowDown from '@mui/icons-material/KeyboardArrowDown'
 import Search from '@mui/icons-material/Search'
 import { schemas } from '@polar-sh/client'
-import { Avatar } from '@polar-sh/orbit'
 import {
   Sidebar,
   SidebarContent,
@@ -102,7 +99,6 @@ export const DashboardSidebar = ({
           animate={{ opacity: 1 }}
           transition={{ duration: 1 }}
         >
-          <NotificationsPopover />
           <SidebarTrigger />
         </motion.div>
       </SidebarHeader>
@@ -169,9 +165,6 @@ export const DashboardSidebar = ({
           </div>
         )}
 
-        {type === 'organization' && organization && (
-          <SupportButton organization={organization} />
-        )}
         <Link
           className={twMerge(
             'flex flex-row items-center rounded-lg border border-transparent text-sm transition-colors dark:border-transparent',
@@ -193,11 +186,6 @@ export const DashboardSidebar = ({
               <DropdownMenu>
                 <DropdownMenuTrigger asChild>
                   <SidebarMenuButton>
-                    <Avatar
-                      name={organization.name}
-                      avatar_url={organization.avatar_url}
-                      className="h-6 w-6"
-                    />
                     {!isCollapsed && (
                       <>
                         <span className="min-w-0 truncate">
@@ -222,11 +210,6 @@ export const DashboardSidebar = ({
                       className="flex flex-row items-center gap-x-2"
                       onClick={() => navigateToOrganization(org)}
                     >
-                      <Avatar
-                        name={org.name}
-                        avatar_url={org.avatar_url}
-                        className="h-6 w-6"
-                      />
                       <span className="min-w-0 truncate">{org.name}</span>
                     </DropdownMenuItem>
                   ))}

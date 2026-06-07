@@ -7,10 +7,8 @@ import OrganizationAccessTokensSettings from '@/components/Settings/Organization
 import OrganizationCustomerEmailSettings from '@/components/Settings/OrganizationCustomerEmailSettings'
 import OrganizationCustomerPortalSettings from '@/components/Settings/OrganizationCustomerPortalSettings'
 import OrganizationDeleteSettings from '@/components/Settings/OrganizationDeleteSettings'
-import OrganizationNotificationSettings from '@/components/Settings/OrganizationNotificationSettings'
 import OrganizationPaymentSettings from '@/components/Settings/OrganizationPaymentSettings'
 import OrganizationProfileSettings from '@/components/Settings/OrganizationProfileSettings'
-import OrganizationSubscriptionSettings from '@/components/Settings/OrganizationSubscriptionSettings'
 import { Section, SectionDescription } from '@/components/Settings/Section'
 import { useHasPermission } from '@/hooks/permissions'
 import { useUserOrganizationNotificationSettings } from '@/hooks/queries/user_organizations'
@@ -50,14 +48,6 @@ export default function ClientPage({
           />
         </Section>
 
-        <Section id="subscriptions">
-          <SectionDescription title="Subscriptions" />
-          <OrganizationSubscriptionSettings
-            organization={org}
-            readOnly={!canManageOrganization}
-          />
-        </Section>
-
         <Section id="customer_portal">
           <SectionDescription title="Customer portal" />
           <OrganizationCustomerPortalSettings
@@ -89,19 +79,6 @@ export default function ClientPage({
             organization={org}
             readOnly={!canManageOrganization}
           />
-        </Section>
-
-        <Section id="account-notifications">
-          <SectionDescription
-            title="Your notifications"
-            description="Choose which emails you receive as a member of this organization."
-          />
-          {userNotificationSettings && (
-            <OrganizationNotificationSettings
-              organization={org}
-              userNotificationSettings={userNotificationSettings}
-            />
-          )}
         </Section>
 
         <Section id="features">

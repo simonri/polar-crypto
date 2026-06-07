@@ -70,41 +70,20 @@ export default async function Page(props: {
     searchParams,
   )
 
-  const [
-    {
-      data: subscriptions,
-      error: subscriptionsError,
-      response: subscriptionsResponse,
-    },
-    {
-      data: claimedSubscriptions,
-      error: claimedSubscriptionsError,
-      response: claimedSubscriptionsResponse,
-    },
-  ] = await Promise.all([
-    api.GET('/v1/customer-portal/subscriptions/', {
-      params: {
-        query: {
-          limit: 100,
-        },
+  const {
+    data: subscriptions,
+    error: subscriptionsError,
+    response: subscriptionsResponse,
+  } = await api.GET('/v1/customer-portal/subscriptions/', {
+    params: {
+      query: {
+        limit: 100,
       },
-      ...cacheConfig,
-    }),
+    },
+    ...cacheConfig,
+  })
 
-    api.GET('/v1/customer-portal/seats/subscriptions', {
-      params: {
-        query: {
-          limit: 100,
-        },
-      },
-      ...cacheConfig,
-    }),
-  ])
-
-  if (
-    subscriptionsResponse.status === 401 ||
-    claimedSubscriptionsResponse.status === 401
-  ) {
+  if (subscriptionsResponse.status === 401) {
     redirect(
       `/${organization.slug}/portal/request?${new URLSearchParams(searchParams)}`,
     )
@@ -114,16 +93,11 @@ export default async function Page(props: {
     throw subscriptionsError
   }
 
-  if (claimedSubscriptionsError) {
-    throw claimedSubscriptionsError
-  }
-
   return (
     <OverviewPage
       organization={organization}
       products={products}
       subscriptions={subscriptions}
-      claimedSubscriptions={claimedSubscriptions!}
       customerSessionToken={token as string}
     />
   )

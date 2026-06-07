@@ -106,23 +106,6 @@ export interface paths {
     patch?: never
     trace?: never
   }
-  '/v1/users/me/identity-verification': {
-    parameters: {
-      query?: never
-      header?: never
-      path?: never
-      cookie?: never
-    }
-    get?: never
-    put?: never
-    /** Create Identity Verification */
-    post: operations['users:create_identity_verification']
-    delete?: never
-    options?: never
-    head?: never
-    patch?: never
-    trace?: never
-  }
   '/v1/users/me/oauth-accounts/{platform}': {
     parameters: {
       query?: never
@@ -143,359 +126,6 @@ export interface paths {
      *     Note: You cannot disconnect your last authentication method if your email is not verified.
      */
     delete: operations['users:disconnect_oauth_account']
-    options?: never
-    head?: never
-    patch?: never
-    trace?: never
-  }
-  '/v1/integrations/github_repository_benefit/user/authorize': {
-    parameters: {
-      query?: never
-      header?: never
-      path?: never
-      cookie?: never
-    }
-    /** Integrations.Github Repository Benefit.User Authorize */
-    get: operations['integrations_github_repository_benefit:integrations.github_repository_benefit.user_authorize']
-    put?: never
-    post?: never
-    delete?: never
-    options?: never
-    head?: never
-    patch?: never
-    trace?: never
-  }
-  '/v1/integrations/github_repository_benefit/user/callback': {
-    parameters: {
-      query?: never
-      header?: never
-      path?: never
-      cookie?: never
-    }
-    /** Integrations.Github Repository Benefit.User Callback */
-    get: operations['integrations_github_repository_benefit:integrations.github_repository_benefit.user_callback']
-    put?: never
-    post?: never
-    delete?: never
-    options?: never
-    head?: never
-    patch?: never
-    trace?: never
-  }
-  '/v1/integrations/github_repository_benefit/user/repositories': {
-    parameters: {
-      query?: never
-      header?: never
-      path?: never
-      cookie?: never
-    }
-    /**
-     * Integrations.Github Repository Benefit.User Repositories
-     * @description Lists available repositories for this user
-     */
-    get: operations['integrations_github_repository_benefit:integrations.github_repository_benefit.user_repositories']
-    put?: never
-    post?: never
-    delete?: never
-    options?: never
-    head?: never
-    patch?: never
-    trace?: never
-  }
-  '/v1/integrations/github_repository_benefit/installation/install': {
-    parameters: {
-      query?: never
-      header?: never
-      path?: never
-      cookie?: never
-    }
-    /** Integrations.Github Repository Benefit.Installation Install */
-    get: operations['integrations_github_repository_benefit:integrations.github_repository_benefit.installation_install']
-    put?: never
-    post?: never
-    delete?: never
-    options?: never
-    head?: never
-    patch?: never
-    trace?: never
-  }
-  '/v1/integrations/github_repository_benefit/installation/callback': {
-    parameters: {
-      query?: never
-      header?: never
-      path?: never
-      cookie?: never
-    }
-    /** Integrations.Github Repository Benefit.Installation Callback */
-    get: operations['integrations_github_repository_benefit:integrations.github_repository_benefit.installation_callback']
-    put?: never
-    post?: never
-    delete?: never
-    options?: never
-    head?: never
-    patch?: never
-    trace?: never
-  }
-  '/v1/integrations/discord/bot/authorize': {
-    parameters: {
-      query?: never
-      header?: never
-      path?: never
-      cookie?: never
-    }
-    /** Integrations.Discord.Bot Authorize */
-    get: operations['integrations_discord:integrations.discord.bot_authorize']
-    put?: never
-    post?: never
-    delete?: never
-    options?: never
-    head?: never
-    patch?: never
-    trace?: never
-  }
-  '/v1/integrations/discord/bot/callback': {
-    parameters: {
-      query?: never
-      header?: never
-      path?: never
-      cookie?: never
-    }
-    /** Integrations.Discord.Bot Callback */
-    get: operations['integrations_discord:integrations.discord.bot_callback']
-    put?: never
-    post?: never
-    delete?: never
-    options?: never
-    head?: never
-    patch?: never
-    trace?: never
-  }
-  '/v1/integrations/discord/guild/lookup': {
-    parameters: {
-      query?: never
-      header?: never
-      path?: never
-      cookie?: never
-    }
-    /** Discord Guild Lookup */
-    get: operations['integrations_discord:discord_guild_lookup']
-    put?: never
-    post?: never
-    delete?: never
-    options?: never
-    head?: never
-    patch?: never
-    trace?: never
-  }
-  '/v1/integrations/slack/integration': {
-    parameters: {
-      query?: never
-      header?: never
-      path?: never
-      cookie?: never
-    }
-    /**
-     * Get Integration
-     * @description **Scopes**: `organizations:read` `organizations:write`
-     */
-    get: operations['integrations_slack:get_integration']
-    put?: never
-    post?: never
-    /**
-     * Delete Integration
-     * @description **Scopes**: `organizations:write`
-     */
-    delete: operations['integrations_slack:delete_integration']
-    options?: never
-    head?: never
-    patch?: never
-    trace?: never
-  }
-  '/v1/integrations/slack/users': {
-    parameters: {
-      query?: never
-      header?: never
-      path?: never
-      cookie?: never
-    }
-    /**
-     * List Workspace Users
-     * @description **Scopes**: `organizations:read` `organizations:write`
-     */
-    get: operations['integrations_slack:list_workspace_users']
-    put?: never
-    post?: never
-    delete?: never
-    options?: never
-    head?: never
-    patch?: never
-    trace?: never
-  }
-  '/v1/integrations/slack/manifest': {
-    parameters: {
-      query?: never
-      header?: never
-      path?: never
-      cookie?: never
-    }
-    get?: never
-    put?: never
-    /**
-     * Post Manifest
-     * @description **Scopes**: `organizations:write`
-     */
-    post: operations['integrations_slack:post_manifest']
-    delete?: never
-    options?: never
-    head?: never
-    patch?: never
-    trace?: never
-  }
-  '/v1/integrations/slack/credentials': {
-    parameters: {
-      query?: never
-      header?: never
-      path?: never
-      cookie?: never
-    }
-    get?: never
-    put?: never
-    /**
-     * Post Credentials
-     * @description **Scopes**: `organizations:write`
-     */
-    post: operations['integrations_slack:post_credentials']
-    delete?: never
-    options?: never
-    head?: never
-    patch?: never
-    trace?: never
-  }
-  '/v1/integrations/slack/authorize': {
-    parameters: {
-      query?: never
-      header?: never
-      path?: never
-      cookie?: never
-    }
-    /**
-     * Authorize
-     * @description **Scopes**: `organizations:write`
-     */
-    get: operations['integrations_slack:authorize']
-    put?: never
-    post?: never
-    delete?: never
-    options?: never
-    head?: never
-    patch?: never
-    trace?: never
-  }
-  '/v1/integrations/slack/callback': {
-    parameters: {
-      query?: never
-      header?: never
-      path?: never
-      cookie?: never
-    }
-    /**
-     * Integrations.Slack.Callback
-     * @description **Scopes**: `organizations:write`
-     */
-    get: operations['integrations_slack:integrations.slack.callback']
-    put?: never
-    post?: never
-    delete?: never
-    options?: never
-    head?: never
-    patch?: never
-    trace?: never
-  }
-  '/v1/notifications': {
-    parameters: {
-      query?: never
-      header?: never
-      path?: never
-      cookie?: never
-    }
-    /**
-     * Get
-     * @description **Scopes**: `notifications:read`
-     */
-    get: operations['notifications:get']
-    put?: never
-    post?: never
-    delete?: never
-    options?: never
-    head?: never
-    patch?: never
-    trace?: never
-  }
-  '/v1/notifications/read': {
-    parameters: {
-      query?: never
-      header?: never
-      path?: never
-      cookie?: never
-    }
-    get?: never
-    put?: never
-    /**
-     * Mark Read
-     * @description **Scopes**: `notifications:write`
-     */
-    post: operations['notifications:mark_read']
-    delete?: never
-    options?: never
-    head?: never
-    patch?: never
-    trace?: never
-  }
-  '/v1/notifications/recipients': {
-    parameters: {
-      query?: never
-      header?: never
-      path?: never
-      cookie?: never
-    }
-    /**
-     * Lists all notification recipients subscribed to notifications
-     * @description List all devices subscribed to notifications.
-     *
-     *     **Scopes**: `notification_recipients:read` `notification_recipients:write`
-     */
-    get: operations['notifications:list']
-    put?: never
-    /**
-     * Subscribes a device to notifications
-     * @description Create a notification recipient.
-     *
-     *     **Scopes**: `notification_recipients:write`
-     */
-    post: operations['notifications:create']
-    delete?: never
-    options?: never
-    head?: never
-    patch?: never
-    trace?: never
-  }
-  '/v1/notifications/recipients/{id}': {
-    parameters: {
-      query?: never
-      header?: never
-      path?: never
-      cookie?: never
-    }
-    get?: never
-    put?: never
-    post?: never
-    /**
-     * Delete
-     * @description Delete a notification recipient.
-     *
-     *     **Scopes**: `notification_recipients:write`
-     */
-    delete: operations['notifications:delete']
     options?: never
     head?: never
     patch?: never
@@ -739,28 +369,6 @@ export interface paths {
     patch?: never
     trace?: never
   }
-  '/v1/organizations/{id}/submit-review': {
-    parameters: {
-      query?: never
-      header?: never
-      path?: never
-      cookie?: never
-    }
-    get?: never
-    put?: never
-    /**
-     * Submit Organization for Review
-     * @description Submit an organization's saved details for review.
-     *
-     *     **Scopes**: `organizations:write`
-     */
-    post: operations['organizations:submit_review']
-    delete?: never
-    options?: never
-    head?: never
-    patch?: never
-    trace?: never
-  }
   '/v1/organizations/{id}/payment-status': {
     parameters: {
       query?: never
@@ -910,50 +518,6 @@ export interface paths {
     patch: operations['organizations:set_member_role']
     trace?: never
   }
-  '/v1/organizations/{id}/ai-validation': {
-    parameters: {
-      query?: never
-      header?: never
-      path?: never
-      cookie?: never
-    }
-    get?: never
-    put?: never
-    /**
-     * Get AI Validation Status
-     * @description Get the AI validation status. Review runs asynchronously in the background.
-     *
-     *     **Scopes**: `organizations:write`
-     */
-    post: operations['organizations:validate_with_ai']
-    delete?: never
-    options?: never
-    head?: never
-    patch?: never
-    trace?: never
-  }
-  '/v1/organizations/{id}/appeal': {
-    parameters: {
-      query?: never
-      header?: never
-      path?: never
-      cookie?: never
-    }
-    get?: never
-    put?: never
-    /**
-     * Submit Appeal for Organization Review
-     * @description Submit an appeal for organization review after AI validation failure.
-     *
-     *     **Scopes**: `organizations:write`
-     */
-    post: operations['organizations:submit_appeal']
-    delete?: never
-    options?: never
-    head?: never
-    patch?: never
-    trace?: never
-  }
   '/v1/organizations/{id}/ai-onboarding-complete': {
     parameters: {
       query?: never
@@ -970,53 +534,6 @@ export interface paths {
      *     **Scopes**: `organizations:write`
      */
     post: operations['organizations:mark_ai_onboarding_complete']
-    delete?: never
-    options?: never
-    head?: never
-    patch?: never
-    trace?: never
-  }
-  '/v1/organizations/{id}/review-status': {
-    parameters: {
-      query?: never
-      header?: never
-      path?: never
-      cookie?: never
-    }
-    /**
-     * Get Organization Review Status
-     * @description Get the current review status and appeal information for an organization.
-     *
-     *     **Scopes**: `organizations:read` `organizations:write`
-     */
-    get: operations['organizations:get_review_status']
-    put?: never
-    post?: never
-    delete?: never
-    options?: never
-    head?: never
-    patch?: never
-    trace?: never
-  }
-  '/v1/organizations/{id}/review': {
-    parameters: {
-      query?: never
-      header?: never
-      path?: never
-      cookie?: never
-    }
-    /**
-     * Get Organization Self-Review Checklist
-     * @description Get the merchant self-review checklist state.
-     *
-     *     Powers the account review UI: pre-submission gating checks plus,
-     *     after submission, the AI verdict and appeal state.
-     *
-     *     **Scopes**: `organizations:read` `organizations:write`
-     */
-    get: operations['organizations:get_review']
-    put?: never
-    post?: never
     delete?: never
     options?: never
     head?: never
@@ -1412,7 +929,6 @@ export interface paths {
      *
      *     Returns a breakdown of:
      *     - Base subscription amount
-     *     - Metered usage charges
      *     - Applied discounts
      *     - Calculated taxes
      *     - Total amount
@@ -1827,118 +1343,6 @@ export interface paths {
     patch?: never
     trace?: never
   }
-  '/v1/benefits/': {
-    parameters: {
-      query?: never
-      header?: never
-      path?: never
-      cookie?: never
-    }
-    /**
-     * List Benefits
-     * @description List benefits.
-     *
-     *     **Scopes**: `benefits:read` `benefits:write`
-     */
-    get: operations['benefits:list']
-    put?: never
-    /**
-     * Create Benefit
-     * @description Create a benefit.
-     *
-     *     **Scopes**: `benefits:write`
-     */
-    post: operations['benefits:create']
-    delete?: never
-    options?: never
-    head?: never
-    patch?: never
-    trace?: never
-  }
-  '/v1/benefits/{id}': {
-    parameters: {
-      query?: never
-      header?: never
-      path?: never
-      cookie?: never
-    }
-    /**
-     * Get Benefit
-     * @description Get a benefit by ID.
-     *
-     *     **Scopes**: `benefits:read` `benefits:write`
-     */
-    get: operations['benefits:get']
-    put?: never
-    post?: never
-    /**
-     * Delete Benefit
-     * @description Delete a benefit.
-     *
-     *     > [!WARNING]
-     *     > Every grants associated with the benefit will be revoked.
-     *     > Users will lose access to the benefit.
-     *
-     *     **Scopes**: `benefits:write`
-     */
-    delete: operations['benefits:delete']
-    options?: never
-    head?: never
-    /**
-     * Update Benefit
-     * @description Update a benefit.
-     *
-     *     **Scopes**: `benefits:write`
-     */
-    patch: operations['benefits:update']
-    trace?: never
-  }
-  '/v1/benefits/{id}/grants': {
-    parameters: {
-      query?: never
-      header?: never
-      path?: never
-      cookie?: never
-    }
-    /**
-     * List Benefit Grants
-     * @description List the individual grants for a benefit.
-     *
-     *     It's especially useful to check if a user has been granted a benefit.
-     *
-     *     **Scopes**: `benefits:read` `benefits:write`
-     */
-    get: operations['benefits:grants']
-    put?: never
-    post?: never
-    delete?: never
-    options?: never
-    head?: never
-    patch?: never
-    trace?: never
-  }
-  '/v1/benefit-grants/': {
-    parameters: {
-      query?: never
-      header?: never
-      path?: never
-      cookie?: never
-    }
-    /**
-     * List Benefit Grants
-     * @description List benefit grants across all benefits accessible to the authenticated subject.
-     *
-     *     **Scopes**: `benefits:read` `benefits:write`
-     */
-    get: operations['benefit-grants:list']
-    put?: never
-    post?: never
-    delete?: never
-    options?: never
-    head?: never
-    patch?: never
-    trace?: never
-  }
   '/v1/webhooks/endpoints': {
     parameters: {
       query?: never
@@ -2125,28 +1529,6 @@ export interface paths {
     patch: operations['products:update']
     trace?: never
   }
-  '/v1/products/{id}/benefits': {
-    parameters: {
-      query?: never
-      header?: never
-      path?: never
-      cookie?: never
-    }
-    get?: never
-    put?: never
-    /**
-     * Update Product Benefits
-     * @description Update benefits granted by a product.
-     *
-     *     **Scopes**: `products:write`
-     */
-    post: operations['products:update_benefits']
-    delete?: never
-    options?: never
-    head?: never
-    patch?: never
-    trace?: never
-  }
   '/v1/orders/': {
     parameters: {
       query?: never
@@ -2257,56 +1639,6 @@ export interface paths {
     patch?: never
     trace?: never
   }
-  '/v1/orders/{id}/invoice': {
-    parameters: {
-      query?: never
-      header?: never
-      path?: never
-      cookie?: never
-    }
-    /**
-     * Get Order Invoice
-     * @description Get an order's invoice data.
-     *
-     *     **Scopes**: `orders:read`
-     */
-    get: operations['orders:invoice']
-    put?: never
-    /**
-     * Generate Order Invoice
-     * @description Trigger generation of an order's invoice.
-     *
-     *     **Scopes**: `orders:read`
-     */
-    post: operations['orders:generate_invoice']
-    delete?: never
-    options?: never
-    head?: never
-    patch?: never
-    trace?: never
-  }
-  '/v1/orders/{id}/receipt': {
-    parameters: {
-      query?: never
-      header?: never
-      path?: never
-      cookie?: never
-    }
-    /**
-     * Get Order Receipt
-     * @description Get a presigned URL to download an order's receipt PDF.
-     *
-     *     **Scopes**: `orders:read`
-     */
-    get: operations['orders:receipt']
-    put?: never
-    post?: never
-    delete?: never
-    options?: never
-    head?: never
-    patch?: never
-    trace?: never
-  }
   '/v1/refunds/': {
     parameters: {
       query?: never
@@ -2329,50 +1661,6 @@ export interface paths {
      *     **Scopes**: `refunds:write`
      */
     post: operations['refunds:create']
-    delete?: never
-    options?: never
-    head?: never
-    patch?: never
-    trace?: never
-  }
-  '/v1/disputes/': {
-    parameters: {
-      query?: never
-      header?: never
-      path?: never
-      cookie?: never
-    }
-    /**
-     * List Disputes
-     * @description List disputes.
-     *
-     *     **Scopes**: `disputes:read`
-     */
-    get: operations['disputes:list']
-    put?: never
-    post?: never
-    delete?: never
-    options?: never
-    head?: never
-    patch?: never
-    trace?: never
-  }
-  '/v1/disputes/{id}': {
-    parameters: {
-      query?: never
-      header?: never
-      path?: never
-      cookie?: never
-    }
-    /**
-     * Get Dispute
-     * @description Get a dispute by ID.
-     *
-     *     **Scopes**: `disputes:read`
-     */
-    get: operations['disputes:get']
-    put?: never
-    post?: never
     delete?: never
     options?: never
     head?: never
@@ -2499,84 +1787,6 @@ export interface paths {
     options?: never
     head?: never
     patch?: never
-    trace?: never
-  }
-  '/v1/files/': {
-    parameters: {
-      query?: never
-      header?: never
-      path?: never
-      cookie?: never
-    }
-    /**
-     * List Files
-     * @description List files.
-     *
-     *     **Scopes**: `files:read` `files:write`
-     */
-    get: operations['files:list']
-    put?: never
-    /**
-     * Create File
-     * @description Create a file.
-     *
-     *     **Scopes**: `files:write`
-     */
-    post: operations['files:create']
-    delete?: never
-    options?: never
-    head?: never
-    patch?: never
-    trace?: never
-  }
-  '/v1/files/{id}/uploaded': {
-    parameters: {
-      query?: never
-      header?: never
-      path?: never
-      cookie?: never
-    }
-    get?: never
-    put?: never
-    /**
-     * Complete File Upload
-     * @description Complete a file upload.
-     *
-     *     **Scopes**: `files:write`
-     */
-    post: operations['files:uploaded']
-    delete?: never
-    options?: never
-    head?: never
-    patch?: never
-    trace?: never
-  }
-  '/v1/files/{id}': {
-    parameters: {
-      query?: never
-      header?: never
-      path?: never
-      cookie?: never
-    }
-    get?: never
-    put?: never
-    post?: never
-    /**
-     * Delete File
-     * @description Delete a file.
-     *
-     *     **Scopes**: `files:write`
-     */
-    delete: operations['files:delete']
-    options?: never
-    head?: never
-    /**
-     * Update File
-     * @description Update a file.
-     *
-     *     **Scopes**: `files:write`
-     */
-    patch: operations['files:update']
     trace?: never
   }
   '/v1/metrics/': {
@@ -2707,144 +1917,6 @@ export interface paths {
      *     **Scopes**: `metrics:write`
      */
     patch: operations['metrics:update_dashboard']
-    trace?: never
-  }
-  '/v1/license-keys/': {
-    parameters: {
-      query?: never
-      header?: never
-      path?: never
-      cookie?: never
-    }
-    /**
-     * List License Keys
-     * @description Get license keys connected to the given organization & filters.
-     *
-     *     **Scopes**: `license_keys:read` `license_keys:write`
-     */
-    get: operations['license_keys:list']
-    put?: never
-    post?: never
-    delete?: never
-    options?: never
-    head?: never
-    patch?: never
-    trace?: never
-  }
-  '/v1/license-keys/{id}': {
-    parameters: {
-      query?: never
-      header?: never
-      path?: never
-      cookie?: never
-    }
-    /**
-     * Get License Key
-     * @description Get a license key.
-     *
-     *     **Scopes**: `license_keys:read` `license_keys:write`
-     */
-    get: operations['license_keys:get']
-    put?: never
-    post?: never
-    delete?: never
-    options?: never
-    head?: never
-    /**
-     * Update License Key
-     * @description Update a license key.
-     *
-     *     **Scopes**: `license_keys:write`
-     */
-    patch: operations['license_keys:update']
-    trace?: never
-  }
-  '/v1/license-keys/{id}/activations/{activation_id}': {
-    parameters: {
-      query?: never
-      header?: never
-      path?: never
-      cookie?: never
-    }
-    /**
-     * Get Activation
-     * @description Get a license key activation.
-     *
-     *     **Scopes**: `license_keys:read` `license_keys:write`
-     */
-    get: operations['license_keys:get_activation']
-    put?: never
-    post?: never
-    delete?: never
-    options?: never
-    head?: never
-    patch?: never
-    trace?: never
-  }
-  '/v1/license-keys/validate': {
-    parameters: {
-      query?: never
-      header?: never
-      path?: never
-      cookie?: never
-    }
-    get?: never
-    put?: never
-    /**
-     * Validate License Key
-     * @description Validate a license key.
-     *
-     *     **Scopes**: `license_keys:write`
-     */
-    post: operations['license_keys:validate']
-    delete?: never
-    options?: never
-    head?: never
-    patch?: never
-    trace?: never
-  }
-  '/v1/license-keys/activate': {
-    parameters: {
-      query?: never
-      header?: never
-      path?: never
-      cookie?: never
-    }
-    get?: never
-    put?: never
-    /**
-     * Activate License Key
-     * @description Activate a license key instance.
-     *
-     *     **Scopes**: `license_keys:write`
-     */
-    post: operations['license_keys:activate']
-    delete?: never
-    options?: never
-    head?: never
-    patch?: never
-    trace?: never
-  }
-  '/v1/license-keys/deactivate': {
-    parameters: {
-      query?: never
-      header?: never
-      path?: never
-      cookie?: never
-    }
-    get?: never
-    put?: never
-    /**
-     * Deactivate License Key
-     * @description Deactivate a license key instance.
-     *
-     *     **Scopes**: `license_keys:write`
-     */
-    post: operations['license_keys:deactivate']
-    delete?: never
-    options?: never
-    head?: never
-    patch?: never
     trace?: never
   }
   '/v1/checkout-links/': {
@@ -3375,56 +2447,6 @@ export interface paths {
     patch: operations['members:update_member_by_external_id']
     trace?: never
   }
-  '/v1/customer-portal/benefit-grants/': {
-    parameters: {
-      query?: never
-      header?: never
-      path?: never
-      cookie?: never
-    }
-    /**
-     * List Benefit Grants
-     * @description List benefits grants of the authenticated customer.
-     *
-     *     **Scopes**: `customer_portal:read` `customer_portal:write`
-     */
-    get: operations['customer_portal:benefit-grants:list']
-    put?: never
-    post?: never
-    delete?: never
-    options?: never
-    head?: never
-    patch?: never
-    trace?: never
-  }
-  '/v1/customer-portal/benefit-grants/{id}': {
-    parameters: {
-      query?: never
-      header?: never
-      path?: never
-      cookie?: never
-    }
-    /**
-     * Get Benefit Grant
-     * @description Get a benefit grant by ID for the authenticated customer.
-     *
-     *     **Scopes**: `customer_portal:read` `customer_portal:write`
-     */
-    get: operations['customer_portal:benefit-grants:get']
-    put?: never
-    post?: never
-    delete?: never
-    options?: never
-    head?: never
-    /**
-     * Update Benefit Grant
-     * @description Update a benefit grant for the authenticated customer.
-     *
-     *     **Scopes**: `customer_portal:write`
-     */
-    patch: operations['customer_portal:benefit-grants:update']
-    trace?: never
-  }
   '/v1/customer-portal/customers/me': {
     parameters: {
       query?: never
@@ -3468,70 +2490,6 @@ export interface paths {
     put?: never
     post?: never
     delete?: never
-    options?: never
-    head?: never
-    patch?: never
-    trace?: never
-  }
-  '/v1/customer-portal/customers/me/payment-methods': {
-    parameters: {
-      query?: never
-      header?: never
-      path?: never
-      cookie?: never
-    }
-    /**
-     * List Customer Payment Methods
-     * @description Get saved payment methods of the authenticated customer.
-     */
-    get: operations['customer_portal:customers:list_payment_methods']
-    put?: never
-    /**
-     * Add Customer Payment Method
-     * @description Add a payment method to the authenticated customer.
-     */
-    post: operations['customer_portal:customers:add_payment_method']
-    delete?: never
-    options?: never
-    head?: never
-    patch?: never
-    trace?: never
-  }
-  '/v1/customer-portal/customers/me/payment-methods/confirm': {
-    parameters: {
-      query?: never
-      header?: never
-      path?: never
-      cookie?: never
-    }
-    get?: never
-    put?: never
-    /**
-     * Confirm Customer Payment Method
-     * @description Confirm a payment method for the authenticated customer.
-     */
-    post: operations['customer_portal:customers:confirm_payment_method']
-    delete?: never
-    options?: never
-    head?: never
-    patch?: never
-    trace?: never
-  }
-  '/v1/customer-portal/customers/me/payment-methods/{id}': {
-    parameters: {
-      query?: never
-      header?: never
-      path?: never
-      cookie?: never
-    }
-    get?: never
-    put?: never
-    post?: never
-    /**
-     * Delete Customer Payment Method
-     * @description Delete a payment method from the authenticated customer.
-     */
-    delete: operations['customer_portal:customers:delete_payment_method']
     options?: never
     head?: never
     patch?: never
@@ -3591,127 +2549,6 @@ export interface paths {
      * @description Verify an email change using the token from the verification email.
      */
     post: operations['customer_portal:customers:verify_email_update']
-    delete?: never
-    options?: never
-    head?: never
-    patch?: never
-    trace?: never
-  }
-  '/v1/customer-portal/meters/': {
-    parameters: {
-      query?: never
-      header?: never
-      path?: never
-      cookie?: never
-    }
-    /**
-     * List Meters
-     * @description List meters of the authenticated customer.
-     *
-     *     **Scopes**: `customer_portal:read` `customer_portal:write`
-     */
-    get: operations['customer_portal:customer_meters:list']
-    put?: never
-    post?: never
-    delete?: never
-    options?: never
-    head?: never
-    patch?: never
-    trace?: never
-  }
-  '/v1/customer-portal/meters/{id}': {
-    parameters: {
-      query?: never
-      header?: never
-      path?: never
-      cookie?: never
-    }
-    /**
-     * Get Customer Meter
-     * @description Get a meter by ID for the authenticated customer.
-     *
-     *     **Scopes**: `customer_portal:read` `customer_portal:write`
-     */
-    get: operations['customer_portal:customer_meters:get']
-    put?: never
-    post?: never
-    delete?: never
-    options?: never
-    head?: never
-    patch?: never
-    trace?: never
-  }
-  '/v1/customer-portal/seats': {
-    parameters: {
-      query?: never
-      header?: never
-      path?: never
-      cookie?: never
-    }
-    /**
-     * List Seats
-     * @description **Scopes**: `customer_portal:read` `customer_portal:write`
-     */
-    get: operations['customer_portal:seats:list_seats']
-    put?: never
-    /** Assign Seat */
-    post: operations['customer_portal:seats:assign_seat']
-    delete?: never
-    options?: never
-    head?: never
-    patch?: never
-    trace?: never
-  }
-  '/v1/customer-portal/seats/{seat_id}': {
-    parameters: {
-      query?: never
-      header?: never
-      path?: never
-      cookie?: never
-    }
-    get?: never
-    put?: never
-    post?: never
-    /** Revoke Seat */
-    delete: operations['customer_portal:seats:revoke_seat']
-    options?: never
-    head?: never
-    patch?: never
-    trace?: never
-  }
-  '/v1/customer-portal/seats/{seat_id}/resend': {
-    parameters: {
-      query?: never
-      header?: never
-      path?: never
-      cookie?: never
-    }
-    get?: never
-    put?: never
-    /** Resend Invitation */
-    post: operations['customer_portal:seats:resend_invitation']
-    delete?: never
-    options?: never
-    head?: never
-    patch?: never
-    trace?: never
-  }
-  '/v1/customer-portal/seats/subscriptions': {
-    parameters: {
-      query?: never
-      header?: never
-      path?: never
-      cookie?: never
-    }
-    /**
-     * List Claimed Subscriptions
-     * @description List all subscriptions where the authenticated customer has claimed a seat.
-     *
-     *     **Scopes**: `customer_portal:read` `customer_portal:write`
-     */
-    get: operations['customer_portal:seats:list_claimed_subscriptions']
-    put?: never
-    post?: never
     delete?: never
     options?: never
     head?: never
@@ -3790,160 +2627,6 @@ export interface paths {
     get: operations['customer_portal:customer-session:get_authenticated_user']
     put?: never
     post?: never
-    delete?: never
-    options?: never
-    head?: never
-    patch?: never
-    trace?: never
-  }
-  '/v1/customer-portal/downloadables/': {
-    parameters: {
-      query?: never
-      header?: never
-      path?: never
-      cookie?: never
-    }
-    /**
-     * List Downloadables
-     * @description **Scopes**: `customer_portal:read` `customer_portal:write`
-     */
-    get: operations['customer_portal:downloadables:list']
-    put?: never
-    post?: never
-    delete?: never
-    options?: never
-    head?: never
-    patch?: never
-    trace?: never
-  }
-  '/v1/customer-portal/downloadables/{token}': {
-    parameters: {
-      query?: never
-      header?: never
-      path?: never
-      cookie?: never
-    }
-    /** Get Downloadable */
-    get: operations['customer_portal:downloadables:customer_portal.downloadables.get']
-    put?: never
-    post?: never
-    delete?: never
-    options?: never
-    head?: never
-    patch?: never
-    trace?: never
-  }
-  '/v1/customer-portal/license-keys/': {
-    parameters: {
-      query?: never
-      header?: never
-      path?: never
-      cookie?: never
-    }
-    /**
-     * List License Keys
-     * @description **Scopes**: `customer_portal:read` `customer_portal:write`
-     */
-    get: operations['customer_portal:license_keys:list']
-    put?: never
-    post?: never
-    delete?: never
-    options?: never
-    head?: never
-    patch?: never
-    trace?: never
-  }
-  '/v1/customer-portal/license-keys/{id}': {
-    parameters: {
-      query?: never
-      header?: never
-      path?: never
-      cookie?: never
-    }
-    /**
-     * Get License Key
-     * @description Get a license key.
-     *
-     *     **Scopes**: `customer_portal:read` `customer_portal:write`
-     */
-    get: operations['customer_portal:license_keys:get']
-    put?: never
-    post?: never
-    delete?: never
-    options?: never
-    head?: never
-    patch?: never
-    trace?: never
-  }
-  '/v1/customer-portal/license-keys/validate': {
-    parameters: {
-      query?: never
-      header?: never
-      path?: never
-      cookie?: never
-    }
-    get?: never
-    put?: never
-    /**
-     * Validate License Key
-     * @description Validate a license key.
-     *
-     *     > This endpoint doesn't require authentication and can be safely used on a public
-     *     > client, like a desktop application or a mobile app.
-     *     > If you plan to validate a license key on a server, use the `/v1/license-keys/validate`
-     *     > endpoint instead.
-     */
-    post: operations['customer_portal:license_keys:validate']
-    delete?: never
-    options?: never
-    head?: never
-    patch?: never
-    trace?: never
-  }
-  '/v1/customer-portal/license-keys/activate': {
-    parameters: {
-      query?: never
-      header?: never
-      path?: never
-      cookie?: never
-    }
-    get?: never
-    put?: never
-    /**
-     * Activate License Key
-     * @description Activate a license key instance.
-     *
-     *     > This endpoint doesn't require authentication and can be safely used on a public
-     *     > client, like a desktop application or a mobile app.
-     *     > If you plan to validate a license key on a server, use the `/v1/license-keys/activate`
-     *     > endpoint instead.
-     */
-    post: operations['customer_portal:license_keys:activate']
-    delete?: never
-    options?: never
-    head?: never
-    patch?: never
-    trace?: never
-  }
-  '/v1/customer-portal/license-keys/deactivate': {
-    parameters: {
-      query?: never
-      header?: never
-      path?: never
-      cookie?: never
-    }
-    get?: never
-    put?: never
-    /**
-     * Deactivate License Key
-     * @description Deactivate a license key instance.
-     *
-     *     > This endpoint doesn't require authentication and can be safely used on a public
-     *     > client, like a desktop application or a mobile app.
-     *     > If you plan to validate a license key on a server, use the `/v1/license-keys/deactivate`
-     *     > endpoint instead.
-     */
-    post: operations['customer_portal:license_keys:deactivate']
     delete?: never
     options?: never
     head?: never
@@ -4102,50 +2785,6 @@ export interface paths {
     patch: operations['customer_portal:orders:update']
     trace?: never
   }
-  '/v1/customer-portal/orders/{id}/invoice': {
-    parameters: {
-      query?: never
-      header?: never
-      path?: never
-      cookie?: never
-    }
-    /**
-     * Get Order Invoice
-     * @description Get an order's invoice data.
-     */
-    get: operations['customer_portal:orders:invoice']
-    put?: never
-    /**
-     * Generate Order Invoice
-     * @description Trigger generation of an order's invoice.
-     */
-    post: operations['customer_portal:orders:generate_invoice']
-    delete?: never
-    options?: never
-    head?: never
-    patch?: never
-    trace?: never
-  }
-  '/v1/customer-portal/orders/{id}/receipt': {
-    parameters: {
-      query?: never
-      header?: never
-      path?: never
-      cookie?: never
-    }
-    /**
-     * Get Order Receipt
-     * @description Get a presigned URL to download an order's receipt PDF.
-     */
-    get: operations['customer_portal:orders:receipt']
-    put?: never
-    post?: never
-    delete?: never
-    options?: never
-    head?: never
-    patch?: never
-    trace?: never
-  }
   '/v1/customer-portal/orders/{id}/payment-status': {
     parameters: {
       query?: never
@@ -4177,7 +2816,7 @@ export interface paths {
     put?: never
     /**
      * Confirm Retry Payment
-     * @description Confirm a retry payment using a Stripe confirmation token.
+     * @description Confirm a retry payment (Stripe removed; crypto payments confirmed via webhook)
      */
     post: operations['customer_portal:orders:confirm_retry_payment']
     delete?: never
@@ -4314,104 +2953,6 @@ export interface paths {
     get: operations['customer_portal:wallets:get']
     put?: never
     post?: never
-    delete?: never
-    options?: never
-    head?: never
-    patch?: never
-    trace?: never
-  }
-  '/v1/customer-seats': {
-    parameters: {
-      query?: never
-      header?: never
-      path?: never
-      cookie?: never
-    }
-    /**
-     * List Seats
-     * @description **Scopes**: `customer_seats:write`
-     */
-    get: operations['customer-seats:list_seats']
-    put?: never
-    /**
-     * Assign Seat
-     * @description **Scopes**: `customer_seats:write`
-     */
-    post: operations['customer-seats:assign_seat']
-    delete?: never
-    options?: never
-    head?: never
-    patch?: never
-    trace?: never
-  }
-  '/v1/customer-seats/{seat_id}': {
-    parameters: {
-      query?: never
-      header?: never
-      path?: never
-      cookie?: never
-    }
-    get?: never
-    put?: never
-    post?: never
-    /**
-     * Revoke Seat
-     * @description **Scopes**: `customer_seats:write`
-     */
-    delete: operations['customer-seats:revoke_seat']
-    options?: never
-    head?: never
-    patch?: never
-    trace?: never
-  }
-  '/v1/customer-seats/{seat_id}/resend': {
-    parameters: {
-      query?: never
-      header?: never
-      path?: never
-      cookie?: never
-    }
-    get?: never
-    put?: never
-    /**
-     * Resend Invitation
-     * @description **Scopes**: `customer_seats:write`
-     */
-    post: operations['customer-seats:resend_invitation']
-    delete?: never
-    options?: never
-    head?: never
-    patch?: never
-    trace?: never
-  }
-  '/v1/customer-seats/claim/{invitation_token}': {
-    parameters: {
-      query?: never
-      header?: never
-      path?: never
-      cookie?: never
-    }
-    /** Get Claim Info */
-    get: operations['customer-seats:get_claim_info']
-    put?: never
-    post?: never
-    delete?: never
-    options?: never
-    head?: never
-    patch?: never
-    trace?: never
-  }
-  '/v1/customer-seats/claim': {
-    parameters: {
-      query?: never
-      header?: never
-      path?: never
-      cookie?: never
-    }
-    get?: never
-    put?: never
-    /** Claim Seat */
-    post: operations['customer-seats:claim_seat']
     delete?: never
     options?: never
     head?: never
@@ -4709,84 +3250,6 @@ export interface paths {
     patch: operations['event-types:update']
     trace?: never
   }
-  '/v1/meters/': {
-    parameters: {
-      query?: never
-      header?: never
-      path?: never
-      cookie?: never
-    }
-    /**
-     * List Meters
-     * @description List meters.
-     *
-     *     **Scopes**: `meters:read` `meters:write`
-     */
-    get: operations['meters:list']
-    put?: never
-    /**
-     * Create Meter
-     * @description Create a meter.
-     *
-     *     **Scopes**: `meters:write`
-     */
-    post: operations['meters:create']
-    delete?: never
-    options?: never
-    head?: never
-    patch?: never
-    trace?: never
-  }
-  '/v1/meters/{id}': {
-    parameters: {
-      query?: never
-      header?: never
-      path?: never
-      cookie?: never
-    }
-    /**
-     * Get Meter
-     * @description Get a meter by ID.
-     *
-     *     **Scopes**: `meters:read` `meters:write`
-     */
-    get: operations['meters:get']
-    put?: never
-    post?: never
-    delete?: never
-    options?: never
-    head?: never
-    /**
-     * Update Meter
-     * @description Update a meter.
-     *
-     *     **Scopes**: `meters:write`
-     */
-    patch: operations['meters:update']
-    trace?: never
-  }
-  '/v1/meters/{id}/quantities': {
-    parameters: {
-      query?: never
-      header?: never
-      path?: never
-      cookie?: never
-    }
-    /**
-     * Get Meter Quantities
-     * @description Get quantities of a meter over a time period.
-     *
-     *     **Scopes**: `meters:read` `meters:write`
-     */
-    get: operations['meters:quantities']
-    put?: never
-    post?: never
-    delete?: never
-    options?: never
-    head?: never
-    patch?: never
-    trace?: never
-  }
   '/v1/organization-access-tokens/': {
     parameters: {
       query?: never
@@ -4835,50 +3298,6 @@ export interface paths {
      * @description **Scopes**: `organization_access_tokens:write`
      */
     patch: operations['organization_access_tokens:update']
-    trace?: never
-  }
-  '/v1/customer-meters/': {
-    parameters: {
-      query?: never
-      header?: never
-      path?: never
-      cookie?: never
-    }
-    /**
-     * List Customer Meters
-     * @description List customer meters.
-     *
-     *     **Scopes**: `customer_meters:read`
-     */
-    get: operations['customer_meters:list']
-    put?: never
-    post?: never
-    delete?: never
-    options?: never
-    head?: never
-    patch?: never
-    trace?: never
-  }
-  '/v1/customer-meters/{id}': {
-    parameters: {
-      query?: never
-      header?: never
-      path?: never
-      cookie?: never
-    }
-    /**
-     * Get Customer Meter
-     * @description Get a customer meter by ID.
-     *
-     *     **Scopes**: `customer_meters:read`
-     */
-    get: operations['customer_meters:get']
-    put?: never
-    post?: never
-    delete?: never
-    options?: never
-    head?: never
-    patch?: never
     trace?: never
   }
   '/v1/payments/': {
@@ -4985,34 +3404,6 @@ export interface paths {
     get: operations['payouts:get_csv']
     put?: never
     post?: never
-    delete?: never
-    options?: never
-    head?: never
-    patch?: never
-    trace?: never
-  }
-  '/v1/payouts/{id}/invoice': {
-    parameters: {
-      query?: never
-      header?: never
-      path?: never
-      cookie?: never
-    }
-    /**
-     * Invoice
-     * @description Get an order's invoice data.
-     *
-     *     **Scopes**: `payouts:read`
-     */
-    get: operations['payouts:invoice']
-    put?: never
-    /**
-     * Generate Invoice
-     * @description Trigger generation of an order's invoice.
-     *
-     *     **Scopes**: `payouts:write`
-     */
-    post: operations['payouts:generate_invoice']
     delete?: never
     options?: never
     head?: never
@@ -5172,23 +3563,6 @@ export interface paths {
     patch?: never
     trace?: never
   }
-  '/v1/feedbacks/': {
-    parameters: {
-      query?: never
-      header?: never
-      path?: never
-      cookie?: never
-    }
-    get?: never
-    put?: never
-    /** Submit */
-    post: operations['feedbacks:submit']
-    delete?: never
-    options?: never
-    head?: never
-    patch?: never
-    trace?: never
-  }
 }
 export interface webhooks {
   'checkout.created': {
@@ -5204,7 +3578,7 @@ export interface webhooks {
      * checkout.created
      * @description Sent when a new checkout is created.
      *
-     *     **Discord & Slack support:** Basic
+     *     **Slack support:** Basic
      */
     post: operations['_endpointcheckout_created_post']
     delete?: never
@@ -5226,7 +3600,7 @@ export interface webhooks {
      * checkout.updated
      * @description Sent when a checkout is updated.
      *
-     *     **Discord & Slack support:** Basic
+     *     **Slack support:** Basic
      */
     post: operations['_endpointcheckout_updated_post']
     delete?: never
@@ -5251,7 +3625,7 @@ export interface webhooks {
      *     This event fires when a checkout reaches its expiration time without being completed.
      *     Developers can use this to send reminder emails or track checkout abandonment.
      *
-     *     **Discord & Slack support:** Basic
+     *     **Slack support:** Basic
      */
     post: operations['_endpointcheckout_expired_post']
     delete?: never
@@ -5278,7 +3652,7 @@ export interface webhooks {
      *     * After a successful checkout.
      *     * Programmatically via the API.
      *
-     *     **Discord & Slack support:** Basic
+     *     **Slack support:** Basic
      */
     post: operations['_endpointcustomer_created_post']
     delete?: never
@@ -5302,9 +3676,9 @@ export interface webhooks {
      *
      *     This event is fired when the customer details are updated.
      *
-     *     If you want to be notified when a customer subscription or benefit state changes, you should listen to the `customer_state_changed` event.
+     *     If you want to be notified when a customer subscription state changes, you should listen to the `customer_state_changed` event.
      *
-     *     **Discord & Slack support:** Basic
+     *     **Slack support:** Basic
      */
     post: operations['_endpointcustomer_updated_post']
     delete?: never
@@ -5326,7 +3700,7 @@ export interface webhooks {
      * customer.deleted
      * @description Sent when a customer is deleted.
      *
-     *     **Discord & Slack support:** Basic
+     *     **Slack support:** Basic
      */
     post: operations['_endpointcustomer_deleted_post']
     delete?: never
@@ -5352,78 +3726,10 @@ export interface webhooks {
      *
      *     * Customer is created, updated or deleted.
      *     * A subscription is created or updated.
-     *     * A benefit is granted or revoked.
      *
-     *     **Discord & Slack support:** Basic
+     *     **Slack support:** Basic
      */
     post: operations['_endpointcustomer_state_changed_post']
-    delete?: never
-    options?: never
-    head?: never
-    patch?: never
-    trace?: never
-  }
-  'customer_seat.assigned': {
-    parameters: {
-      query?: never
-      header?: never
-      path?: never
-      cookie?: never
-    }
-    get?: never
-    put?: never
-    /**
-     * customer_seat.assigned
-     * @description Sent when a new customer seat is assigned.
-     *
-     *     This event is triggered when a seat is assigned to a customer by the organization.
-     *     The customer will receive an invitation email to claim the seat.
-     */
-    post: operations['_endpointcustomer_seat_assigned_post']
-    delete?: never
-    options?: never
-    head?: never
-    patch?: never
-    trace?: never
-  }
-  'customer_seat.claimed': {
-    parameters: {
-      query?: never
-      header?: never
-      path?: never
-      cookie?: never
-    }
-    get?: never
-    put?: never
-    /**
-     * customer_seat.claimed
-     * @description Sent when a customer seat is claimed.
-     *
-     *     This event is triggered when a customer accepts the seat invitation and claims their access.
-     */
-    post: operations['_endpointcustomer_seat_claimed_post']
-    delete?: never
-    options?: never
-    head?: never
-    patch?: never
-    trace?: never
-  }
-  'customer_seat.revoked': {
-    parameters: {
-      query?: never
-      header?: never
-      path?: never
-      cookie?: never
-    }
-    get?: never
-    put?: never
-    /**
-     * customer_seat.revoked
-     * @description Sent when a customer seat is revoked.
-     *
-     *     This event is triggered when access to a seat is revoked, either manually by the organization or automatically when a subscription is canceled.
-     */
-    post: operations['_endpointcustomer_seat_revoked_post']
     delete?: never
     options?: never
     head?: never
@@ -5448,7 +3754,7 @@ export interface webhooks {
      *     either programmatically via the API or when an owner is automatically
      *     created for a new customer.
      *
-     *     **Discord & Slack support:** Basic
+     *     **Slack support:** Basic
      */
     post: operations['_endpointmember_created_post']
     delete?: never
@@ -5473,7 +3779,7 @@ export interface webhooks {
      *     This event is triggered when member details are updated,
      *     such as their name or role within the customer.
      *
-     *     **Discord & Slack support:** Basic
+     *     **Slack support:** Basic
      */
     post: operations['_endpointmember_updated_post']
     delete?: never
@@ -5496,9 +3802,8 @@ export interface webhooks {
      * @description Sent when a member is deleted.
      *
      *     This event is triggered when a member is removed from a customer.
-     *     Any active seats assigned to the member will be automatically revoked.
      *
-     *     **Discord & Slack support:** Basic
+     *     **Slack support:** Basic
      */
     post: operations['_endpointmember_deleted_post']
     delete?: never
@@ -5530,7 +3835,7 @@ export interface webhooks {
      *     > [!WARNING]
      *     > The order might not be paid yet, so the `status` field might be `pending`.
      *
-     *     **Discord & Slack support:** Full
+     *     **Slack support:** Full
      */
     post: operations['_endpointorder_created_post']
     delete?: never
@@ -5557,7 +3862,7 @@ export interface webhooks {
      *     * Its status changes, e.g. from `pending` to `paid`.
      *     * It's refunded, partially or fully.
      *
-     *     **Discord & Slack support:** Full
+     *     **Slack support:** Full
      */
     post: operations['_endpointorder_updated_post']
     delete?: never
@@ -5581,7 +3886,7 @@ export interface webhooks {
      *
      *     When you receive this event, the order is fully processed and payment has been received.
      *
-     *     **Discord & Slack support:** Full
+     *     **Slack support:** Full
      */
     post: operations['_endpointorder_paid_post']
     delete?: never
@@ -5603,7 +3908,7 @@ export interface webhooks {
      * order.refunded
      * @description Sent when an order is fully or partially refunded.
      *
-     *     **Discord & Slack support:** Full
+     *     **Slack support:** Full
      */
     post: operations['_endpointorder_refunded_post']
     delete?: never
@@ -5627,7 +3932,7 @@ export interface webhooks {
      *
      *     When this event occurs, the subscription `status` might not be `active` yet, as we can still have to wait for the first payment to be processed.
      *
-     *     **Discord & Slack support:** Full
+     *     **Slack support:** Full
      */
     post: operations['_endpointsubscription_created_post']
     delete?: never
@@ -5653,7 +3958,7 @@ export interface webhooks {
      *
      *     To listen specifically for renewals, you can listen to `order.created` events and check the `billing_reason` field.
      *
-     *     **Discord & Slack support:** On cancellation, past due, and revocation. Renewals are skipped.
+     *     **Slack support:** On cancellation, past due, and revocation. Renewals are skipped.
      */
     post: operations['_endpointsubscription_updated_post']
     delete?: never
@@ -5676,7 +3981,7 @@ export interface webhooks {
      * @description Sent when a subscription becomes active,
      *     whether because it's a new paid subscription or because payment was recovered.
      *
-     *     **Discord & Slack support:** Full
+     *     **Slack support:** Full
      */
     post: operations['_endpointsubscription_active_post']
     delete?: never
@@ -5699,7 +4004,7 @@ export interface webhooks {
      * @description Sent when a subscription is canceled.
      *     Customers might still have access until the end of the current period.
      *
-     *     **Discord & Slack support:** Full
+     *     **Slack support:** Full
      */
     post: operations['_endpointsubscription_canceled_post']
     delete?: never
@@ -5725,7 +4030,7 @@ export interface webhooks {
      *     subscription would renew. During this time, they can change their mind and
      *     undo the cancellation. This event is triggered when they do so.
      *
-     *     **Discord & Slack support:** Full
+     *     **Slack support:** Full
      */
     post: operations['_endpointsubscription_uncanceled_post']
     delete?: never
@@ -5750,7 +4055,7 @@ export interface webhooks {
      *
      *     For payment failures that can still be recovered, see `subscription.past_due`.
      *
-     *     **Discord & Slack support:** Full
+     *     **Slack support:** Full
      */
     post: operations['_endpointsubscription_revoked_post']
     delete?: never
@@ -5773,11 +4078,9 @@ export interface webhooks {
      * @description Sent when a subscription payment fails and the subscription enters `past_due` status.
      *
      *     This is a recoverable state - the customer can update their payment method to restore the subscription.
-     *     Benefits may be revoked depending on the organization's grace period settings.
-     *
      *     If payment retries are exhausted, a `subscription.revoked` event will be sent.
      *
-     *     **Discord & Slack support:** Full
+     *     **Slack support:** Full
      */
     post: operations['_endpointsubscription_past_due_post']
     delete?: never
@@ -5799,7 +4102,7 @@ export interface webhooks {
      * refund.created
      * @description Sent when a refund is created regardless of status.
      *
-     *     **Discord & Slack support:** Full
+     *     **Slack support:** Full
      */
     post: operations['_endpointrefund_created_post']
     delete?: never
@@ -5821,7 +4124,7 @@ export interface webhooks {
      * refund.updated
      * @description Sent when a refund is updated.
      *
-     *     **Discord & Slack support:** Full
+     *     **Slack support:** Full
      */
     post: operations['_endpointrefund_updated_post']
     delete?: never
@@ -5843,7 +4146,7 @@ export interface webhooks {
      * product.created
      * @description Sent when a new product is created.
      *
-     *     **Discord & Slack support:** Basic
+     *     **Slack support:** Basic
      */
     post: operations['_endpointproduct_created_post']
     delete?: never
@@ -5865,7 +4168,7 @@ export interface webhooks {
      * product.updated
      * @description Sent when a product is updated.
      *
-     *     **Discord & Slack support:** Basic
+     *     **Slack support:** Basic
      */
     post: operations['_endpointproduct_updated_post']
     delete?: never
@@ -5887,142 +4190,9 @@ export interface webhooks {
      * organization.updated
      * @description Sent when a organization is updated.
      *
-     *     **Discord & Slack support:** Basic
+     *     **Slack support:** Basic
      */
     post: operations['_endpointorganization_updated_post']
-    delete?: never
-    options?: never
-    head?: never
-    patch?: never
-    trace?: never
-  }
-  'benefit.created': {
-    parameters: {
-      query?: never
-      header?: never
-      path?: never
-      cookie?: never
-    }
-    get?: never
-    put?: never
-    /**
-     * benefit.created
-     * @description Sent when a new benefit is created.
-     *
-     *     **Discord & Slack support:** Basic
-     */
-    post: operations['_endpointbenefit_created_post']
-    delete?: never
-    options?: never
-    head?: never
-    patch?: never
-    trace?: never
-  }
-  'benefit.updated': {
-    parameters: {
-      query?: never
-      header?: never
-      path?: never
-      cookie?: never
-    }
-    get?: never
-    put?: never
-    /**
-     * benefit.updated
-     * @description Sent when a benefit is updated.
-     *
-     *     **Discord & Slack support:** Basic
-     */
-    post: operations['_endpointbenefit_updated_post']
-    delete?: never
-    options?: never
-    head?: never
-    patch?: never
-    trace?: never
-  }
-  'benefit_grant.created': {
-    parameters: {
-      query?: never
-      header?: never
-      path?: never
-      cookie?: never
-    }
-    get?: never
-    put?: never
-    /**
-     * benefit_grant.created
-     * @description Sent when a new benefit grant is created.
-     *
-     *     **Discord & Slack support:** Basic
-     */
-    post: operations['_endpointbenefit_grant_created_post']
-    delete?: never
-    options?: never
-    head?: never
-    patch?: never
-    trace?: never
-  }
-  'benefit_grant.updated': {
-    parameters: {
-      query?: never
-      header?: never
-      path?: never
-      cookie?: never
-    }
-    get?: never
-    put?: never
-    /**
-     * benefit_grant.updated
-     * @description Sent when a benefit grant is updated.
-     *
-     *     **Discord & Slack support:** Basic
-     */
-    post: operations['_endpointbenefit_grant_updated_post']
-    delete?: never
-    options?: never
-    head?: never
-    patch?: never
-    trace?: never
-  }
-  'benefit_grant.cycled': {
-    parameters: {
-      query?: never
-      header?: never
-      path?: never
-      cookie?: never
-    }
-    get?: never
-    put?: never
-    /**
-     * benefit_grant.cycled
-     * @description Sent when a benefit grant is cycled,
-     *     meaning the related subscription has been renewed for another period.
-     *
-     *     **Discord & Slack support:** Basic
-     */
-    post: operations['_endpointbenefit_grant_cycled_post']
-    delete?: never
-    options?: never
-    head?: never
-    patch?: never
-    trace?: never
-  }
-  'benefit_grant.revoked': {
-    parameters: {
-      query?: never
-      header?: never
-      path?: never
-      cookie?: never
-    }
-    get?: never
-    put?: never
-    /**
-     * benefit_grant.revoked
-     * @description Sent when a benefit grant is revoked.
-     *
-     *     **Discord & Slack support:** Basic
-     */
-    post: operations['_endpointbenefit_grant_revoked_post']
     delete?: never
     options?: never
     head?: never
@@ -6668,11 +4838,6 @@ export interface components {
         | 'ZW'
     }
     AggregateField: string
-    /**
-     * AggregationFunction
-     * @enum {string}
-     */
-    AggregationFunction: 'count' | 'sum' | 'max' | 'min' | 'avg' | 'unique'
     /** AlreadyActiveSubscriptionError */
     AlreadyActiveSubscriptionError: {
       /**
@@ -6695,11 +4860,6 @@ export interface components {
       /** Detail */
       detail: string
     }
-    /**
-     * AppealDecision
-     * @enum {string}
-     */
-    AppealDecision: 'approved' | 'rejected'
     /**
      * AttachedCustomField
      * @description Schema of a custom field attached to a resource.
@@ -6805,12 +4965,8 @@ export interface components {
        *       "payouts:write": "Create or modify payouts",
        *       "products:read": "Read products",
        *       "products:write": "Create or modify products",
-       *       "benefits:read": "Read benefits",
-       *       "benefits:write": "Create or modify benefits",
        *       "events:read": "Read events",
        *       "events:write": "Create events",
-       *       "meters:read": "Read meters",
-       *       "meters:write": "Create or modify meters",
        *       "files:read": "Read file uploads",
        *       "files:write": "Create or modify file uploads",
        *       "subscriptions:read": "Read subscriptions made on your organizations",
@@ -6822,11 +4978,8 @@ export interface components {
        *       "wallets:read": "Read wallets",
        *       "wallets:write": "Create or modify wallets",
        *       "disputes:read": "Read disputes",
-       *       "customer_meters:read": "Read customer meters",
        *       "customer_sessions:write": "Create or modify customer sessions",
        *       "member_sessions:write": "Create or modify member sessions",
-       *       "customer_seats:read": "Read customer seats",
-       *       "customer_seats:write": "Create or modify customer seats",
        *       "orders:read": "Read orders made on your organizations",
        *       "orders:write": "Modify orders made on your organizations",
        *       "refunds:read": "Read refunds made on your organizations",
@@ -6836,14 +4989,8 @@ export interface components {
        *       "metrics:write": "Create or modify metric definitions",
        *       "webhooks:read": "Read webhooks",
        *       "webhooks:write": "Create or modify webhooks",
-       *       "license_keys:read": "Read license keys",
-       *       "license_keys:write": "Modify license keys",
-       *       "customer_portal:read": "Read your orders, subscriptions and benefits",
-       *       "customer_portal:write": "Create or modify your orders, subscriptions and benefits",
-       *       "notifications:read": "Read notifications",
-       *       "notifications:write": "Mark notifications as read",
-       *       "notification_recipients:read": "Read notification recipients",
-       *       "notification_recipients:write": "Create or modify notification recipients",
+       *       "customer_portal:read": "Read your orders and subscriptions",
+       *       "customer_portal:write": "Create or modify your orders and subscriptions",
        *       "organization_access_tokens:read": "Read organization access tokens",
        *       "organization_access_tokens:write": "Create or modify organization access tokens"
        *     }
@@ -6889,12 +5036,8 @@ export interface components {
        *       "payouts:write": "Create or modify payouts",
        *       "products:read": "Read products",
        *       "products:write": "Create or modify products",
-       *       "benefits:read": "Read benefits",
-       *       "benefits:write": "Create or modify benefits",
        *       "events:read": "Read events",
        *       "events:write": "Create events",
-       *       "meters:read": "Read meters",
-       *       "meters:write": "Create or modify meters",
        *       "files:read": "Read file uploads",
        *       "files:write": "Create or modify file uploads",
        *       "subscriptions:read": "Read subscriptions made on your organizations",
@@ -6906,11 +5049,8 @@ export interface components {
        *       "wallets:read": "Read wallets",
        *       "wallets:write": "Create or modify wallets",
        *       "disputes:read": "Read disputes",
-       *       "customer_meters:read": "Read customer meters",
        *       "customer_sessions:write": "Create or modify customer sessions",
        *       "member_sessions:write": "Create or modify member sessions",
-       *       "customer_seats:read": "Read customer seats",
-       *       "customer_seats:write": "Create or modify customer seats",
        *       "orders:read": "Read orders made on your organizations",
        *       "orders:write": "Modify orders made on your organizations",
        *       "refunds:read": "Read refunds made on your organizations",
@@ -6920,14 +5060,8 @@ export interface components {
        *       "metrics:write": "Create or modify metric definitions",
        *       "webhooks:read": "Read webhooks",
        *       "webhooks:write": "Create or modify webhooks",
-       *       "license_keys:read": "Read license keys",
-       *       "license_keys:write": "Modify license keys",
-       *       "customer_portal:read": "Read your orders, subscriptions and benefits",
-       *       "customer_portal:write": "Create or modify your orders, subscriptions and benefits",
-       *       "notifications:read": "Read notifications",
-       *       "notifications:write": "Mark notifications as read",
-       *       "notification_recipients:read": "Read notification recipients",
-       *       "notification_recipients:write": "Create or modify notification recipients",
+       *       "customer_portal:read": "Read your orders and subscriptions",
+       *       "customer_portal:write": "Create or modify your orders and subscriptions",
        *       "organization_access_tokens:read": "Read organization access tokens",
        *       "organization_access_tokens:write": "Create or modify organization access tokens"
        *     }
@@ -6977,12 +5111,8 @@ export interface components {
       | 'payouts:write'
       | 'products:read'
       | 'products:write'
-      | 'benefits:read'
-      | 'benefits:write'
       | 'events:read'
       | 'events:write'
-      | 'meters:read'
-      | 'meters:write'
       | 'files:read'
       | 'files:write'
       | 'subscriptions:read'
@@ -6994,11 +5124,8 @@ export interface components {
       | 'wallets:read'
       | 'wallets:write'
       | 'disputes:read'
-      | 'customer_meters:read'
       | 'customer_sessions:write'
       | 'member_sessions:write'
-      | 'customer_seats:read'
-      | 'customer_seats:write'
       | 'orders:read'
       | 'orders:write'
       | 'refunds:read'
@@ -7008,14 +5135,8 @@ export interface components {
       | 'metrics:write'
       | 'webhooks:read'
       | 'webhooks:write'
-      | 'license_keys:read'
-      | 'license_keys:write'
       | 'customer_portal:read'
       | 'customer_portal:write'
-      | 'notifications:read'
-      | 'notifications:write'
-      | 'notification_recipients:read'
-      | 'notification_recipients:write'
       | 'organization_access_tokens:read'
       | 'organization_access_tokens:write'
     /** BackupCodesEnrollment */
@@ -7122,12 +5243,6 @@ export interface components {
       amount: number
       /** Currency */
       currency: string
-      /** Tax Amount */
-      tax_amount: number
-      /** Tax State */
-      tax_state?: string | null
-      /** Tax Country */
-      tax_country?: string | null
       /** Fee */
       fee: number
       /** Exchange Rate */
@@ -7230,12 +5345,6 @@ export interface components {
       presentment_amount: number
       /** Presentment Currency */
       presentment_currency: string
-      /** Tax Amount */
-      tax_amount: number
-      /** Tax State */
-      tax_state?: string | null
-      /** Tax Country */
-      tax_country?: string | null
       /** Fee */
       fee: number
       /** Exchange Rate */
@@ -7411,12 +5520,6 @@ export interface components {
       presentment_amount: number
       /** Presentment Currency */
       presentment_currency: string
-      /** Tax Amount */
-      tax_amount: number
-      /** Tax State */
-      tax_state?: string | null
-      /** Tax Country */
-      tax_country?: string | null
       /** Fee */
       fee: number
       /** Exchange Rate */
@@ -7521,12 +5624,6 @@ export interface components {
       presentment_currency: string
       /** Refundable Amount */
       refundable_amount?: number
-      /** Tax Amount */
-      tax_amount: number
-      /** Tax State */
-      tax_state?: string | null
-      /** Tax Country */
-      tax_country?: string | null
       /** Fee */
       fee: number
       /** Exchange Rate */
@@ -7607,2696 +5704,6 @@ export interface components {
       name: 'balance.refund_reversal'
       metadata: components['schemas']['BalanceRefundMetadata']
     }
-    Benefit:
-      | components['schemas']['BenefitCustom']
-      | components['schemas']['BenefitDiscord']
-      | components['schemas']['BenefitGitHubRepository']
-      | components['schemas']['BenefitDownloadables']
-      | components['schemas']['BenefitLicenseKeys']
-      | components['schemas']['BenefitMeterCredit']
-      | components['schemas']['BenefitFeatureFlag']
-    BenefitCreate:
-      | components['schemas']['BenefitCustomCreate']
-      | components['schemas']['BenefitDiscordCreate']
-      | components['schemas']['BenefitGitHubRepositoryCreate']
-      | components['schemas']['BenefitDownloadablesCreate']
-      | components['schemas']['BenefitLicenseKeysCreate']
-      | components['schemas']['BenefitMeterCreditCreate']
-      | components['schemas']['BenefitFeatureFlagCreate']
-    /**
-     * BenefitCustom
-     * @description A benefit of type `custom`.
-     *
-     *     Use it to grant any kind of benefit that doesn't fit in the other types.
-     */
-    BenefitCustom: {
-      /**
-       * Id
-       * Format: uuid4
-       * @description The ID of the benefit.
-       */
-      id: string
-      /**
-       * Created At
-       * Format: date-time
-       * @description Creation timestamp of the object.
-       */
-      created_at: string
-      /**
-       * Modified At
-       * @description Last modification timestamp of the object.
-       */
-      modified_at: string | null
-      /**
-       * @description discriminator enum property added by openapi-typescript
-       * @enum {string}
-       */
-      type: 'custom'
-      /**
-       * Description
-       * @description The description of the benefit.
-       */
-      description: string
-      /**
-       * Selectable
-       * @description Whether the benefit is selectable when creating a product.
-       */
-      selectable: boolean
-      /**
-       * Deletable
-       * @description Whether the benefit is deletable.
-       */
-      deletable: boolean
-      /**
-       * Is Deleted
-       * @description Whether the benefit is deleted.
-       */
-      is_deleted: boolean
-      /**
-       * Organization Id
-       * Format: uuid4
-       * @description The ID of the organization owning the benefit.
-       */
-      organization_id: string
-      metadata: components['schemas']['MetadataOutputType']
-      properties: components['schemas']['BenefitCustomProperties']
-    }
-    /**
-     * BenefitCustomCreate
-     * @description Schema to create a benefit of type `custom`.
-     */
-    BenefitCustomCreate: {
-      /**
-       * Metadata
-       * @description Key-value object allowing you to store additional information.
-       *
-       *     The key must be a string with a maximum length of **40 characters**.
-       *     The value must be either:
-       *
-       *     * A string with a maximum length of **500 characters**
-       *     * An integer
-       *     * A floating-point number
-       *     * A boolean
-       *
-       *     You can store up to **50 key-value pairs**.
-       */
-      metadata?: {
-        [key: string]: string | number | boolean
-      }
-      /**
-       * @description discriminator enum property added by openapi-typescript
-       * @enum {string}
-       */
-      type: 'custom'
-      /**
-       * Description
-       * @description The description of the benefit. Will be displayed on products having this benefit.
-       */
-      description: string
-      /**
-       * Organization Id
-       * @description The ID of the organization owning the benefit. **Required unless you use an organization token.**
-       */
-      organization_id?: string | null
-      properties: components['schemas']['BenefitCustomCreateProperties']
-    }
-    /**
-     * BenefitCustomCreateProperties
-     * @description Properties for creating a benefit of type `custom`.
-     */
-    BenefitCustomCreateProperties: {
-      /** Note */
-      note?: (string | null) | null
-    }
-    /**
-     * BenefitCustomProperties
-     * @description Properties for a benefit of type `custom`.
-     */
-    BenefitCustomProperties: {
-      /** Note */
-      note: (string | null) | null
-    }
-    /** BenefitCustomSubscriber */
-    BenefitCustomSubscriber: {
-      /**
-       * Id
-       * Format: uuid4
-       * @description The ID of the benefit.
-       */
-      id: string
-      /**
-       * Created At
-       * Format: date-time
-       * @description Creation timestamp of the object.
-       */
-      created_at: string
-      /**
-       * Modified At
-       * @description Last modification timestamp of the object.
-       */
-      modified_at: string | null
-      /**
-       * Type
-       * @constant
-       */
-      type: 'custom'
-      /**
-       * Description
-       * @description The description of the benefit.
-       */
-      description: string
-      /**
-       * Selectable
-       * @description Whether the benefit is selectable when creating a product.
-       */
-      selectable: boolean
-      /**
-       * Deletable
-       * @description Whether the benefit is deletable.
-       */
-      deletable: boolean
-      /**
-       * Is Deleted
-       * @description Whether the benefit is deleted.
-       */
-      is_deleted: boolean
-      /**
-       * Organization Id
-       * Format: uuid4
-       * @description The ID of the organization owning the benefit.
-       */
-      organization_id: string
-      metadata: components['schemas']['MetadataOutputType']
-      organization: components['schemas']['BenefitSubscriberOrganization']
-      properties: components['schemas']['BenefitCustomSubscriberProperties']
-    }
-    /**
-     * BenefitCustomSubscriberProperties
-     * @description Properties available to subscribers for a benefit of type `custom`.
-     */
-    BenefitCustomSubscriberProperties: {
-      /** Note */
-      note: (string | null) | null
-    }
-    /** BenefitCustomUpdate */
-    BenefitCustomUpdate: {
-      /**
-       * Metadata
-       * @description Key-value object allowing you to store additional information.
-       *
-       *     The key must be a string with a maximum length of **40 characters**.
-       *     The value must be either:
-       *
-       *     * A string with a maximum length of **500 characters**
-       *     * An integer
-       *     * A floating-point number
-       *     * A boolean
-       *
-       *     You can store up to **50 key-value pairs**.
-       */
-      metadata?: {
-        [key: string]: string | number | boolean
-      }
-      /**
-       * Description
-       * @description The description of the benefit. Will be displayed on products having this benefit.
-       */
-      description?: string | null
-      /**
-       * Type
-       * @constant
-       */
-      type: 'custom'
-      properties?: components['schemas']['BenefitCustomProperties'] | null
-    }
-    /**
-     * BenefitCycledEvent
-     * @description An event created by Polar when a benefit is cycled.
-     */
-    BenefitCycledEvent: {
-      /**
-       * Id
-       * Format: uuid4
-       * @description The ID of the object.
-       */
-      id: string
-      /**
-       * Timestamp
-       * Format: date-time
-       * @description The timestamp of the event.
-       */
-      timestamp: string
-      /**
-       * Organization Id
-       * Format: uuid4
-       * @description The ID of the organization owning the event.
-       * @example 1dbfc517-0bbf-4301-9ba8-555ca42b9737
-       */
-      organization_id: string
-      /**
-       * Customer Id
-       * @description ID of the customer in your Polar organization associated with the event.
-       */
-      customer_id: string | null
-      /** @description The customer associated with the event. */
-      customer: components['schemas']['Customer'] | null
-      /**
-       * External Customer Id
-       * @description ID of the customer in your system associated with the event.
-       */
-      external_customer_id: string | null
-      /**
-       * Member Id
-       * @description ID of the member within the customer's organization who performed the action inside B2B.
-       */
-      member_id?: string | null
-      /**
-       * External Member Id
-       * @description ID of the member in your system within the customer's organization who performed the action inside B2B.
-       */
-      external_member_id?: string | null
-      /**
-       * Child Count
-       * @description Number of direct child events linked to this event.
-       * @default 0
-       */
-      child_count: number
-      /**
-       * Parent Id
-       * @description The ID of the parent event.
-       */
-      parent_id?: string | null
-      /**
-       * Label
-       * @description Human readable label of the event type.
-       */
-      label: string
-      /**
-       * Source
-       * @description The source of the event. `system` events are created by Polar. `user` events are the one you create through our ingestion API.
-       * @constant
-       */
-      source: 'system'
-      /**
-       * @description The name of the event. (enum property replaced by openapi-typescript)
-       * @enum {string}
-       */
-      name: 'benefit.cycled'
-      metadata: components['schemas']['BenefitGrantMetadata']
-    }
-    /**
-     * BenefitDiscord
-     * @description A benefit of type `discord`.
-     *
-     *     Use it to automatically invite your backers to a Discord server.
-     */
-    BenefitDiscord: {
-      /**
-       * Id
-       * Format: uuid4
-       * @description The ID of the benefit.
-       */
-      id: string
-      /**
-       * Created At
-       * Format: date-time
-       * @description Creation timestamp of the object.
-       */
-      created_at: string
-      /**
-       * Modified At
-       * @description Last modification timestamp of the object.
-       */
-      modified_at: string | null
-      /**
-       * @description discriminator enum property added by openapi-typescript
-       * @enum {string}
-       */
-      type: 'discord'
-      /**
-       * Description
-       * @description The description of the benefit.
-       */
-      description: string
-      /**
-       * Selectable
-       * @description Whether the benefit is selectable when creating a product.
-       */
-      selectable: boolean
-      /**
-       * Deletable
-       * @description Whether the benefit is deletable.
-       */
-      deletable: boolean
-      /**
-       * Is Deleted
-       * @description Whether the benefit is deleted.
-       */
-      is_deleted: boolean
-      /**
-       * Organization Id
-       * Format: uuid4
-       * @description The ID of the organization owning the benefit.
-       */
-      organization_id: string
-      metadata: components['schemas']['MetadataOutputType']
-      properties: components['schemas']['BenefitDiscordProperties']
-    }
-    /** BenefitDiscordCreate */
-    BenefitDiscordCreate: {
-      /**
-       * Metadata
-       * @description Key-value object allowing you to store additional information.
-       *
-       *     The key must be a string with a maximum length of **40 characters**.
-       *     The value must be either:
-       *
-       *     * A string with a maximum length of **500 characters**
-       *     * An integer
-       *     * A floating-point number
-       *     * A boolean
-       *
-       *     You can store up to **50 key-value pairs**.
-       */
-      metadata?: {
-        [key: string]: string | number | boolean
-      }
-      /**
-       * @description discriminator enum property added by openapi-typescript
-       * @enum {string}
-       */
-      type: 'discord'
-      /**
-       * Description
-       * @description The description of the benefit. Will be displayed on products having this benefit.
-       */
-      description: string
-      /**
-       * Organization Id
-       * @description The ID of the organization owning the benefit. **Required unless you use an organization token.**
-       */
-      organization_id?: string | null
-      properties: components['schemas']['BenefitDiscordCreateProperties']
-    }
-    /**
-     * BenefitDiscordCreateProperties
-     * @description Properties to create a benefit of type `discord`.
-     */
-    BenefitDiscordCreateProperties: {
-      /** Guild Token */
-      guild_token: string
-      /**
-       * Role Id
-       * @description The ID of the Discord role to grant.
-       */
-      role_id: string
-      /**
-       * Kick Member
-       * @description Whether to kick the member from the Discord server on revocation.
-       */
-      kick_member: boolean
-    }
-    /**
-     * BenefitDiscordProperties
-     * @description Properties for a benefit of type `discord`.
-     */
-    BenefitDiscordProperties: {
-      /**
-       * Guild Id
-       * @description The ID of the Discord server.
-       */
-      guild_id: string
-      /**
-       * Role Id
-       * @description The ID of the Discord role to grant.
-       */
-      role_id: string
-      /**
-       * Kick Member
-       * @description Whether to kick the member from the Discord server on revocation.
-       */
-      kick_member: boolean
-      /** Guild Token */
-      readonly guild_token: string
-    }
-    /** BenefitDiscordSubscriber */
-    BenefitDiscordSubscriber: {
-      /**
-       * Id
-       * Format: uuid4
-       * @description The ID of the benefit.
-       */
-      id: string
-      /**
-       * Created At
-       * Format: date-time
-       * @description Creation timestamp of the object.
-       */
-      created_at: string
-      /**
-       * Modified At
-       * @description Last modification timestamp of the object.
-       */
-      modified_at: string | null
-      /**
-       * Type
-       * @constant
-       */
-      type: 'discord'
-      /**
-       * Description
-       * @description The description of the benefit.
-       */
-      description: string
-      /**
-       * Selectable
-       * @description Whether the benefit is selectable when creating a product.
-       */
-      selectable: boolean
-      /**
-       * Deletable
-       * @description Whether the benefit is deletable.
-       */
-      deletable: boolean
-      /**
-       * Is Deleted
-       * @description Whether the benefit is deleted.
-       */
-      is_deleted: boolean
-      /**
-       * Organization Id
-       * Format: uuid4
-       * @description The ID of the organization owning the benefit.
-       */
-      organization_id: string
-      metadata: components['schemas']['MetadataOutputType']
-      organization: components['schemas']['BenefitSubscriberOrganization']
-      properties: components['schemas']['BenefitDiscordSubscriberProperties']
-    }
-    /**
-     * BenefitDiscordSubscriberProperties
-     * @description Properties available to subscribers for a benefit of type `discord`.
-     */
-    BenefitDiscordSubscriberProperties: {
-      /**
-       * Guild Id
-       * @description The ID of the Discord server.
-       */
-      guild_id: string
-    }
-    /** BenefitDiscordUpdate */
-    BenefitDiscordUpdate: {
-      /**
-       * Metadata
-       * @description Key-value object allowing you to store additional information.
-       *
-       *     The key must be a string with a maximum length of **40 characters**.
-       *     The value must be either:
-       *
-       *     * A string with a maximum length of **500 characters**
-       *     * An integer
-       *     * A floating-point number
-       *     * A boolean
-       *
-       *     You can store up to **50 key-value pairs**.
-       */
-      metadata?: {
-        [key: string]: string | number | boolean
-      }
-      /**
-       * Description
-       * @description The description of the benefit. Will be displayed on products having this benefit.
-       */
-      description?: string | null
-      /**
-       * Type
-       * @constant
-       */
-      type: 'discord'
-      properties?:
-        | components['schemas']['BenefitDiscordCreateProperties']
-        | null
-    }
-    /** BenefitDownloadables */
-    BenefitDownloadables: {
-      /**
-       * Id
-       * Format: uuid4
-       * @description The ID of the benefit.
-       */
-      id: string
-      /**
-       * Created At
-       * Format: date-time
-       * @description Creation timestamp of the object.
-       */
-      created_at: string
-      /**
-       * Modified At
-       * @description Last modification timestamp of the object.
-       */
-      modified_at: string | null
-      /**
-       * @description discriminator enum property added by openapi-typescript
-       * @enum {string}
-       */
-      type: 'downloadables'
-      /**
-       * Description
-       * @description The description of the benefit.
-       */
-      description: string
-      /**
-       * Selectable
-       * @description Whether the benefit is selectable when creating a product.
-       */
-      selectable: boolean
-      /**
-       * Deletable
-       * @description Whether the benefit is deletable.
-       */
-      deletable: boolean
-      /**
-       * Is Deleted
-       * @description Whether the benefit is deleted.
-       */
-      is_deleted: boolean
-      /**
-       * Organization Id
-       * Format: uuid4
-       * @description The ID of the organization owning the benefit.
-       */
-      organization_id: string
-      metadata: components['schemas']['MetadataOutputType']
-      properties: components['schemas']['BenefitDownloadablesProperties']
-    }
-    /** BenefitDownloadablesCreate */
-    BenefitDownloadablesCreate: {
-      /**
-       * Metadata
-       * @description Key-value object allowing you to store additional information.
-       *
-       *     The key must be a string with a maximum length of **40 characters**.
-       *     The value must be either:
-       *
-       *     * A string with a maximum length of **500 characters**
-       *     * An integer
-       *     * A floating-point number
-       *     * A boolean
-       *
-       *     You can store up to **50 key-value pairs**.
-       */
-      metadata?: {
-        [key: string]: string | number | boolean
-      }
-      /**
-       * @description discriminator enum property added by openapi-typescript
-       * @enum {string}
-       */
-      type: 'downloadables'
-      /**
-       * Description
-       * @description The description of the benefit. Will be displayed on products having this benefit.
-       */
-      description: string
-      /**
-       * Organization Id
-       * @description The ID of the organization owning the benefit. **Required unless you use an organization token.**
-       */
-      organization_id?: string | null
-      properties: components['schemas']['BenefitDownloadablesCreateProperties']
-    }
-    /** BenefitDownloadablesCreateProperties */
-    BenefitDownloadablesCreateProperties: {
-      /**
-       * Archived
-       * @default {}
-       */
-      archived: {
-        [key: string]: boolean
-      }
-      /** Files */
-      files: string[]
-    }
-    /** BenefitDownloadablesProperties */
-    BenefitDownloadablesProperties: {
-      /** Archived */
-      archived: {
-        [key: string]: boolean
-      }
-      /** Files */
-      files: string[]
-    }
-    /** BenefitDownloadablesSubscriber */
-    BenefitDownloadablesSubscriber: {
-      /**
-       * Id
-       * Format: uuid4
-       * @description The ID of the benefit.
-       */
-      id: string
-      /**
-       * Created At
-       * Format: date-time
-       * @description Creation timestamp of the object.
-       */
-      created_at: string
-      /**
-       * Modified At
-       * @description Last modification timestamp of the object.
-       */
-      modified_at: string | null
-      /**
-       * Type
-       * @constant
-       */
-      type: 'downloadables'
-      /**
-       * Description
-       * @description The description of the benefit.
-       */
-      description: string
-      /**
-       * Selectable
-       * @description Whether the benefit is selectable when creating a product.
-       */
-      selectable: boolean
-      /**
-       * Deletable
-       * @description Whether the benefit is deletable.
-       */
-      deletable: boolean
-      /**
-       * Is Deleted
-       * @description Whether the benefit is deleted.
-       */
-      is_deleted: boolean
-      /**
-       * Organization Id
-       * Format: uuid4
-       * @description The ID of the organization owning the benefit.
-       */
-      organization_id: string
-      metadata: components['schemas']['MetadataOutputType']
-      organization: components['schemas']['BenefitSubscriberOrganization']
-      properties: components['schemas']['BenefitDownloadablesSubscriberProperties']
-    }
-    /** BenefitDownloadablesSubscriberProperties */
-    BenefitDownloadablesSubscriberProperties: {
-      /** Active Files */
-      active_files: string[]
-    }
-    /** BenefitDownloadablesUpdate */
-    BenefitDownloadablesUpdate: {
-      /**
-       * Metadata
-       * @description Key-value object allowing you to store additional information.
-       *
-       *     The key must be a string with a maximum length of **40 characters**.
-       *     The value must be either:
-       *
-       *     * A string with a maximum length of **500 characters**
-       *     * An integer
-       *     * A floating-point number
-       *     * A boolean
-       *
-       *     You can store up to **50 key-value pairs**.
-       */
-      metadata?: {
-        [key: string]: string | number | boolean
-      }
-      /**
-       * Description
-       * @description The description of the benefit. Will be displayed on products having this benefit.
-       */
-      description?: string | null
-      /**
-       * Type
-       * @constant
-       */
-      type: 'downloadables'
-      properties?:
-        | components['schemas']['BenefitDownloadablesCreateProperties']
-        | null
-    }
-    /**
-     * BenefitFeatureFlag
-     * @description A benefit of type `feature_flag`.
-     *
-     *     Use it to grant feature flags with key-value metadata
-     *     that can be queried via the API and webhooks.
-     */
-    BenefitFeatureFlag: {
-      /**
-       * Id
-       * Format: uuid4
-       * @description The ID of the benefit.
-       */
-      id: string
-      /**
-       * Created At
-       * Format: date-time
-       * @description Creation timestamp of the object.
-       */
-      created_at: string
-      /**
-       * Modified At
-       * @description Last modification timestamp of the object.
-       */
-      modified_at: string | null
-      /**
-       * @description discriminator enum property added by openapi-typescript
-       * @enum {string}
-       */
-      type: 'feature_flag'
-      /**
-       * Description
-       * @description The description of the benefit.
-       */
-      description: string
-      /**
-       * Selectable
-       * @description Whether the benefit is selectable when creating a product.
-       */
-      selectable: boolean
-      /**
-       * Deletable
-       * @description Whether the benefit is deletable.
-       */
-      deletable: boolean
-      /**
-       * Is Deleted
-       * @description Whether the benefit is deleted.
-       */
-      is_deleted: boolean
-      /**
-       * Organization Id
-       * Format: uuid4
-       * @description The ID of the organization owning the benefit.
-       */
-      organization_id: string
-      metadata: components['schemas']['MetadataOutputType']
-      properties: components['schemas']['BenefitFeatureFlagProperties']
-    }
-    /**
-     * BenefitFeatureFlagCreate
-     * @description Schema to create a benefit of type `feature_flag`.
-     */
-    BenefitFeatureFlagCreate: {
-      /**
-       * Metadata
-       * @description Key-value object allowing you to store additional information.
-       *
-       *     The key must be a string with a maximum length of **40 characters**.
-       *     The value must be either:
-       *
-       *     * A string with a maximum length of **500 characters**
-       *     * An integer
-       *     * A floating-point number
-       *     * A boolean
-       *
-       *     You can store up to **50 key-value pairs**.
-       */
-      metadata?: {
-        [key: string]: string | number | boolean
-      }
-      /**
-       * @description discriminator enum property added by openapi-typescript
-       * @enum {string}
-       */
-      type: 'feature_flag'
-      /**
-       * Description
-       * @description The description of the benefit. Will be displayed on products having this benefit.
-       */
-      description: string
-      /**
-       * Organization Id
-       * @description The ID of the organization owning the benefit. **Required unless you use an organization token.**
-       */
-      organization_id?: string | null
-      properties: components['schemas']['BenefitFeatureFlagCreateProperties']
-    }
-    /**
-     * BenefitFeatureFlagCreateProperties
-     * @description Properties for creating a benefit of type `feature_flag`.
-     */
-    BenefitFeatureFlagCreateProperties: Record<string, never>
-    /**
-     * BenefitFeatureFlagProperties
-     * @description Properties for a benefit of type `feature_flag`.
-     */
-    BenefitFeatureFlagProperties: Record<string, never>
-    /** BenefitFeatureFlagSubscriber */
-    BenefitFeatureFlagSubscriber: {
-      /**
-       * Id
-       * Format: uuid4
-       * @description The ID of the benefit.
-       */
-      id: string
-      /**
-       * Created At
-       * Format: date-time
-       * @description Creation timestamp of the object.
-       */
-      created_at: string
-      /**
-       * Modified At
-       * @description Last modification timestamp of the object.
-       */
-      modified_at: string | null
-      /**
-       * Type
-       * @constant
-       */
-      type: 'feature_flag'
-      /**
-       * Description
-       * @description The description of the benefit.
-       */
-      description: string
-      /**
-       * Selectable
-       * @description Whether the benefit is selectable when creating a product.
-       */
-      selectable: boolean
-      /**
-       * Deletable
-       * @description Whether the benefit is deletable.
-       */
-      deletable: boolean
-      /**
-       * Is Deleted
-       * @description Whether the benefit is deleted.
-       */
-      is_deleted: boolean
-      /**
-       * Organization Id
-       * Format: uuid4
-       * @description The ID of the organization owning the benefit.
-       */
-      organization_id: string
-      metadata: components['schemas']['MetadataOutputType']
-      organization: components['schemas']['BenefitSubscriberOrganization']
-      properties: components['schemas']['BenefitFeatureFlagSubscriberProperties']
-    }
-    /**
-     * BenefitFeatureFlagSubscriberProperties
-     * @description Properties available to subscribers for a benefit of type `feature_flag`.
-     */
-    BenefitFeatureFlagSubscriberProperties: Record<string, never>
-    /** BenefitFeatureFlagUpdate */
-    BenefitFeatureFlagUpdate: {
-      /**
-       * Metadata
-       * @description Key-value object allowing you to store additional information.
-       *
-       *     The key must be a string with a maximum length of **40 characters**.
-       *     The value must be either:
-       *
-       *     * A string with a maximum length of **500 characters**
-       *     * An integer
-       *     * A floating-point number
-       *     * A boolean
-       *
-       *     You can store up to **50 key-value pairs**.
-       */
-      metadata?: {
-        [key: string]: string | number | boolean
-      }
-      /**
-       * Description
-       * @description The description of the benefit. Will be displayed on products having this benefit.
-       */
-      description?: string | null
-      /**
-       * Type
-       * @constant
-       */
-      type: 'feature_flag'
-      properties?: components['schemas']['BenefitFeatureFlagProperties'] | null
-    }
-    /**
-     * BenefitGitHubRepository
-     * @description A benefit of type `github_repository`.
-     *
-     *     Use it to automatically invite your backers to a private GitHub repository.
-     */
-    BenefitGitHubRepository: {
-      /**
-       * Id
-       * Format: uuid4
-       * @description The ID of the benefit.
-       */
-      id: string
-      /**
-       * Created At
-       * Format: date-time
-       * @description Creation timestamp of the object.
-       */
-      created_at: string
-      /**
-       * Modified At
-       * @description Last modification timestamp of the object.
-       */
-      modified_at: string | null
-      /**
-       * @description discriminator enum property added by openapi-typescript
-       * @enum {string}
-       */
-      type: 'github_repository'
-      /**
-       * Description
-       * @description The description of the benefit.
-       */
-      description: string
-      /**
-       * Selectable
-       * @description Whether the benefit is selectable when creating a product.
-       */
-      selectable: boolean
-      /**
-       * Deletable
-       * @description Whether the benefit is deletable.
-       */
-      deletable: boolean
-      /**
-       * Is Deleted
-       * @description Whether the benefit is deleted.
-       */
-      is_deleted: boolean
-      /**
-       * Organization Id
-       * Format: uuid4
-       * @description The ID of the organization owning the benefit.
-       */
-      organization_id: string
-      metadata: components['schemas']['MetadataOutputType']
-      properties: components['schemas']['BenefitGitHubRepositoryProperties']
-    }
-    /** BenefitGitHubRepositoryCreate */
-    BenefitGitHubRepositoryCreate: {
-      /**
-       * Metadata
-       * @description Key-value object allowing you to store additional information.
-       *
-       *     The key must be a string with a maximum length of **40 characters**.
-       *     The value must be either:
-       *
-       *     * A string with a maximum length of **500 characters**
-       *     * An integer
-       *     * A floating-point number
-       *     * A boolean
-       *
-       *     You can store up to **50 key-value pairs**.
-       */
-      metadata?: {
-        [key: string]: string | number | boolean
-      }
-      /**
-       * @description discriminator enum property added by openapi-typescript
-       * @enum {string}
-       */
-      type: 'github_repository'
-      /**
-       * Description
-       * @description The description of the benefit. Will be displayed on products having this benefit.
-       */
-      description: string
-      /**
-       * Organization Id
-       * @description The ID of the organization owning the benefit. **Required unless you use an organization token.**
-       */
-      organization_id?: string | null
-      properties: components['schemas']['BenefitGitHubRepositoryCreateProperties']
-    }
-    /**
-     * BenefitGitHubRepositoryCreateProperties
-     * @description Properties to create a benefit of type `github_repository`.
-     */
-    BenefitGitHubRepositoryCreateProperties: {
-      /**
-       * Repository Owner
-       * @description The owner of the repository.
-       * @example polarsource
-       */
-      repository_owner: string
-      /**
-       * Repository Name
-       * @description The name of the repository.
-       * @example private_repo
-       */
-      repository_name: string
-      /**
-       * Permission
-       * @description The permission level to grant. Read more about roles and their permissions on [GitHub documentation](https://docs.github.com/en/organizations/managing-user-access-to-your-organizations-repositories/managing-repository-roles/repository-roles-for-an-organization#permissions-for-each-role).
-       * @enum {string}
-       */
-      permission: 'pull' | 'triage' | 'push' | 'maintain' | 'admin'
-    }
-    /**
-     * BenefitGitHubRepositoryProperties
-     * @description Properties for a benefit of type `github_repository`.
-     */
-    BenefitGitHubRepositoryProperties: {
-      /**
-       * Repository Owner
-       * @description The owner of the repository.
-       * @example polarsource
-       */
-      repository_owner: string
-      /**
-       * Repository Name
-       * @description The name of the repository.
-       * @example private_repo
-       */
-      repository_name: string
-      /**
-       * Permission
-       * @description The permission level to grant. Read more about roles and their permissions on [GitHub documentation](https://docs.github.com/en/organizations/managing-user-access-to-your-organizations-repositories/managing-repository-roles/repository-roles-for-an-organization#permissions-for-each-role).
-       * @enum {string}
-       */
-      permission: 'pull' | 'triage' | 'push' | 'maintain' | 'admin'
-    }
-    /** BenefitGitHubRepositorySubscriber */
-    BenefitGitHubRepositorySubscriber: {
-      /**
-       * Id
-       * Format: uuid4
-       * @description The ID of the benefit.
-       */
-      id: string
-      /**
-       * Created At
-       * Format: date-time
-       * @description Creation timestamp of the object.
-       */
-      created_at: string
-      /**
-       * Modified At
-       * @description Last modification timestamp of the object.
-       */
-      modified_at: string | null
-      /**
-       * Type
-       * @constant
-       */
-      type: 'github_repository'
-      /**
-       * Description
-       * @description The description of the benefit.
-       */
-      description: string
-      /**
-       * Selectable
-       * @description Whether the benefit is selectable when creating a product.
-       */
-      selectable: boolean
-      /**
-       * Deletable
-       * @description Whether the benefit is deletable.
-       */
-      deletable: boolean
-      /**
-       * Is Deleted
-       * @description Whether the benefit is deleted.
-       */
-      is_deleted: boolean
-      /**
-       * Organization Id
-       * Format: uuid4
-       * @description The ID of the organization owning the benefit.
-       */
-      organization_id: string
-      metadata: components['schemas']['MetadataOutputType']
-      organization: components['schemas']['BenefitSubscriberOrganization']
-      properties: components['schemas']['BenefitGitHubRepositorySubscriberProperties']
-    }
-    /**
-     * BenefitGitHubRepositorySubscriberProperties
-     * @description Properties available to subscribers for a benefit of type `github_repository`.
-     */
-    BenefitGitHubRepositorySubscriberProperties: {
-      /**
-       * Repository Owner
-       * @description The owner of the repository.
-       * @example polarsource
-       */
-      repository_owner: string
-      /**
-       * Repository Name
-       * @description The name of the repository.
-       * @example private_repo
-       */
-      repository_name: string
-    }
-    /** BenefitGitHubRepositoryUpdate */
-    BenefitGitHubRepositoryUpdate: {
-      /**
-       * Metadata
-       * @description Key-value object allowing you to store additional information.
-       *
-       *     The key must be a string with a maximum length of **40 characters**.
-       *     The value must be either:
-       *
-       *     * A string with a maximum length of **500 characters**
-       *     * An integer
-       *     * A floating-point number
-       *     * A boolean
-       *
-       *     You can store up to **50 key-value pairs**.
-       */
-      metadata?: {
-        [key: string]: string | number | boolean
-      }
-      /**
-       * Description
-       * @description The description of the benefit. Will be displayed on products having this benefit.
-       */
-      description?: string | null
-      /**
-       * Type
-       * @constant
-       */
-      type: 'github_repository'
-      properties?:
-        | components['schemas']['BenefitGitHubRepositoryCreateProperties']
-        | null
-    }
-    /** BenefitGrant */
-    BenefitGrant: {
-      /**
-       * Created At
-       * Format: date-time
-       * @description Creation timestamp of the object.
-       */
-      created_at: string
-      /**
-       * Modified At
-       * @description Last modification timestamp of the object.
-       */
-      modified_at: string | null
-      /**
-       * Id
-       * Format: uuid4
-       * @description The ID of the grant.
-       */
-      id: string
-      /**
-       * Granted At
-       * @description The timestamp when the benefit was granted. If `None`, the benefit is not granted.
-       */
-      granted_at?: string | null
-      /**
-       * Is Granted
-       * @description Whether the benefit is granted.
-       */
-      is_granted: boolean
-      /**
-       * Revoked At
-       * @description The timestamp when the benefit was revoked. If `None`, the benefit is not revoked.
-       */
-      revoked_at?: string | null
-      /**
-       * Is Revoked
-       * @description Whether the benefit is revoked.
-       */
-      is_revoked: boolean
-      /**
-       * Subscription Id
-       * @description The ID of the subscription that granted this benefit.
-       */
-      subscription_id: string | null
-      /**
-       * Order Id
-       * @description The ID of the order that granted this benefit.
-       */
-      order_id: string | null
-      /**
-       * Customer Id
-       * Format: uuid4
-       * @description The ID of the customer concerned by this grant.
-       */
-      customer_id: string
-      /**
-       * Member Id
-       * @description The ID of the member concerned by this grant.
-       */
-      member_id?: string | null
-      /**
-       * Benefit Id
-       * Format: uuid4
-       * @description The ID of the benefit concerned by this grant.
-       */
-      benefit_id: string
-      /** @description The error information if the benefit grant failed with an unrecoverable error. */
-      error?: components['schemas']['BenefitGrantError'] | null
-      customer: components['schemas']['Customer']
-      member?: components['schemas']['Member'] | null
-      /** Benefit */
-      benefit: components['schemas']['Benefit']
-      /** Properties */
-      properties:
-        | components['schemas']['BenefitGrantDiscordProperties']
-        | components['schemas']['BenefitGrantGitHubRepositoryProperties']
-        | components['schemas']['BenefitGrantDownloadablesProperties']
-        | components['schemas']['BenefitGrantLicenseKeysProperties']
-        | components['schemas']['BenefitGrantCustomProperties']
-        | components['schemas']['BenefitGrantFeatureFlagProperties']
-    }
-    /** BenefitGrantCustomProperties */
-    BenefitGrantCustomProperties: Record<string, never>
-    /** BenefitGrantCustomWebhook */
-    BenefitGrantCustomWebhook: {
-      /**
-       * Created At
-       * Format: date-time
-       * @description Creation timestamp of the object.
-       */
-      created_at: string
-      /**
-       * Modified At
-       * @description Last modification timestamp of the object.
-       */
-      modified_at: string | null
-      /**
-       * Id
-       * Format: uuid4
-       * @description The ID of the grant.
-       */
-      id: string
-      /**
-       * Granted At
-       * @description The timestamp when the benefit was granted. If `None`, the benefit is not granted.
-       */
-      granted_at?: string | null
-      /**
-       * Is Granted
-       * @description Whether the benefit is granted.
-       */
-      is_granted: boolean
-      /**
-       * Revoked At
-       * @description The timestamp when the benefit was revoked. If `None`, the benefit is not revoked.
-       */
-      revoked_at?: string | null
-      /**
-       * Is Revoked
-       * @description Whether the benefit is revoked.
-       */
-      is_revoked: boolean
-      /**
-       * Subscription Id
-       * @description The ID of the subscription that granted this benefit.
-       */
-      subscription_id: string | null
-      /**
-       * Order Id
-       * @description The ID of the order that granted this benefit.
-       */
-      order_id: string | null
-      /**
-       * Customer Id
-       * Format: uuid4
-       * @description The ID of the customer concerned by this grant.
-       */
-      customer_id: string
-      /**
-       * Member Id
-       * @description The ID of the member concerned by this grant.
-       */
-      member_id?: string | null
-      /**
-       * Benefit Id
-       * Format: uuid4
-       * @description The ID of the benefit concerned by this grant.
-       */
-      benefit_id: string
-      /** @description The error information if the benefit grant failed with an unrecoverable error. */
-      error?: components['schemas']['BenefitGrantError'] | null
-      customer: components['schemas']['Customer']
-      member?: components['schemas']['Member'] | null
-      benefit: components['schemas']['BenefitCustom']
-      properties: components['schemas']['BenefitGrantCustomProperties']
-      previous_properties?:
-        | components['schemas']['BenefitGrantCustomProperties']
-        | null
-    }
-    /** BenefitGrantDiscordProperties */
-    BenefitGrantDiscordProperties: {
-      /** Account Id */
-      account_id?: string | null
-      /** Guild Id */
-      guild_id?: string
-      /** Role Id */
-      role_id?: string
-      /** Granted Account Id */
-      granted_account_id?: string
-    }
-    /** BenefitGrantDiscordWebhook */
-    BenefitGrantDiscordWebhook: {
-      /**
-       * Created At
-       * Format: date-time
-       * @description Creation timestamp of the object.
-       */
-      created_at: string
-      /**
-       * Modified At
-       * @description Last modification timestamp of the object.
-       */
-      modified_at: string | null
-      /**
-       * Id
-       * Format: uuid4
-       * @description The ID of the grant.
-       */
-      id: string
-      /**
-       * Granted At
-       * @description The timestamp when the benefit was granted. If `None`, the benefit is not granted.
-       */
-      granted_at?: string | null
-      /**
-       * Is Granted
-       * @description Whether the benefit is granted.
-       */
-      is_granted: boolean
-      /**
-       * Revoked At
-       * @description The timestamp when the benefit was revoked. If `None`, the benefit is not revoked.
-       */
-      revoked_at?: string | null
-      /**
-       * Is Revoked
-       * @description Whether the benefit is revoked.
-       */
-      is_revoked: boolean
-      /**
-       * Subscription Id
-       * @description The ID of the subscription that granted this benefit.
-       */
-      subscription_id: string | null
-      /**
-       * Order Id
-       * @description The ID of the order that granted this benefit.
-       */
-      order_id: string | null
-      /**
-       * Customer Id
-       * Format: uuid4
-       * @description The ID of the customer concerned by this grant.
-       */
-      customer_id: string
-      /**
-       * Member Id
-       * @description The ID of the member concerned by this grant.
-       */
-      member_id?: string | null
-      /**
-       * Benefit Id
-       * Format: uuid4
-       * @description The ID of the benefit concerned by this grant.
-       */
-      benefit_id: string
-      /** @description The error information if the benefit grant failed with an unrecoverable error. */
-      error?: components['schemas']['BenefitGrantError'] | null
-      customer: components['schemas']['Customer']
-      member?: components['schemas']['Member'] | null
-      benefit: components['schemas']['BenefitDiscord']
-      properties: components['schemas']['BenefitGrantDiscordProperties']
-      previous_properties?:
-        | components['schemas']['BenefitGrantDiscordProperties']
-        | null
-    }
-    /** BenefitGrantDownloadablesProperties */
-    BenefitGrantDownloadablesProperties: {
-      /** Files */
-      files?: string[]
-    }
-    /** BenefitGrantDownloadablesWebhook */
-    BenefitGrantDownloadablesWebhook: {
-      /**
-       * Created At
-       * Format: date-time
-       * @description Creation timestamp of the object.
-       */
-      created_at: string
-      /**
-       * Modified At
-       * @description Last modification timestamp of the object.
-       */
-      modified_at: string | null
-      /**
-       * Id
-       * Format: uuid4
-       * @description The ID of the grant.
-       */
-      id: string
-      /**
-       * Granted At
-       * @description The timestamp when the benefit was granted. If `None`, the benefit is not granted.
-       */
-      granted_at?: string | null
-      /**
-       * Is Granted
-       * @description Whether the benefit is granted.
-       */
-      is_granted: boolean
-      /**
-       * Revoked At
-       * @description The timestamp when the benefit was revoked. If `None`, the benefit is not revoked.
-       */
-      revoked_at?: string | null
-      /**
-       * Is Revoked
-       * @description Whether the benefit is revoked.
-       */
-      is_revoked: boolean
-      /**
-       * Subscription Id
-       * @description The ID of the subscription that granted this benefit.
-       */
-      subscription_id: string | null
-      /**
-       * Order Id
-       * @description The ID of the order that granted this benefit.
-       */
-      order_id: string | null
-      /**
-       * Customer Id
-       * Format: uuid4
-       * @description The ID of the customer concerned by this grant.
-       */
-      customer_id: string
-      /**
-       * Member Id
-       * @description The ID of the member concerned by this grant.
-       */
-      member_id?: string | null
-      /**
-       * Benefit Id
-       * Format: uuid4
-       * @description The ID of the benefit concerned by this grant.
-       */
-      benefit_id: string
-      /** @description The error information if the benefit grant failed with an unrecoverable error. */
-      error?: components['schemas']['BenefitGrantError'] | null
-      customer: components['schemas']['Customer']
-      member?: components['schemas']['Member'] | null
-      benefit: components['schemas']['BenefitDownloadables']
-      properties: components['schemas']['BenefitGrantDownloadablesProperties']
-      previous_properties?:
-        | components['schemas']['BenefitGrantDownloadablesProperties']
-        | null
-    }
-    /** BenefitGrantError */
-    BenefitGrantError: {
-      /** Message */
-      message: string
-      /** Type */
-      type: string
-      /** Timestamp */
-      timestamp: string
-    }
-    /** BenefitGrantFeatureFlagProperties */
-    BenefitGrantFeatureFlagProperties: Record<string, never>
-    /** BenefitGrantFeatureFlagWebhook */
-    BenefitGrantFeatureFlagWebhook: {
-      /**
-       * Created At
-       * Format: date-time
-       * @description Creation timestamp of the object.
-       */
-      created_at: string
-      /**
-       * Modified At
-       * @description Last modification timestamp of the object.
-       */
-      modified_at: string | null
-      /**
-       * Id
-       * Format: uuid4
-       * @description The ID of the grant.
-       */
-      id: string
-      /**
-       * Granted At
-       * @description The timestamp when the benefit was granted. If `None`, the benefit is not granted.
-       */
-      granted_at?: string | null
-      /**
-       * Is Granted
-       * @description Whether the benefit is granted.
-       */
-      is_granted: boolean
-      /**
-       * Revoked At
-       * @description The timestamp when the benefit was revoked. If `None`, the benefit is not revoked.
-       */
-      revoked_at?: string | null
-      /**
-       * Is Revoked
-       * @description Whether the benefit is revoked.
-       */
-      is_revoked: boolean
-      /**
-       * Subscription Id
-       * @description The ID of the subscription that granted this benefit.
-       */
-      subscription_id: string | null
-      /**
-       * Order Id
-       * @description The ID of the order that granted this benefit.
-       */
-      order_id: string | null
-      /**
-       * Customer Id
-       * Format: uuid4
-       * @description The ID of the customer concerned by this grant.
-       */
-      customer_id: string
-      /**
-       * Member Id
-       * @description The ID of the member concerned by this grant.
-       */
-      member_id?: string | null
-      /**
-       * Benefit Id
-       * Format: uuid4
-       * @description The ID of the benefit concerned by this grant.
-       */
-      benefit_id: string
-      /** @description The error information if the benefit grant failed with an unrecoverable error. */
-      error?: components['schemas']['BenefitGrantError'] | null
-      customer: components['schemas']['Customer']
-      member?: components['schemas']['Member'] | null
-      benefit: components['schemas']['BenefitFeatureFlag']
-      properties: components['schemas']['BenefitGrantFeatureFlagProperties']
-      previous_properties?:
-        | components['schemas']['BenefitGrantFeatureFlagProperties']
-        | null
-    }
-    /** BenefitGrantGitHubRepositoryProperties */
-    BenefitGrantGitHubRepositoryProperties: {
-      /** Account Id */
-      account_id?: string | null
-      /** Repository Owner */
-      repository_owner?: string
-      /** Repository Name */
-      repository_name?: string
-      /**
-       * Permission
-       * @enum {string}
-       */
-      permission?: 'pull' | 'triage' | 'push' | 'maintain' | 'admin'
-      /** Granted Account Id */
-      granted_account_id?: string
-    }
-    /** BenefitGrantGitHubRepositoryWebhook */
-    BenefitGrantGitHubRepositoryWebhook: {
-      /**
-       * Created At
-       * Format: date-time
-       * @description Creation timestamp of the object.
-       */
-      created_at: string
-      /**
-       * Modified At
-       * @description Last modification timestamp of the object.
-       */
-      modified_at: string | null
-      /**
-       * Id
-       * Format: uuid4
-       * @description The ID of the grant.
-       */
-      id: string
-      /**
-       * Granted At
-       * @description The timestamp when the benefit was granted. If `None`, the benefit is not granted.
-       */
-      granted_at?: string | null
-      /**
-       * Is Granted
-       * @description Whether the benefit is granted.
-       */
-      is_granted: boolean
-      /**
-       * Revoked At
-       * @description The timestamp when the benefit was revoked. If `None`, the benefit is not revoked.
-       */
-      revoked_at?: string | null
-      /**
-       * Is Revoked
-       * @description Whether the benefit is revoked.
-       */
-      is_revoked: boolean
-      /**
-       * Subscription Id
-       * @description The ID of the subscription that granted this benefit.
-       */
-      subscription_id: string | null
-      /**
-       * Order Id
-       * @description The ID of the order that granted this benefit.
-       */
-      order_id: string | null
-      /**
-       * Customer Id
-       * Format: uuid4
-       * @description The ID of the customer concerned by this grant.
-       */
-      customer_id: string
-      /**
-       * Member Id
-       * @description The ID of the member concerned by this grant.
-       */
-      member_id?: string | null
-      /**
-       * Benefit Id
-       * Format: uuid4
-       * @description The ID of the benefit concerned by this grant.
-       */
-      benefit_id: string
-      /** @description The error information if the benefit grant failed with an unrecoverable error. */
-      error?: components['schemas']['BenefitGrantError'] | null
-      customer: components['schemas']['Customer']
-      member?: components['schemas']['Member'] | null
-      benefit: components['schemas']['BenefitGitHubRepository']
-      properties: components['schemas']['BenefitGrantGitHubRepositoryProperties']
-      previous_properties?:
-        | components['schemas']['BenefitGrantGitHubRepositoryProperties']
-        | null
-    }
-    /** BenefitGrantLicenseKeysProperties */
-    BenefitGrantLicenseKeysProperties: {
-      /** User Provided Key */
-      user_provided_key?: string
-      /** License Key Id */
-      license_key_id?: string
-      /** Display Key */
-      display_key?: string
-    }
-    /** BenefitGrantLicenseKeysWebhook */
-    BenefitGrantLicenseKeysWebhook: {
-      /**
-       * Created At
-       * Format: date-time
-       * @description Creation timestamp of the object.
-       */
-      created_at: string
-      /**
-       * Modified At
-       * @description Last modification timestamp of the object.
-       */
-      modified_at: string | null
-      /**
-       * Id
-       * Format: uuid4
-       * @description The ID of the grant.
-       */
-      id: string
-      /**
-       * Granted At
-       * @description The timestamp when the benefit was granted. If `None`, the benefit is not granted.
-       */
-      granted_at?: string | null
-      /**
-       * Is Granted
-       * @description Whether the benefit is granted.
-       */
-      is_granted: boolean
-      /**
-       * Revoked At
-       * @description The timestamp when the benefit was revoked. If `None`, the benefit is not revoked.
-       */
-      revoked_at?: string | null
-      /**
-       * Is Revoked
-       * @description Whether the benefit is revoked.
-       */
-      is_revoked: boolean
-      /**
-       * Subscription Id
-       * @description The ID of the subscription that granted this benefit.
-       */
-      subscription_id: string | null
-      /**
-       * Order Id
-       * @description The ID of the order that granted this benefit.
-       */
-      order_id: string | null
-      /**
-       * Customer Id
-       * Format: uuid4
-       * @description The ID of the customer concerned by this grant.
-       */
-      customer_id: string
-      /**
-       * Member Id
-       * @description The ID of the member concerned by this grant.
-       */
-      member_id?: string | null
-      /**
-       * Benefit Id
-       * Format: uuid4
-       * @description The ID of the benefit concerned by this grant.
-       */
-      benefit_id: string
-      /** @description The error information if the benefit grant failed with an unrecoverable error. */
-      error?: components['schemas']['BenefitGrantError'] | null
-      customer: components['schemas']['Customer']
-      member?: components['schemas']['Member'] | null
-      benefit: components['schemas']['BenefitLicenseKeys']
-      properties: components['schemas']['BenefitGrantLicenseKeysProperties']
-      previous_properties?:
-        | components['schemas']['BenefitGrantLicenseKeysProperties']
-        | null
-    }
-    /** BenefitGrantMetadata */
-    BenefitGrantMetadata: {
-      /** Benefit Id */
-      benefit_id: string
-      /** Benefit Grant Id */
-      benefit_grant_id: string
-      benefit_type: components['schemas']['BenefitType']
-      /** Member Id */
-      member_id?: string
-    }
-    /** BenefitGrantMeterCreditProperties */
-    BenefitGrantMeterCreditProperties: {
-      /** Last Credited Meter Id */
-      last_credited_meter_id?: string
-      /** Last Credited Units */
-      last_credited_units?: number
-      /** Last Credited At */
-      last_credited_at?: string
-    }
-    /** BenefitGrantMeterCreditWebhook */
-    BenefitGrantMeterCreditWebhook: {
-      /**
-       * Created At
-       * Format: date-time
-       * @description Creation timestamp of the object.
-       */
-      created_at: string
-      /**
-       * Modified At
-       * @description Last modification timestamp of the object.
-       */
-      modified_at: string | null
-      /**
-       * Id
-       * Format: uuid4
-       * @description The ID of the grant.
-       */
-      id: string
-      /**
-       * Granted At
-       * @description The timestamp when the benefit was granted. If `None`, the benefit is not granted.
-       */
-      granted_at?: string | null
-      /**
-       * Is Granted
-       * @description Whether the benefit is granted.
-       */
-      is_granted: boolean
-      /**
-       * Revoked At
-       * @description The timestamp when the benefit was revoked. If `None`, the benefit is not revoked.
-       */
-      revoked_at?: string | null
-      /**
-       * Is Revoked
-       * @description Whether the benefit is revoked.
-       */
-      is_revoked: boolean
-      /**
-       * Subscription Id
-       * @description The ID of the subscription that granted this benefit.
-       */
-      subscription_id: string | null
-      /**
-       * Order Id
-       * @description The ID of the order that granted this benefit.
-       */
-      order_id: string | null
-      /**
-       * Customer Id
-       * Format: uuid4
-       * @description The ID of the customer concerned by this grant.
-       */
-      customer_id: string
-      /**
-       * Member Id
-       * @description The ID of the member concerned by this grant.
-       */
-      member_id?: string | null
-      /**
-       * Benefit Id
-       * Format: uuid4
-       * @description The ID of the benefit concerned by this grant.
-       */
-      benefit_id: string
-      /** @description The error information if the benefit grant failed with an unrecoverable error. */
-      error?: components['schemas']['BenefitGrantError'] | null
-      customer: components['schemas']['Customer']
-      member?: components['schemas']['Member'] | null
-      benefit: components['schemas']['BenefitMeterCredit']
-      properties: components['schemas']['BenefitGrantMeterCreditProperties']
-      previous_properties?:
-        | components['schemas']['BenefitGrantMeterCreditProperties']
-        | null
-    }
-    /**
-     * BenefitGrantSortProperty
-     * @enum {string}
-     */
-    BenefitGrantSortProperty:
-      | 'created_at'
-      | '-created_at'
-      | 'granted_at'
-      | '-granted_at'
-      | 'revoked_at'
-      | '-revoked_at'
-    BenefitGrantWebhook:
-      | components['schemas']['BenefitGrantDiscordWebhook']
-      | components['schemas']['BenefitGrantCustomWebhook']
-      | components['schemas']['BenefitGrantGitHubRepositoryWebhook']
-      | components['schemas']['BenefitGrantDownloadablesWebhook']
-      | components['schemas']['BenefitGrantLicenseKeysWebhook']
-      | components['schemas']['BenefitGrantMeterCreditWebhook']
-      | components['schemas']['BenefitGrantFeatureFlagWebhook']
-    /**
-     * BenefitGrantedEvent
-     * @description An event created by Polar when a benefit is granted to a customer.
-     */
-    BenefitGrantedEvent: {
-      /**
-       * Id
-       * Format: uuid4
-       * @description The ID of the object.
-       */
-      id: string
-      /**
-       * Timestamp
-       * Format: date-time
-       * @description The timestamp of the event.
-       */
-      timestamp: string
-      /**
-       * Organization Id
-       * Format: uuid4
-       * @description The ID of the organization owning the event.
-       * @example 1dbfc517-0bbf-4301-9ba8-555ca42b9737
-       */
-      organization_id: string
-      /**
-       * Customer Id
-       * @description ID of the customer in your Polar organization associated with the event.
-       */
-      customer_id: string | null
-      /** @description The customer associated with the event. */
-      customer: components['schemas']['Customer'] | null
-      /**
-       * External Customer Id
-       * @description ID of the customer in your system associated with the event.
-       */
-      external_customer_id: string | null
-      /**
-       * Member Id
-       * @description ID of the member within the customer's organization who performed the action inside B2B.
-       */
-      member_id?: string | null
-      /**
-       * External Member Id
-       * @description ID of the member in your system within the customer's organization who performed the action inside B2B.
-       */
-      external_member_id?: string | null
-      /**
-       * Child Count
-       * @description Number of direct child events linked to this event.
-       * @default 0
-       */
-      child_count: number
-      /**
-       * Parent Id
-       * @description The ID of the parent event.
-       */
-      parent_id?: string | null
-      /**
-       * Label
-       * @description Human readable label of the event type.
-       */
-      label: string
-      /**
-       * Source
-       * @description The source of the event. `system` events are created by Polar. `user` events are the one you create through our ingestion API.
-       * @constant
-       */
-      source: 'system'
-      /**
-       * @description The name of the event. (enum property replaced by openapi-typescript)
-       * @enum {string}
-       */
-      name: 'benefit.granted'
-      metadata: components['schemas']['BenefitGrantMetadata']
-    }
-    /** BenefitLicenseKeyActivationCreateProperties */
-    BenefitLicenseKeyActivationCreateProperties: {
-      /** Limit */
-      limit: number
-      /** Enable Customer Admin */
-      enable_customer_admin: boolean
-    }
-    /** BenefitLicenseKeyActivationProperties */
-    BenefitLicenseKeyActivationProperties: {
-      /** Limit */
-      limit: number
-      /** Enable Customer Admin */
-      enable_customer_admin: boolean
-    }
-    /** BenefitLicenseKeyExpirationProperties */
-    BenefitLicenseKeyExpirationProperties: {
-      /** Ttl */
-      ttl: number
-      /**
-       * Timeframe
-       * @enum {string}
-       */
-      timeframe: 'year' | 'month' | 'day'
-    }
-    /** BenefitLicenseKeys */
-    BenefitLicenseKeys: {
-      /**
-       * Id
-       * Format: uuid4
-       * @description The ID of the benefit.
-       */
-      id: string
-      /**
-       * Created At
-       * Format: date-time
-       * @description Creation timestamp of the object.
-       */
-      created_at: string
-      /**
-       * Modified At
-       * @description Last modification timestamp of the object.
-       */
-      modified_at: string | null
-      /**
-       * @description discriminator enum property added by openapi-typescript
-       * @enum {string}
-       */
-      type: 'license_keys'
-      /**
-       * Description
-       * @description The description of the benefit.
-       */
-      description: string
-      /**
-       * Selectable
-       * @description Whether the benefit is selectable when creating a product.
-       */
-      selectable: boolean
-      /**
-       * Deletable
-       * @description Whether the benefit is deletable.
-       */
-      deletable: boolean
-      /**
-       * Is Deleted
-       * @description Whether the benefit is deleted.
-       */
-      is_deleted: boolean
-      /**
-       * Organization Id
-       * Format: uuid4
-       * @description The ID of the organization owning the benefit.
-       */
-      organization_id: string
-      metadata: components['schemas']['MetadataOutputType']
-      properties: components['schemas']['BenefitLicenseKeysProperties']
-    }
-    /** BenefitLicenseKeysCreate */
-    BenefitLicenseKeysCreate: {
-      /**
-       * Metadata
-       * @description Key-value object allowing you to store additional information.
-       *
-       *     The key must be a string with a maximum length of **40 characters**.
-       *     The value must be either:
-       *
-       *     * A string with a maximum length of **500 characters**
-       *     * An integer
-       *     * A floating-point number
-       *     * A boolean
-       *
-       *     You can store up to **50 key-value pairs**.
-       */
-      metadata?: {
-        [key: string]: string | number | boolean
-      }
-      /**
-       * @description discriminator enum property added by openapi-typescript
-       * @enum {string}
-       */
-      type: 'license_keys'
-      /**
-       * Description
-       * @description The description of the benefit. Will be displayed on products having this benefit.
-       */
-      description: string
-      /**
-       * Organization Id
-       * @description The ID of the organization owning the benefit. **Required unless you use an organization token.**
-       */
-      organization_id?: string | null
-      properties: components['schemas']['BenefitLicenseKeysCreateProperties']
-    }
-    /** BenefitLicenseKeysCreateProperties */
-    BenefitLicenseKeysCreateProperties: {
-      /** Prefix */
-      prefix?: string | null
-      expires?:
-        | components['schemas']['BenefitLicenseKeyExpirationProperties']
-        | null
-      activations?:
-        | components['schemas']['BenefitLicenseKeyActivationCreateProperties']
-        | null
-      /** Limit Usage */
-      limit_usage?: number | null
-    }
-    /** BenefitLicenseKeysProperties */
-    BenefitLicenseKeysProperties: {
-      /** Prefix */
-      prefix: string | null
-      expires:
-        | components['schemas']['BenefitLicenseKeyExpirationProperties']
-        | null
-      activations:
-        | components['schemas']['BenefitLicenseKeyActivationProperties']
-        | null
-      /** Limit Usage */
-      limit_usage: number | null
-    }
-    /** BenefitLicenseKeysSubscriber */
-    BenefitLicenseKeysSubscriber: {
-      /**
-       * Id
-       * Format: uuid4
-       * @description The ID of the benefit.
-       */
-      id: string
-      /**
-       * Created At
-       * Format: date-time
-       * @description Creation timestamp of the object.
-       */
-      created_at: string
-      /**
-       * Modified At
-       * @description Last modification timestamp of the object.
-       */
-      modified_at: string | null
-      /**
-       * Type
-       * @constant
-       */
-      type: 'license_keys'
-      /**
-       * Description
-       * @description The description of the benefit.
-       */
-      description: string
-      /**
-       * Selectable
-       * @description Whether the benefit is selectable when creating a product.
-       */
-      selectable: boolean
-      /**
-       * Deletable
-       * @description Whether the benefit is deletable.
-       */
-      deletable: boolean
-      /**
-       * Is Deleted
-       * @description Whether the benefit is deleted.
-       */
-      is_deleted: boolean
-      /**
-       * Organization Id
-       * Format: uuid4
-       * @description The ID of the organization owning the benefit.
-       */
-      organization_id: string
-      metadata: components['schemas']['MetadataOutputType']
-      organization: components['schemas']['BenefitSubscriberOrganization']
-      properties: components['schemas']['BenefitLicenseKeysSubscriberProperties']
-    }
-    /** BenefitLicenseKeysSubscriberProperties */
-    BenefitLicenseKeysSubscriberProperties: {
-      /** Prefix */
-      prefix: string | null
-      expires:
-        | components['schemas']['BenefitLicenseKeyExpirationProperties']
-        | null
-      activations:
-        | components['schemas']['BenefitLicenseKeyActivationProperties']
-        | null
-      /** Limit Usage */
-      limit_usage: number | null
-    }
-    /** BenefitLicenseKeysUpdate */
-    BenefitLicenseKeysUpdate: {
-      /**
-       * Metadata
-       * @description Key-value object allowing you to store additional information.
-       *
-       *     The key must be a string with a maximum length of **40 characters**.
-       *     The value must be either:
-       *
-       *     * A string with a maximum length of **500 characters**
-       *     * An integer
-       *     * A floating-point number
-       *     * A boolean
-       *
-       *     You can store up to **50 key-value pairs**.
-       */
-      metadata?: {
-        [key: string]: string | number | boolean
-      }
-      /**
-       * Description
-       * @description The description of the benefit. Will be displayed on products having this benefit.
-       */
-      description?: string | null
-      /**
-       * Type
-       * @constant
-       */
-      type: 'license_keys'
-      properties?:
-        | components['schemas']['BenefitLicenseKeysCreateProperties']
-        | null
-    }
-    /**
-     * BenefitMeterCredit
-     * @description A benefit of type `meter_unit`.
-     *
-     *     Use it to grant a number of units on a specific meter.
-     */
-    BenefitMeterCredit: {
-      /**
-       * Id
-       * Format: uuid4
-       * @description The ID of the benefit.
-       */
-      id: string
-      /**
-       * Created At
-       * Format: date-time
-       * @description Creation timestamp of the object.
-       */
-      created_at: string
-      /**
-       * Modified At
-       * @description Last modification timestamp of the object.
-       */
-      modified_at: string | null
-      /**
-       * @description discriminator enum property added by openapi-typescript
-       * @enum {string}
-       */
-      type: 'meter_credit'
-      /**
-       * Description
-       * @description The description of the benefit.
-       */
-      description: string
-      /**
-       * Selectable
-       * @description Whether the benefit is selectable when creating a product.
-       */
-      selectable: boolean
-      /**
-       * Deletable
-       * @description Whether the benefit is deletable.
-       */
-      deletable: boolean
-      /**
-       * Is Deleted
-       * @description Whether the benefit is deleted.
-       */
-      is_deleted: boolean
-      /**
-       * Organization Id
-       * Format: uuid4
-       * @description The ID of the organization owning the benefit.
-       */
-      organization_id: string
-      metadata: components['schemas']['MetadataOutputType']
-      properties: components['schemas']['BenefitMeterCreditProperties']
-    }
-    /**
-     * BenefitMeterCreditCreate
-     * @description Schema to create a benefit of type `meter_unit`.
-     */
-    BenefitMeterCreditCreate: {
-      /**
-       * Metadata
-       * @description Key-value object allowing you to store additional information.
-       *
-       *     The key must be a string with a maximum length of **40 characters**.
-       *     The value must be either:
-       *
-       *     * A string with a maximum length of **500 characters**
-       *     * An integer
-       *     * A floating-point number
-       *     * A boolean
-       *
-       *     You can store up to **50 key-value pairs**.
-       */
-      metadata?: {
-        [key: string]: string | number | boolean
-      }
-      /**
-       * @description discriminator enum property added by openapi-typescript
-       * @enum {string}
-       */
-      type: 'meter_credit'
-      /**
-       * Description
-       * @description The description of the benefit. Will be displayed on products having this benefit.
-       */
-      description: string
-      /**
-       * Organization Id
-       * @description The ID of the organization owning the benefit. **Required unless you use an organization token.**
-       */
-      organization_id?: string | null
-      properties: components['schemas']['BenefitMeterCreditCreateProperties']
-    }
-    /**
-     * BenefitMeterCreditCreateProperties
-     * @description Properties for creating a benefit of type `meter_unit`.
-     */
-    BenefitMeterCreditCreateProperties: {
-      /** Units */
-      units: number
-      /** Rollover */
-      rollover: boolean
-      /**
-       * Meter Id
-       * Format: uuid4
-       */
-      meter_id: string
-    }
-    /**
-     * BenefitMeterCreditProperties
-     * @description Properties for a benefit of type `meter_unit`.
-     */
-    BenefitMeterCreditProperties: {
-      /** Units */
-      units: number
-      /** Rollover */
-      rollover: boolean
-      /**
-       * Meter Id
-       * Format: uuid4
-       */
-      meter_id: string
-    }
-    /** BenefitMeterCreditSubscriber */
-    BenefitMeterCreditSubscriber: {
-      /**
-       * Id
-       * Format: uuid4
-       * @description The ID of the benefit.
-       */
-      id: string
-      /**
-       * Created At
-       * Format: date-time
-       * @description Creation timestamp of the object.
-       */
-      created_at: string
-      /**
-       * Modified At
-       * @description Last modification timestamp of the object.
-       */
-      modified_at: string | null
-      /**
-       * Type
-       * @constant
-       */
-      type: 'meter_credit'
-      /**
-       * Description
-       * @description The description of the benefit.
-       */
-      description: string
-      /**
-       * Selectable
-       * @description Whether the benefit is selectable when creating a product.
-       */
-      selectable: boolean
-      /**
-       * Deletable
-       * @description Whether the benefit is deletable.
-       */
-      deletable: boolean
-      /**
-       * Is Deleted
-       * @description Whether the benefit is deleted.
-       */
-      is_deleted: boolean
-      /**
-       * Organization Id
-       * Format: uuid4
-       * @description The ID of the organization owning the benefit.
-       */
-      organization_id: string
-      metadata: components['schemas']['MetadataOutputType']
-      organization: components['schemas']['BenefitSubscriberOrganization']
-      properties: components['schemas']['BenefitMeterCreditSubscriberProperties']
-    }
-    /**
-     * BenefitMeterCreditSubscriberProperties
-     * @description Properties available to subscribers for a benefit of type `meter_unit`.
-     */
-    BenefitMeterCreditSubscriberProperties: {
-      /** Units */
-      units: number
-      /** Rollover */
-      rollover: boolean
-      /**
-       * Meter Id
-       * Format: uuid4
-       */
-      meter_id: string
-    }
-    /** BenefitMeterCreditUpdate */
-    BenefitMeterCreditUpdate: {
-      /**
-       * Metadata
-       * @description Key-value object allowing you to store additional information.
-       *
-       *     The key must be a string with a maximum length of **40 characters**.
-       *     The value must be either:
-       *
-       *     * A string with a maximum length of **500 characters**
-       *     * An integer
-       *     * A floating-point number
-       *     * A boolean
-       *
-       *     You can store up to **50 key-value pairs**.
-       */
-      metadata?: {
-        [key: string]: string | number | boolean
-      }
-      /**
-       * Description
-       * @description The description of the benefit. Will be displayed on products having this benefit.
-       */
-      description?: string | null
-      /**
-       * Type
-       * @constant
-       */
-      type: 'meter_credit'
-      properties?:
-        | components['schemas']['BenefitMeterCreditCreateProperties']
-        | null
-    }
-    /** BenefitPublic */
-    BenefitPublic: {
-      /**
-       * Id
-       * Format: uuid4
-       * @description The ID of the benefit.
-       */
-      id: string
-      /**
-       * Created At
-       * Format: date-time
-       * @description Creation timestamp of the object.
-       */
-      created_at: string
-      /**
-       * Modified At
-       * @description Last modification timestamp of the object.
-       */
-      modified_at: string | null
-      /** @description The type of the benefit. */
-      type: components['schemas']['BenefitType']
-      /**
-       * Description
-       * @description The description of the benefit.
-       */
-      description: string
-      /**
-       * Selectable
-       * @description Whether the benefit is selectable when creating a product.
-       */
-      selectable: boolean
-      /**
-       * Deletable
-       * @description Whether the benefit is deletable.
-       */
-      deletable: boolean
-      /**
-       * Is Deleted
-       * @description Whether the benefit is deleted.
-       */
-      is_deleted: boolean
-      /**
-       * Organization Id
-       * Format: uuid4
-       * @description The ID of the organization owning the benefit.
-       */
-      organization_id: string
-    }
-    /**
-     * BenefitRevokedEvent
-     * @description An event created by Polar when a benefit is revoked from a customer.
-     */
-    BenefitRevokedEvent: {
-      /**
-       * Id
-       * Format: uuid4
-       * @description The ID of the object.
-       */
-      id: string
-      /**
-       * Timestamp
-       * Format: date-time
-       * @description The timestamp of the event.
-       */
-      timestamp: string
-      /**
-       * Organization Id
-       * Format: uuid4
-       * @description The ID of the organization owning the event.
-       * @example 1dbfc517-0bbf-4301-9ba8-555ca42b9737
-       */
-      organization_id: string
-      /**
-       * Customer Id
-       * @description ID of the customer in your Polar organization associated with the event.
-       */
-      customer_id: string | null
-      /** @description The customer associated with the event. */
-      customer: components['schemas']['Customer'] | null
-      /**
-       * External Customer Id
-       * @description ID of the customer in your system associated with the event.
-       */
-      external_customer_id: string | null
-      /**
-       * Member Id
-       * @description ID of the member within the customer's organization who performed the action inside B2B.
-       */
-      member_id?: string | null
-      /**
-       * External Member Id
-       * @description ID of the member in your system within the customer's organization who performed the action inside B2B.
-       */
-      external_member_id?: string | null
-      /**
-       * Child Count
-       * @description Number of direct child events linked to this event.
-       * @default 0
-       */
-      child_count: number
-      /**
-       * Parent Id
-       * @description The ID of the parent event.
-       */
-      parent_id?: string | null
-      /**
-       * Label
-       * @description Human readable label of the event type.
-       */
-      label: string
-      /**
-       * Source
-       * @description The source of the event. `system` events are created by Polar. `user` events are the one you create through our ingestion API.
-       * @constant
-       */
-      source: 'system'
-      /**
-       * @description The name of the event. (enum property replaced by openapi-typescript)
-       * @enum {string}
-       */
-      name: 'benefit.revoked'
-      metadata: components['schemas']['BenefitGrantMetadata']
-    }
-    /**
-     * BenefitSortProperty
-     * @enum {string}
-     */
-    BenefitSortProperty:
-      | 'created_at'
-      | '-created_at'
-      | 'description'
-      | '-description'
-      | 'type'
-      | '-type'
-      | 'user_order'
-      | '-user_order'
-    /** BenefitSubscriberOrganization */
-    BenefitSubscriberOrganization: {
-      /**
-       * Created At
-       * Format: date-time
-       * @description Creation timestamp of the object.
-       */
-      created_at: string
-      /**
-       * Modified At
-       * @description Last modification timestamp of the object.
-       */
-      modified_at: string | null
-      /**
-       * Id
-       * Format: uuid4
-       * @description The ID of the object.
-       */
-      id: string
-      /**
-       * Name
-       * @description Organization name shown in checkout, customer portal, emails etc.
-       */
-      name: string
-      /**
-       * Slug
-       * @description Unique organization slug in checkout, customer portal and credit card statements.
-       */
-      slug: string
-      /**
-       * Avatar Url
-       * @description Avatar URL shown in checkout, customer portal, emails etc.
-       */
-      avatar_url: string | null
-      /** @description Proration behavior applied when customer updates their subscription from the portal. */
-      proration_behavior: components['schemas']['SubscriptionProrationBehavior']
-      /**
-       * Allow Customer Updates
-       * @description Whether customers can update their subscriptions from the customer portal.
-       */
-      allow_customer_updates: boolean
-    }
-    /**
-     * BenefitType
-     * @enum {string}
-     */
-    BenefitType:
-      | 'custom'
-      | 'discord'
-      | 'github_repository'
-      | 'downloadables'
-      | 'license_keys'
-      | 'meter_credit'
-      | 'feature_flag'
-    /**
-     * BenefitUpdatedEvent
-     * @description An event created by Polar when a benefit is updated.
-     */
-    BenefitUpdatedEvent: {
-      /**
-       * Id
-       * Format: uuid4
-       * @description The ID of the object.
-       */
-      id: string
-      /**
-       * Timestamp
-       * Format: date-time
-       * @description The timestamp of the event.
-       */
-      timestamp: string
-      /**
-       * Organization Id
-       * Format: uuid4
-       * @description The ID of the organization owning the event.
-       * @example 1dbfc517-0bbf-4301-9ba8-555ca42b9737
-       */
-      organization_id: string
-      /**
-       * Customer Id
-       * @description ID of the customer in your Polar organization associated with the event.
-       */
-      customer_id: string | null
-      /** @description The customer associated with the event. */
-      customer: components['schemas']['Customer'] | null
-      /**
-       * External Customer Id
-       * @description ID of the customer in your system associated with the event.
-       */
-      external_customer_id: string | null
-      /**
-       * Member Id
-       * @description ID of the member within the customer's organization who performed the action inside B2B.
-       */
-      member_id?: string | null
-      /**
-       * External Member Id
-       * @description ID of the member in your system within the customer's organization who performed the action inside B2B.
-       */
-      external_member_id?: string | null
-      /**
-       * Child Count
-       * @description Number of direct child events linked to this event.
-       * @default 0
-       */
-      child_count: number
-      /**
-       * Parent Id
-       * @description The ID of the parent event.
-       */
-      parent_id?: string | null
-      /**
-       * Label
-       * @description Human readable label of the event type.
-       */
-      label: string
-      /**
-       * Source
-       * @description The source of the event. `system` events are created by Polar. `user` events are the one you create through our ingestion API.
-       * @constant
-       */
-      source: 'system'
-      /**
-       * @description The name of the event. (enum property replaced by openapi-typescript)
-       * @enum {string}
-       */
-      name: 'benefit.updated'
-      metadata: components['schemas']['BenefitGrantMetadata']
-    }
     /**
      * BillingAddressFieldMode
      * @enum {string}
@@ -10354,7 +5761,7 @@ export interface components {
       id: string
       /**
        * @description The payment processor.
-       * @example stripe
+       * @example crypto
        */
       processor: components['schemas']['PaymentProcessor']
       /**
@@ -10519,40 +5926,18 @@ export interface components {
        */
       amount: number
       /**
-       * Seats
-       * @description Predefined number of seats (works with seat-based pricing only)
-       */
-      seats?: number | null
-      /**
-       * Min Seats
-       * @description Minimum number of seats (works with seat-based pricing only)
-       */
-      min_seats?: number | null
-      /**
-       * Max Seats
-       * @description Maximum number of seats (works with seat-based pricing only)
-       */
-      max_seats?: number | null
-      /**
        * Discount Amount
        * @description Discount amount in cents.
        */
       discount_amount: number
       /**
        * Net Amount
-       * @description Amount in cents, after discounts but before taxes.
+       * @description Amount in cents, after discounts.
        */
       net_amount: number
       /**
-       * Tax Amount
-       * @description Sales tax amount in cents. If `null`, it means there is no enough information yet to calculate it.
-       */
-      tax_amount: number | null
-      /** @description Tax behavior of the checkout. `inclusive` means the price includes tax, `exclusive` means tax is added on top. If `null`, tax is not yet calculated. */
-      tax_behavior: components['schemas']['TaxBehavior'] | null
-      /**
        * Total Amount
-       * @description Amount in cents, after discounts and taxes.
+       * @description Amount in cents, after discounts.
        */
       total_amount: number
       /**
@@ -10605,11 +5990,6 @@ export interface components {
        */
       allow_discount_codes: boolean
       /**
-       * Require Billing Address
-       * @description Whether to require the customer to fill their full billing address, instead of just the country. Customers in the US will always be required to fill their full address, regardless of this setting. If you preset the billing address, this setting will be automatically set to `true`.
-       */
-      require_billing_address: boolean
-      /**
        * Is Discount Applicable
        * @description Whether the discount is applicable to the checkout. Typically, free and custom prices are not discountable.
        */
@@ -10656,8 +6036,6 @@ export interface components {
       /** Customer Billing Name */
       customer_billing_name: string | null
       customer_billing_address: components['schemas']['Address'] | null
-      /** Customer Tax Id */
-      customer_tax_id: string | null
       /** Locale */
       locale?: string | null
       /** Payment Processor Metadata */
@@ -10737,10 +6115,10 @@ export interface components {
       line2: components['schemas']['BillingAddressFieldMode']
     }
     /**
-     * CheckoutConfirmStripe
-     * @description Confirm a checkout session using a Stripe confirmation token.
+     * CheckoutConfirm
+     * @description Confirm a checkout session.
      */
-    CheckoutConfirmStripe: {
+    CheckoutConfirm: {
       /**
        * Custom Field Data
        * @description Key-value object storing custom field values.
@@ -10761,11 +6139,6 @@ export interface components {
       product_price_id?: string | null
       /** Amount */
       amount?: number | null
-      /**
-       * Seats
-       * @description Number of seats for seat-based pricing.
-       */
-      seats?: number | null
       /** Is Business Customer */
       is_business_customer?: boolean | null
       /** Customer Name */
@@ -10775,8 +6148,6 @@ export interface components {
       /** Customer Billing Name */
       customer_billing_name?: string | null
       customer_billing_address?: components['schemas']['AddressInput'] | null
-      /** Customer Tax Id */
-      customer_tax_id?: string | null
       /** Locale */
       locale?: string | null
       /**
@@ -10789,11 +6160,6 @@ export interface components {
        * @description Disable the trial period for the checkout session. It's mainly useful when the trial is blocked because the customer already redeemed one.
        */
       allow_trial?: false | null
-      /**
-       * Confirmation Token Id
-       * @description ID of the Stripe confirmation token. Required for fixed prices and custom prices.
-       */
-      confirmation_token_id?: string | null
     }
     CheckoutCreate: components['schemas']['CheckoutProductsCreate']
     /**
@@ -11097,11 +6463,6 @@ export interface components {
        */
       allow_discount_codes: boolean
       /**
-       * Require Billing Address
-       * @description Whether to require the customer to fill their full billing address, instead of just the country. Customers in the US will always be required to fill their full address, regardless of this setting.
-       */
-      require_billing_address: boolean
-      /**
        * Discount Id
        * @description ID of the discount to apply to the checkout. If the discount is not applicable anymore when opening the checkout link, it'll be ignored.
        */
@@ -11164,10 +6525,10 @@ export interface components {
       trial_interval_count?: number | null
       /**
        * Payment Processor
-       * @description Payment processor to use. Currently only Stripe is supported.
+       * @description Payment processor to use. Currently only crypto is supported.
        * @constant
        */
-      payment_processor: 'stripe'
+      payment_processor: 'crypto'
       /**
        * Label
        * @description Optional label to distinguish links internally
@@ -11179,12 +6540,6 @@ export interface components {
        * @default true
        */
       allow_discount_codes: boolean
-      /**
-       * Require Billing Address
-       * @description Whether to require the customer to fill their full billing address, instead of just the country. Customers in the US will always be required to fill their full address, regardless of this setting.
-       * @default false
-       */
-      require_billing_address: boolean
       /**
        * Discount Id
        * @description ID of the discount to apply to the checkout. If the discount is not applicable anymore when opening the checkout link, it'll be ignored.
@@ -11239,10 +6594,10 @@ export interface components {
       trial_interval_count?: number | null
       /**
        * Payment Processor
-       * @description Payment processor to use. Currently only Stripe is supported.
+       * @description Payment processor to use. Currently only crypto is supported.
        * @constant
        */
-      payment_processor: 'stripe'
+      payment_processor: 'crypto'
       /**
        * Label
        * @description Optional label to distinguish links internally
@@ -11254,12 +6609,6 @@ export interface components {
        * @default true
        */
       allow_discount_codes: boolean
-      /**
-       * Require Billing Address
-       * @description Whether to require the customer to fill their full billing address, instead of just the country. Customers in the US will always be required to fill their full address, regardless of this setting.
-       * @default false
-       */
-      require_billing_address: boolean
       /**
        * Discount Id
        * @description ID of the discount to apply to the checkout. If the discount is not applicable anymore when opening the checkout link, it'll be ignored.
@@ -11312,10 +6661,10 @@ export interface components {
       trial_interval_count?: number | null
       /**
        * Payment Processor
-       * @description Payment processor to use. Currently only Stripe is supported.
+       * @description Payment processor to use. Currently only crypto is supported.
        * @constant
        */
-      payment_processor: 'stripe'
+      payment_processor: 'crypto'
       /**
        * Label
        * @description Optional label to distinguish links internally
@@ -11327,12 +6676,6 @@ export interface components {
        * @default true
        */
       allow_discount_codes: boolean
-      /**
-       * Require Billing Address
-       * @description Whether to require the customer to fill their full billing address, instead of just the country. Customers in the US will always be required to fill their full address, regardless of this setting.
-       * @default false
-       */
-      require_billing_address: boolean
       /**
        * Discount Id
        * @description ID of the discount to apply to the checkout. If the discount is not applicable anymore when opening the checkout link, it'll be ignored.
@@ -11429,16 +6772,6 @@ export interface components {
         | components['schemas']['LegacyRecurringProductPrice']
         | components['schemas']['ProductPrice']
       )[]
-      /**
-       * BenefitPublic
-       * @description List of benefits granted by the product.
-       */
-      benefits: components['schemas']['BenefitPublic'][]
-      /**
-       * Medias
-       * @description List of medias associated to the product.
-       */
-      medias: components['schemas']['ProductMediaFileRead'][]
     }
     /**
      * CheckoutLinkSortProperty
@@ -11495,11 +6828,6 @@ export interface components {
        */
       allow_discount_codes?: boolean | null
       /**
-       * Require Billing Address
-       * @description Whether to require the customer to fill their full billing address, instead of just the country. Customers in the US will always be required to fill their full address, regardless of this setting.
-       */
-      require_billing_address?: boolean | null
-      /**
        * Discount Id
        * @description ID of the discount to apply to the checkout. If the discount is not applicable anymore when opening the checkout link, it'll be ignored.
        */
@@ -11544,13 +6872,6 @@ export interface components {
        * @description Unique organization slug in checkout, customer portal and credit card statements.
        */
       slug: string
-      /**
-       * Avatar Url
-       * @description Avatar URL shown in checkout, customer portal, emails etc.
-       */
-      avatar_url: string | null
-      /** @description Proration behavior applied when customer updates their subscription from the portal. */
-      proration_behavior: components['schemas']['SubscriptionProrationBehavior']
       /**
        * Allow Customer Updates
        * @description Whether customers can update their subscriptions from the customer portal.
@@ -11609,29 +6930,8 @@ export interface components {
        * @default true
        */
       allow_discount_codes: boolean
-      /**
-       * Require Billing Address
-       * @description Whether to require the customer to fill their full billing address, instead of just the country. Customers in the US will always be required to fill their full address, regardless of this setting. If you preset the billing address, this setting will be automatically set to `true`.
-       * @default false
-       */
-      require_billing_address: boolean
       /** Amount */
       amount?: number | null
-      /**
-       * Seats
-       * @description Predefined number of seats (works with seat-based pricing only)
-       */
-      seats?: number | null
-      /**
-       * Min Seats
-       * @description Minimum number of seats (works with seat-based pricing only)
-       */
-      min_seats?: number | null
-      /**
-       * Max Seats
-       * @description Maximum number of seats (works with seat-based pricing only)
-       */
-      max_seats?: number | null
       /**
        * Allow Trial
        * @description Whether to enable the trial period for the checkout session. If `false`, the trial period will be disabled, even if the selected product has a trial configured.
@@ -11663,8 +6963,6 @@ export interface components {
       /** Customer Billing Name */
       customer_billing_name?: string | null
       customer_billing_address?: components['schemas']['AddressInput'] | null
-      /** Customer Tax Id */
-      customer_tax_id?: string | null
       /**
        * Customer Metadata
        * @description Key-value object allowing you to store additional information that'll be copied to the created customer.
@@ -11785,16 +7083,6 @@ export interface components {
         | components['schemas']['LegacyRecurringProductPrice']
         | components['schemas']['ProductPrice']
       )[]
-      /**
-       * BenefitPublic
-       * @description List of benefits granted by the product.
-       */
-      benefits: components['schemas']['BenefitPublic'][]
-      /**
-       * Medias
-       * @description List of medias associated to the product.
-       */
-      medias: components['schemas']['ProductMediaFileRead'][]
     }
     /**
      * CheckoutProductCreate
@@ -11848,29 +7136,8 @@ export interface components {
        * @default true
        */
       allow_discount_codes: boolean
-      /**
-       * Require Billing Address
-       * @description Whether to require the customer to fill their full billing address, instead of just the country. Customers in the US will always be required to fill their full address, regardless of this setting. If you preset the billing address, this setting will be automatically set to `true`.
-       * @default false
-       */
-      require_billing_address: boolean
       /** Amount */
       amount?: number | null
-      /**
-       * Seats
-       * @description Predefined number of seats (works with seat-based pricing only)
-       */
-      seats?: number | null
-      /**
-       * Min Seats
-       * @description Minimum number of seats (works with seat-based pricing only)
-       */
-      min_seats?: number | null
-      /**
-       * Max Seats
-       * @description Maximum number of seats (works with seat-based pricing only)
-       */
-      max_seats?: number | null
       /**
        * Allow Trial
        * @description Whether to enable the trial period for the checkout session. If `false`, the trial period will be disabled, even if the selected product has a trial configured.
@@ -11902,8 +7169,6 @@ export interface components {
       /** Customer Billing Name */
       customer_billing_name?: string | null
       customer_billing_address?: components['schemas']['AddressInput'] | null
-      /** Customer Tax Id */
-      customer_tax_id?: string | null
       /**
        * Customer Metadata
        * @description Key-value object allowing you to store additional information that'll be copied to the created customer.
@@ -12002,29 +7267,8 @@ export interface components {
        * @default true
        */
       allow_discount_codes: boolean
-      /**
-       * Require Billing Address
-       * @description Whether to require the customer to fill their full billing address, instead of just the country. Customers in the US will always be required to fill their full address, regardless of this setting. If you preset the billing address, this setting will be automatically set to `true`.
-       * @default false
-       */
-      require_billing_address: boolean
       /** Amount */
       amount?: number | null
-      /**
-       * Seats
-       * @description Predefined number of seats (works with seat-based pricing only)
-       */
-      seats?: number | null
-      /**
-       * Min Seats
-       * @description Minimum number of seats (works with seat-based pricing only)
-       */
-      min_seats?: number | null
-      /**
-       * Max Seats
-       * @description Maximum number of seats (works with seat-based pricing only)
-       */
-      max_seats?: number | null
       /**
        * Allow Trial
        * @description Whether to enable the trial period for the checkout session. If `false`, the trial period will be disabled, even if the selected product has a trial configured.
@@ -12056,8 +7300,6 @@ export interface components {
       /** Customer Billing Name */
       customer_billing_name?: string | null
       customer_billing_address?: components['schemas']['AddressInput'] | null
-      /** Customer Tax Id */
-      customer_tax_id?: string | null
       /**
        * Customer Metadata
        * @description Key-value object allowing you to store additional information that'll be copied to the created customer.
@@ -12112,8 +7354,6 @@ export interface components {
           | components['schemas']['ProductPriceFixedCreate']
           | components['schemas']['ProductPriceCustomCreate']
           | components['schemas']['ProductPriceFreeCreate']
-          | components['schemas']['ProductPriceSeatBasedCreate']
-          | components['schemas']['ProductPriceMeteredUnitCreate']
         )[]
       } | null
     }
@@ -12195,40 +7435,18 @@ export interface components {
        */
       amount: number
       /**
-       * Seats
-       * @description Predefined number of seats (works with seat-based pricing only)
-       */
-      seats?: number | null
-      /**
-       * Min Seats
-       * @description Minimum number of seats (works with seat-based pricing only)
-       */
-      min_seats?: number | null
-      /**
-       * Max Seats
-       * @description Maximum number of seats (works with seat-based pricing only)
-       */
-      max_seats?: number | null
-      /**
        * Discount Amount
        * @description Discount amount in cents.
        */
       discount_amount: number
       /**
        * Net Amount
-       * @description Amount in cents, after discounts but before taxes.
+       * @description Amount in cents, after discounts.
        */
       net_amount: number
       /**
-       * Tax Amount
-       * @description Sales tax amount in cents. If `null`, it means there is no enough information yet to calculate it.
-       */
-      tax_amount: number | null
-      /** @description Tax behavior of the checkout. `inclusive` means the price includes tax, `exclusive` means tax is added on top. If `null`, tax is not yet calculated. */
-      tax_behavior: components['schemas']['TaxBehavior'] | null
-      /**
        * Total Amount
-       * @description Amount in cents, after discounts and taxes.
+       * @description Amount in cents, after discounts.
        */
       total_amount: number
       /**
@@ -12281,11 +7499,6 @@ export interface components {
        */
       allow_discount_codes: boolean
       /**
-       * Require Billing Address
-       * @description Whether to require the customer to fill their full billing address, instead of just the country. Customers in the US will always be required to fill their full address, regardless of this setting. If you preset the billing address, this setting will be automatically set to `true`.
-       */
-      require_billing_address: boolean
-      /**
        * Is Discount Applicable
        * @description Whether the discount is applicable to the checkout. Typically, free and custom prices are not discountable.
        */
@@ -12332,8 +7545,6 @@ export interface components {
       /** Customer Billing Name */
       customer_billing_name: string | null
       customer_billing_address: components['schemas']['Address'] | null
-      /** Customer Tax Id */
-      customer_tax_id: string | null
       /** Locale */
       locale?: string | null
       /** Payment Processor Metadata */
@@ -12461,40 +7672,18 @@ export interface components {
        */
       amount: number
       /**
-       * Seats
-       * @description Predefined number of seats (works with seat-based pricing only)
-       */
-      seats?: number | null
-      /**
-       * Min Seats
-       * @description Minimum number of seats (works with seat-based pricing only)
-       */
-      min_seats?: number | null
-      /**
-       * Max Seats
-       * @description Maximum number of seats (works with seat-based pricing only)
-       */
-      max_seats?: number | null
-      /**
        * Discount Amount
        * @description Discount amount in cents.
        */
       discount_amount: number
       /**
        * Net Amount
-       * @description Amount in cents, after discounts but before taxes.
+       * @description Amount in cents, after discounts.
        */
       net_amount: number
       /**
-       * Tax Amount
-       * @description Sales tax amount in cents. If `null`, it means there is no enough information yet to calculate it.
-       */
-      tax_amount: number | null
-      /** @description Tax behavior of the checkout. `inclusive` means the price includes tax, `exclusive` means tax is added on top. If `null`, tax is not yet calculated. */
-      tax_behavior: components['schemas']['TaxBehavior'] | null
-      /**
        * Total Amount
-       * @description Amount in cents, after discounts and taxes.
+       * @description Amount in cents, after discounts.
        */
       total_amount: number
       /**
@@ -12547,11 +7736,6 @@ export interface components {
        */
       allow_discount_codes: boolean
       /**
-       * Require Billing Address
-       * @description Whether to require the customer to fill their full billing address, instead of just the country. Customers in the US will always be required to fill their full address, regardless of this setting. If you preset the billing address, this setting will be automatically set to `true`.
-       */
-      require_billing_address: boolean
-      /**
        * Is Discount Applicable
        * @description Whether the discount is applicable to the checkout. Typically, free and custom prices are not discountable.
        */
@@ -12598,8 +7782,6 @@ export interface components {
       /** Customer Billing Name */
       customer_billing_name: string | null
       customer_billing_address: components['schemas']['Address'] | null
-      /** Customer Tax Id */
-      customer_tax_id: string | null
       /** Locale */
       locale?: string | null
       /** Payment Processor Metadata */
@@ -12694,11 +7876,6 @@ export interface components {
       product_price_id?: string | null
       /** Amount */
       amount?: number | null
-      /**
-       * Seats
-       * @description Number of seats for seat-based pricing.
-       */
-      seats?: number | null
       /** Is Business Customer */
       is_business_customer?: boolean | null
       /** Customer Name */
@@ -12708,8 +7885,6 @@ export interface components {
       /** Customer Billing Name */
       customer_billing_name?: string | null
       customer_billing_address?: components['schemas']['AddressInput'] | null
-      /** Customer Tax Id */
-      customer_tax_id?: string | null
       /** Locale */
       locale?: string | null
       /** @description The interval unit for the trial period. */
@@ -12747,11 +7922,6 @@ export interface components {
        * @description Whether to allow the customer to apply discount codes. If you apply a discount through `discount_id`, it'll still be applied, but the customer won't be able to change it.
        */
       allow_discount_codes?: boolean | null
-      /**
-       * Require Billing Address
-       * @description Whether to require the customer to fill their full billing address, instead of just the country. Customers in the US will always be required to fill their full address, regardless of this setting. If you preset the billing address, this setting will be automatically set to `true`.
-       */
-      require_billing_address?: boolean | null
       /**
        * Allow Trial
        * @description Whether to enable the trial period for the checkout session. If `false`, the trial period will be disabled, even if the selected product has a trial configured.
@@ -12817,11 +7987,6 @@ export interface components {
       product_price_id?: string | null
       /** Amount */
       amount?: number | null
-      /**
-       * Seats
-       * @description Number of seats for seat-based pricing.
-       */
-      seats?: number | null
       /** Is Business Customer */
       is_business_customer?: boolean | null
       /** Customer Name */
@@ -12831,8 +7996,6 @@ export interface components {
       /** Customer Billing Name */
       customer_billing_name?: string | null
       customer_billing_address?: components['schemas']['AddressInput'] | null
-      /** Customer Tax Id */
-      customer_tax_id?: string | null
       /** Locale */
       locale?: string | null
       /**
@@ -12871,14 +8034,6 @@ export interface components {
        * @description The currency. Currently, only `usd` is supported.
        */
       currency: string
-    }
-    /** CountAggregation */
-    CountAggregation: {
-      /**
-       * @description discriminator enum property added by openapi-typescript
-       * @enum {string}
-       */
-      func: 'count'
     }
     /**
      * CountryAlpha2
@@ -14115,439 +9270,6 @@ export interface components {
     Customer:
       | components['schemas']['CustomerIndividual']
       | components['schemas']['CustomerTeam']
-    CustomerBenefitGrant:
-      | components['schemas']['CustomerBenefitGrantDiscord']
-      | components['schemas']['CustomerBenefitGrantGitHubRepository']
-      | components['schemas']['CustomerBenefitGrantDownloadables']
-      | components['schemas']['CustomerBenefitGrantLicenseKeys']
-      | components['schemas']['CustomerBenefitGrantCustom']
-      | components['schemas']['CustomerBenefitGrantMeterCredit']
-      | components['schemas']['CustomerBenefitGrantFeatureFlag']
-    /** CustomerBenefitGrantCustom */
-    CustomerBenefitGrantCustom: {
-      /**
-       * Created At
-       * Format: date-time
-       * @description Creation timestamp of the object.
-       */
-      created_at: string
-      /**
-       * Modified At
-       * @description Last modification timestamp of the object.
-       */
-      modified_at: string | null
-      /**
-       * Id
-       * Format: uuid4
-       * @description The ID of the object.
-       */
-      id: string
-      /** Granted At */
-      granted_at: string | null
-      /** Revoked At */
-      revoked_at: string | null
-      /**
-       * Customer Id
-       * Format: uuid4
-       */
-      customer_id: string
-      /** Member Id */
-      member_id?: string | null
-      /**
-       * Benefit Id
-       * Format: uuid4
-       */
-      benefit_id: string
-      /** Subscription Id */
-      subscription_id: string | null
-      /** Order Id */
-      order_id: string | null
-      /** Is Granted */
-      is_granted: boolean
-      /** Is Revoked */
-      is_revoked: boolean
-      error?: components['schemas']['BenefitGrantError'] | null
-      customer: components['schemas']['CustomerPortalCustomer']
-      benefit: components['schemas']['BenefitCustomSubscriber']
-      properties: components['schemas']['BenefitGrantCustomProperties']
-    }
-    /** CustomerBenefitGrantCustomUpdate */
-    CustomerBenefitGrantCustomUpdate: {
-      /**
-       * @description discriminator enum property added by openapi-typescript
-       * @enum {string}
-       */
-      benefit_type: 'custom'
-    }
-    /** CustomerBenefitGrantDiscord */
-    CustomerBenefitGrantDiscord: {
-      /**
-       * Created At
-       * Format: date-time
-       * @description Creation timestamp of the object.
-       */
-      created_at: string
-      /**
-       * Modified At
-       * @description Last modification timestamp of the object.
-       */
-      modified_at: string | null
-      /**
-       * Id
-       * Format: uuid4
-       * @description The ID of the object.
-       */
-      id: string
-      /** Granted At */
-      granted_at: string | null
-      /** Revoked At */
-      revoked_at: string | null
-      /**
-       * Customer Id
-       * Format: uuid4
-       */
-      customer_id: string
-      /** Member Id */
-      member_id?: string | null
-      /**
-       * Benefit Id
-       * Format: uuid4
-       */
-      benefit_id: string
-      /** Subscription Id */
-      subscription_id: string | null
-      /** Order Id */
-      order_id: string | null
-      /** Is Granted */
-      is_granted: boolean
-      /** Is Revoked */
-      is_revoked: boolean
-      error?: components['schemas']['BenefitGrantError'] | null
-      customer: components['schemas']['CustomerPortalCustomer']
-      benefit: components['schemas']['BenefitDiscordSubscriber']
-      properties: components['schemas']['BenefitGrantDiscordProperties']
-    }
-    /** CustomerBenefitGrantDiscordPropertiesUpdate */
-    CustomerBenefitGrantDiscordPropertiesUpdate: {
-      /** Account Id */
-      account_id: string | null
-    }
-    /** CustomerBenefitGrantDiscordUpdate */
-    CustomerBenefitGrantDiscordUpdate: {
-      /**
-       * @description discriminator enum property added by openapi-typescript
-       * @enum {string}
-       */
-      benefit_type: 'discord'
-      properties: components['schemas']['CustomerBenefitGrantDiscordPropertiesUpdate']
-    }
-    /** CustomerBenefitGrantDownloadables */
-    CustomerBenefitGrantDownloadables: {
-      /**
-       * Created At
-       * Format: date-time
-       * @description Creation timestamp of the object.
-       */
-      created_at: string
-      /**
-       * Modified At
-       * @description Last modification timestamp of the object.
-       */
-      modified_at: string | null
-      /**
-       * Id
-       * Format: uuid4
-       * @description The ID of the object.
-       */
-      id: string
-      /** Granted At */
-      granted_at: string | null
-      /** Revoked At */
-      revoked_at: string | null
-      /**
-       * Customer Id
-       * Format: uuid4
-       */
-      customer_id: string
-      /** Member Id */
-      member_id?: string | null
-      /**
-       * Benefit Id
-       * Format: uuid4
-       */
-      benefit_id: string
-      /** Subscription Id */
-      subscription_id: string | null
-      /** Order Id */
-      order_id: string | null
-      /** Is Granted */
-      is_granted: boolean
-      /** Is Revoked */
-      is_revoked: boolean
-      error?: components['schemas']['BenefitGrantError'] | null
-      customer: components['schemas']['CustomerPortalCustomer']
-      benefit: components['schemas']['BenefitDownloadablesSubscriber']
-      properties: components['schemas']['BenefitGrantDownloadablesProperties']
-    }
-    /** CustomerBenefitGrantDownloadablesUpdate */
-    CustomerBenefitGrantDownloadablesUpdate: {
-      /**
-       * @description discriminator enum property added by openapi-typescript
-       * @enum {string}
-       */
-      benefit_type: 'downloadables'
-    }
-    /** CustomerBenefitGrantFeatureFlag */
-    CustomerBenefitGrantFeatureFlag: {
-      /**
-       * Created At
-       * Format: date-time
-       * @description Creation timestamp of the object.
-       */
-      created_at: string
-      /**
-       * Modified At
-       * @description Last modification timestamp of the object.
-       */
-      modified_at: string | null
-      /**
-       * Id
-       * Format: uuid4
-       * @description The ID of the object.
-       */
-      id: string
-      /** Granted At */
-      granted_at: string | null
-      /** Revoked At */
-      revoked_at: string | null
-      /**
-       * Customer Id
-       * Format: uuid4
-       */
-      customer_id: string
-      /** Member Id */
-      member_id?: string | null
-      /**
-       * Benefit Id
-       * Format: uuid4
-       */
-      benefit_id: string
-      /** Subscription Id */
-      subscription_id: string | null
-      /** Order Id */
-      order_id: string | null
-      /** Is Granted */
-      is_granted: boolean
-      /** Is Revoked */
-      is_revoked: boolean
-      error?: components['schemas']['BenefitGrantError'] | null
-      customer: components['schemas']['CustomerPortalCustomer']
-      benefit: components['schemas']['BenefitFeatureFlagSubscriber']
-      properties: components['schemas']['BenefitGrantFeatureFlagProperties']
-    }
-    /** CustomerBenefitGrantFeatureFlagUpdate */
-    CustomerBenefitGrantFeatureFlagUpdate: {
-      /**
-       * @description discriminator enum property added by openapi-typescript
-       * @enum {string}
-       */
-      benefit_type: 'feature_flag'
-    }
-    /** CustomerBenefitGrantGitHubRepository */
-    CustomerBenefitGrantGitHubRepository: {
-      /**
-       * Created At
-       * Format: date-time
-       * @description Creation timestamp of the object.
-       */
-      created_at: string
-      /**
-       * Modified At
-       * @description Last modification timestamp of the object.
-       */
-      modified_at: string | null
-      /**
-       * Id
-       * Format: uuid4
-       * @description The ID of the object.
-       */
-      id: string
-      /** Granted At */
-      granted_at: string | null
-      /** Revoked At */
-      revoked_at: string | null
-      /**
-       * Customer Id
-       * Format: uuid4
-       */
-      customer_id: string
-      /** Member Id */
-      member_id?: string | null
-      /**
-       * Benefit Id
-       * Format: uuid4
-       */
-      benefit_id: string
-      /** Subscription Id */
-      subscription_id: string | null
-      /** Order Id */
-      order_id: string | null
-      /** Is Granted */
-      is_granted: boolean
-      /** Is Revoked */
-      is_revoked: boolean
-      error?: components['schemas']['BenefitGrantError'] | null
-      customer: components['schemas']['CustomerPortalCustomer']
-      benefit: components['schemas']['BenefitGitHubRepositorySubscriber']
-      properties: components['schemas']['BenefitGrantGitHubRepositoryProperties']
-    }
-    /** CustomerBenefitGrantGitHubRepositoryPropertiesUpdate */
-    CustomerBenefitGrantGitHubRepositoryPropertiesUpdate: {
-      /** Account Id */
-      account_id: string | null
-    }
-    /** CustomerBenefitGrantGitHubRepositoryUpdate */
-    CustomerBenefitGrantGitHubRepositoryUpdate: {
-      /**
-       * @description discriminator enum property added by openapi-typescript
-       * @enum {string}
-       */
-      benefit_type: 'github_repository'
-      properties: components['schemas']['CustomerBenefitGrantGitHubRepositoryPropertiesUpdate']
-    }
-    /** CustomerBenefitGrantLicenseKeys */
-    CustomerBenefitGrantLicenseKeys: {
-      /**
-       * Created At
-       * Format: date-time
-       * @description Creation timestamp of the object.
-       */
-      created_at: string
-      /**
-       * Modified At
-       * @description Last modification timestamp of the object.
-       */
-      modified_at: string | null
-      /**
-       * Id
-       * Format: uuid4
-       * @description The ID of the object.
-       */
-      id: string
-      /** Granted At */
-      granted_at: string | null
-      /** Revoked At */
-      revoked_at: string | null
-      /**
-       * Customer Id
-       * Format: uuid4
-       */
-      customer_id: string
-      /** Member Id */
-      member_id?: string | null
-      /**
-       * Benefit Id
-       * Format: uuid4
-       */
-      benefit_id: string
-      /** Subscription Id */
-      subscription_id: string | null
-      /** Order Id */
-      order_id: string | null
-      /** Is Granted */
-      is_granted: boolean
-      /** Is Revoked */
-      is_revoked: boolean
-      error?: components['schemas']['BenefitGrantError'] | null
-      customer: components['schemas']['CustomerPortalCustomer']
-      benefit: components['schemas']['BenefitLicenseKeysSubscriber']
-      properties: components['schemas']['BenefitGrantLicenseKeysProperties']
-    }
-    /** CustomerBenefitGrantLicenseKeysUpdate */
-    CustomerBenefitGrantLicenseKeysUpdate: {
-      /**
-       * @description discriminator enum property added by openapi-typescript
-       * @enum {string}
-       */
-      benefit_type: 'license_keys'
-    }
-    /** CustomerBenefitGrantMeterCredit */
-    CustomerBenefitGrantMeterCredit: {
-      /**
-       * Created At
-       * Format: date-time
-       * @description Creation timestamp of the object.
-       */
-      created_at: string
-      /**
-       * Modified At
-       * @description Last modification timestamp of the object.
-       */
-      modified_at: string | null
-      /**
-       * Id
-       * Format: uuid4
-       * @description The ID of the object.
-       */
-      id: string
-      /** Granted At */
-      granted_at: string | null
-      /** Revoked At */
-      revoked_at: string | null
-      /**
-       * Customer Id
-       * Format: uuid4
-       */
-      customer_id: string
-      /** Member Id */
-      member_id?: string | null
-      /**
-       * Benefit Id
-       * Format: uuid4
-       */
-      benefit_id: string
-      /** Subscription Id */
-      subscription_id: string | null
-      /** Order Id */
-      order_id: string | null
-      /** Is Granted */
-      is_granted: boolean
-      /** Is Revoked */
-      is_revoked: boolean
-      error?: components['schemas']['BenefitGrantError'] | null
-      customer: components['schemas']['CustomerPortalCustomer']
-      benefit: components['schemas']['BenefitMeterCreditSubscriber']
-      properties: components['schemas']['BenefitGrantMeterCreditProperties']
-    }
-    /** CustomerBenefitGrantMeterCreditUpdate */
-    CustomerBenefitGrantMeterCreditUpdate: {
-      /**
-       * @description discriminator enum property added by openapi-typescript
-       * @enum {string}
-       */
-      benefit_type: 'meter_credit'
-    }
-    /**
-     * CustomerBenefitGrantSortProperty
-     * @enum {string}
-     */
-    CustomerBenefitGrantSortProperty:
-      | 'granted_at'
-      | '-granted_at'
-      | 'type'
-      | '-type'
-      | 'organization'
-      | '-organization'
-      | 'product_benefit'
-      | '-product_benefit'
-    CustomerBenefitGrantUpdate:
-      | components['schemas']['CustomerBenefitGrantDiscordUpdate']
-      | components['schemas']['CustomerBenefitGrantGitHubRepositoryUpdate']
-      | components['schemas']['CustomerBenefitGrantDownloadablesUpdate']
-      | components['schemas']['CustomerBenefitGrantLicenseKeysUpdate']
-      | components['schemas']['CustomerBenefitGrantCustomUpdate']
-      | components['schemas']['CustomerBenefitGrantMeterCreditUpdate']
-      | components['schemas']['CustomerBenefitGrantFeatureFlagUpdate']
     /**
      * CustomerCancellationReason
      * @enum {string}
@@ -14650,103 +9372,6 @@ export interface components {
       /** Customer External Id */
       customer_external_id: string | null
     }
-    /** CustomerCustomerMeter */
-    CustomerCustomerMeter: {
-      /**
-       * Id
-       * Format: uuid4
-       * @description The ID of the object.
-       */
-      id: string
-      /**
-       * Created At
-       * Format: date-time
-       * @description Creation timestamp of the object.
-       */
-      created_at: string
-      /**
-       * Modified At
-       * @description Last modification timestamp of the object.
-       */
-      modified_at: string | null
-      /**
-       * Customer Id
-       * Format: uuid4
-       * @description The ID of the customer.
-       * @example 992fae2a-2a17-4b7a-8d9e-e287cf90131b
-       */
-      customer_id: string
-      /**
-       * Meter Id
-       * Format: uuid4
-       * @description The ID of the meter.
-       * @example d498a884-e2cd-4d3e-8002-f536468a8b22
-       */
-      meter_id: string
-      /**
-       * Consumed Units
-       * @description The number of consumed units.
-       * @example 25
-       */
-      consumed_units: number
-      /**
-       * Credited Units
-       * @description The number of credited units.
-       * @example 100
-       */
-      credited_units: number
-      /**
-       * Balance
-       * @description The balance of the meter, i.e. the difference between credited and consumed units.
-       * @example 75
-       */
-      balance: number
-      meter: components['schemas']['CustomerCustomerMeterMeter']
-    }
-    /** CustomerCustomerMeterMeter */
-    CustomerCustomerMeterMeter: {
-      /**
-       * Created At
-       * Format: date-time
-       * @description Creation timestamp of the object.
-       */
-      created_at: string
-      /**
-       * Modified At
-       * @description Last modification timestamp of the object.
-       */
-      modified_at: string | null
-      /**
-       * Id
-       * Format: uuid4
-       * @description The ID of the object.
-       */
-      id: string
-      /**
-       * Name
-       * @description The name of the meter. Will be shown on customer's invoices and usage.
-       */
-      name: string
-    }
-    /**
-     * CustomerCustomerMeterSortProperty
-     * @enum {string}
-     */
-    CustomerCustomerMeterSortProperty:
-      | 'created_at'
-      | '-created_at'
-      | 'modified_at'
-      | '-modified_at'
-      | 'meter_id'
-      | '-meter_id'
-      | 'meter_name'
-      | '-meter_name'
-      | 'consumed_units'
-      | '-consumed_units'
-      | 'credited_units'
-      | '-credited_units'
-      | 'balance'
-      | '-balance'
     /** CustomerCustomerSession */
     CustomerCustomerSession: {
       /**
@@ -14915,8 +9540,6 @@ export interface components {
        */
       name: string | null
       billing_address: components['schemas']['Address'] | null
-      /** Tax Id */
-      tax_id: [string, components['schemas']['TaxIDFormat']] | null
       /** Locale */
       locale?: string | null
       /**
@@ -14970,8 +9593,6 @@ export interface components {
       /** Name */
       name?: string | null
       billing_address?: components['schemas']['AddressInput'] | null
-      /** Tax Id */
-      tax_id?: string | null
       /** Locale */
       locale?: string | null
       /**
@@ -14996,103 +9617,10 @@ export interface components {
       email: string
     }
     /**
-     * CustomerMeter
-     * @description An active customer meter, with current consumed and credited units.
-     */
-    CustomerMeter: {
-      /**
-       * Id
-       * Format: uuid4
-       * @description The ID of the object.
-       */
-      id: string
-      /**
-       * Created At
-       * Format: date-time
-       * @description Creation timestamp of the object.
-       */
-      created_at: string
-      /**
-       * Modified At
-       * @description Last modification timestamp of the object.
-       */
-      modified_at: string | null
-      /**
-       * Customer Id
-       * Format: uuid4
-       * @description The ID of the customer.
-       * @example 992fae2a-2a17-4b7a-8d9e-e287cf90131b
-       */
-      customer_id: string
-      /**
-       * Meter Id
-       * Format: uuid4
-       * @description The ID of the meter.
-       * @example d498a884-e2cd-4d3e-8002-f536468a8b22
-       */
-      meter_id: string
-      /**
-       * Consumed Units
-       * @description The number of consumed units.
-       * @example 25
-       */
-      consumed_units: number
-      /**
-       * Credited Units
-       * @description The number of credited units.
-       * @example 100
-       */
-      credited_units: number
-      /**
-       * Balance
-       * @description The balance of the meter, i.e. the difference between credited and consumed units.
-       * @example 75
-       */
-      balance: number
-      /** @description The customer associated with this meter. */
-      customer: components['schemas']['Customer']
-      /** @description The meter associated with this customer. */
-      meter: components['schemas']['Meter']
-    }
-    /**
-     * CustomerMeterSortProperty
-     * @enum {string}
-     */
-    CustomerMeterSortProperty:
-      | 'created_at'
-      | '-created_at'
-      | 'modified_at'
-      | '-modified_at'
-      | 'customer_id'
-      | '-customer_id'
-      | 'customer_name'
-      | '-customer_name'
-      | 'meter_id'
-      | '-meter_id'
-      | 'meter_name'
-      | '-meter_name'
-      | 'consumed_units'
-      | '-consumed_units'
-      | 'credited_units'
-      | '-credited_units'
-      | 'balance'
-      | '-balance'
-    /** CustomerNotReady */
-    CustomerNotReady: {
-      /**
-       * Error
-       * @example CustomerNotReady
-       * @constant
-       */
-      error: 'CustomerNotReady'
-      /** Detail */
-      detail: string
-    }
-    /**
      * CustomerOAuthPlatform
      * @enum {string}
      */
-    CustomerOAuthPlatform: 'github' | 'discord'
+    CustomerOAuthPlatform: 'github'
     /** CustomerOrder */
     CustomerOrder: {
       /**
@@ -15139,12 +9667,6 @@ export interface components {
        */
       net_amount: number
       /**
-       * Tax Amount
-       * @description Sales tax amount in cents.
-       * @example 720
-       */
-      tax_amount: number
-      /**
        * Total Amount
        * @description Amount in cents, after discounts and taxes.
        * @example 9720
@@ -15169,12 +9691,6 @@ export interface components {
        */
       refunded_amount: number
       /**
-       * Refunded Tax Amount
-       * @description Sales tax refunded in cents.
-       * @example 0
-       */
-      refunded_tax_amount: number
-      /**
        * Currency
        * @example usd
        */
@@ -15186,21 +9702,6 @@ export interface components {
        */
       billing_name: string | null
       billing_address: components['schemas']['Address'] | null
-      /**
-       * Invoice Number
-       * @description The invoice number associated with this order. `null` while the order is in `draft` status; assigned at finalize.
-       */
-      invoice_number: string | null
-      /**
-       * Is Invoice Generated
-       * @description Whether an invoice has been generated for this order.
-       */
-      is_invoice_generated: boolean
-      /**
-       * Receipt Number
-       * @description The receipt number for this order. Set once the order is paid for organizations with receipts enabled. When set, a downloadable receipt PDF can be obtained via the receipt endpoint.
-       */
-      receipt_number: string | null
       /**
        * Seats
        * @description Number of seats purchased (for seat-based one-time orders).
@@ -15243,12 +9744,6 @@ export interface components {
        * @example 9000
        */
       readonly refundable_amount: number
-      /**
-       * Refundable Tax Amount
-       * @description Sales tax in cents that would be refunded if the full refundable amount is refunded.
-       * @example 720
-       */
-      readonly refundable_tax_amount: number
     }
     /**
      * CustomerOrderConfirmPayment
@@ -15257,7 +9752,7 @@ export interface components {
     CustomerOrderConfirmPayment: {
       /**
        * Confirmation Token Id
-       * @description ID of the Stripe confirmation token for new payment methods.
+       * @description Confirmation token (unused with crypto payments).
        */
       confirmation_token_id?: string | null
       /**
@@ -15267,20 +9762,9 @@ export interface components {
       payment_method_id?: string | null
       /**
        * @description Payment processor used.
-       * @default stripe
+       * @default crypto
        */
       payment_processor: components['schemas']['PaymentProcessor']
-    }
-    /**
-     * CustomerOrderInvoice
-     * @description Order's invoice data.
-     */
-    CustomerOrderInvoice: {
-      /**
-       * Url
-       * @description The URL to the invoice.
-       */
-      url: string
     }
     /**
      * CustomerOrderPaymentConfirmation
@@ -15390,28 +9874,7 @@ export interface components {
         | components['schemas']['LegacyRecurringProductPrice']
         | components['schemas']['ProductPrice']
       )[]
-      /**
-       * BenefitPublic
-       * @description List of benefits granted by the product.
-       */
-      benefits: components['schemas']['BenefitPublic'][]
-      /**
-       * Medias
-       * @description List of medias associated to the product.
-       */
-      medias: components['schemas']['ProductMediaFileRead'][]
       organization: components['schemas']['CustomerOrganization']
-    }
-    /**
-     * CustomerOrderReceipt
-     * @description Order's receipt data.
-     */
-    CustomerOrderReceipt: {
-      /**
-       * Url
-       * @description The URL to the receipt PDF.
-       */
-      url: string
     }
     /**
      * CustomerOrderSortProperty
@@ -15540,11 +10003,6 @@ export interface components {
       discount_id: string | null
       /** Checkout Id */
       checkout_id: string | null
-      /**
-       * Seats
-       * @description The number of seats for seat-based subscriptions. None for non-seat subscriptions.
-       */
-      seats?: number | null
       customer_cancellation_reason:
         | components['schemas']['CustomerCancellationReason']
         | null
@@ -15594,13 +10052,6 @@ export interface components {
        */
       slug: string
       /**
-       * Avatar Url
-       * @description Avatar URL shown in checkout, customer portal, emails etc.
-       */
-      avatar_url: string | null
-      /** @description Proration behavior applied when customer updates their subscription from the portal. */
-      proration_behavior: components['schemas']['SubscriptionProrationBehavior']
-      /**
        * Allow Customer Updates
        * @description Whether customers can update their subscriptions from the customer portal.
        */
@@ -15631,9 +10082,6 @@ export interface components {
        */
       member_model_enabled: boolean
     }
-    CustomerPaymentMethod:
-      | components['schemas']['PaymentMethodCard']
-      | components['schemas']['PaymentMethodGeneric']
     /** CustomerPaymentMethodCard */
     CustomerPaymentMethodCard: {
       /**
@@ -15671,45 +10119,6 @@ export interface components {
        * @example true
        */
       is_default: boolean
-    }
-    /** CustomerPaymentMethodConfirm */
-    CustomerPaymentMethodConfirm: {
-      /** Setup Intent Id */
-      setup_intent_id: string
-      /** Set Default */
-      set_default: boolean
-    }
-    /** CustomerPaymentMethodCreate */
-    CustomerPaymentMethodCreate: {
-      /** Confirmation Token Id */
-      confirmation_token_id: string
-      /** Set Default */
-      set_default: boolean
-      /** Return Url */
-      return_url: string
-    }
-    /** CustomerPaymentMethodCreateRequiresActionResponse */
-    CustomerPaymentMethodCreateRequiresActionResponse: {
-      /**
-       * @description discriminator enum property added by openapi-typescript
-       * @enum {string}
-       */
-      status: 'requires_action'
-      /** Client Secret */
-      client_secret: string
-    }
-    CustomerPaymentMethodCreateResponse:
-      | components['schemas']['CustomerPaymentMethodCreateSucceededResponse']
-      | components['schemas']['CustomerPaymentMethodCreateRequiresActionResponse']
-    /** CustomerPaymentMethodCreateSucceededResponse */
-    CustomerPaymentMethodCreateSucceededResponse: {
-      /**
-       * @description discriminator enum property added by openapi-typescript
-       * @enum {string}
-       */
-      status: 'succeeded'
-      /** CustomerPaymentMethod */
-      payment_method: components['schemas']['CustomerPaymentMethod']
     }
     /** CustomerPaymentMethodGeneric */
     CustomerPaymentMethodGeneric: {
@@ -15773,14 +10182,10 @@ export interface components {
       /** Billing Name */
       billing_name: string | null
       billing_address: components['schemas']['Address'] | null
-      /** Tax Id */
-      tax_id: [string, components['schemas']['TaxIDFormat']] | null
       /** Oauth Accounts */
       oauth_accounts: {
         [key: string]: components['schemas']['CustomerPortalOAuthAccount']
       }
-      /** Default Payment Method Id */
-      default_payment_method_id?: string | null
       type?: components['schemas']['CustomerType'] | null
     }
     /** CustomerPortalCustomerSettings */
@@ -15793,10 +10198,6 @@ export interface components {
       /** Billing Name */
       billing_name?: string | null
       billing_address?: components['schemas']['AddressInput'] | null
-      /** Tax Id */
-      tax_id?: string | null
-      /** Default Payment Method Id */
-      default_payment_method_id?: string | null
     }
     /**
      * CustomerPortalMember
@@ -15878,8 +10279,6 @@ export interface components {
     }
     /** CustomerPortalSubscriptionSettings */
     CustomerPortalSubscriptionSettings: {
-      /** Update Seats */
-      update_seats: boolean
       /** Update Plan */
       update_plan: boolean
     }
@@ -15962,161 +10361,6 @@ export interface components {
         | components['schemas']['LegacyRecurringProductPrice']
         | components['schemas']['ProductPrice']
       )[]
-      /**
-       * BenefitPublic
-       * @description The benefits granted by the product.
-       */
-      benefits: components['schemas']['BenefitPublic'][]
-      /**
-       * Medias
-       * @description The medias associated to the product.
-       */
-      medias: components['schemas']['ProductMediaFileRead'][]
-    }
-    /** CustomerSeat */
-    CustomerSeat: {
-      /**
-       * Created At
-       * Format: date-time
-       * @description Creation timestamp of the object.
-       */
-      created_at: string
-      /**
-       * Modified At
-       * @description Last modification timestamp of the object.
-       */
-      modified_at: string | null
-      /**
-       * Id
-       * Format: uuid
-       * @description The seat ID
-       */
-      id: string
-      /**
-       * Subscription Id
-       * @description The subscription ID (for recurring seats)
-       */
-      subscription_id?: string | null
-      /**
-       * Order Id
-       * @description The order ID (for one-time purchase seats)
-       */
-      order_id?: string | null
-      /** @description Status of the seat */
-      status: components['schemas']['SeatStatus']
-      /**
-       * Customer Id
-       * @description The customer ID. When member_model_enabled is true, this is the billing customer (purchaser). When false, this is the seat member customer.
-       */
-      customer_id?: string | null
-      /**
-       * Member Id
-       * @description The member ID of the seat occupant
-       */
-      member_id?: string | null
-      /** @description The member associated with this seat */
-      member?: components['schemas']['Member'] | null
-      /**
-       * Email
-       * @description Email of the seat member (set when member_model_enabled is true)
-       */
-      email?: string | null
-      /**
-       * Customer Email
-       * @description The assigned customer email
-       */
-      customer_email?: string | null
-      /**
-       * Invitation Token Expires At
-       * @description When the invitation token expires
-       */
-      invitation_token_expires_at?: string | null
-      /**
-       * Claimed At
-       * @description When the seat was claimed
-       */
-      claimed_at?: string | null
-      /**
-       * Revoked At
-       * @description When the seat was revoked
-       */
-      revoked_at?: string | null
-      /**
-       * Seat Metadata
-       * @description Additional metadata for the seat
-       */
-      seat_metadata?: {
-        [key: string]: unknown
-      } | null
-    }
-    /** CustomerSeatAssign */
-    CustomerSeatAssign: {
-      /**
-       * Subscription Id
-       * @description Subscription ID. Required if neither order_id nor checkout_id is provided.
-       */
-      subscription_id?: string | null
-      /**
-       * Order Id
-       * @description Order ID for one-time purchases. Required if subscription_id is not provided.
-       */
-      order_id?: string | null
-      /**
-       * Email
-       * @description Email of the customer to assign the seat to
-       */
-      email?: string | null
-      /**
-       * External Customer Id
-       * @description External customer ID for the seat assignment
-       */
-      external_customer_id?: string | null
-      /**
-       * Customer Id
-       * @description Customer ID for the seat assignment
-       */
-      customer_id?: string | null
-      /**
-       * External Member Id
-       * @description External member ID for the seat assignment. Can be used alone (lookup existing member) or with email (create/validate member).
-       */
-      external_member_id?: string | null
-      /**
-       * Member Id
-       * @description Member ID for the seat assignment.
-       */
-      member_id?: string | null
-      /**
-       * Metadata
-       * @description Additional metadata for the seat (max 10 keys, 1KB total)
-       */
-      metadata?: {
-        [key: string]: unknown
-      } | null
-      /**
-       * Immediate Claim
-       * @description If true, the seat will be immediately claimed without sending an invitation email. API-only feature.
-       * @default false
-       */
-      immediate_claim: boolean
-      /**
-       * Checkout Id
-       * @description Checkout ID. Resolves to the subscription or order produced by the checkout.
-       */
-      checkout_id?: string | null
-    }
-    /**
-     * CustomerSeatClaimResponse
-     * @description Response after successfully claiming a seat.
-     */
-    CustomerSeatClaimResponse: {
-      /** @description The claimed seat */
-      seat: components['schemas']['CustomerSeat']
-      /**
-       * Customer Session Token
-       * @description Session token for immediate customer portal access
-       */
-      customer_session_token: string
     }
     /**
      * CustomerSelectionOption
@@ -16349,70 +10593,10 @@ export interface components {
       | components['schemas']['CustomerStateIndividual']
       | components['schemas']['CustomerStateTeam']
     /**
-     * CustomerStateBenefitGrant
-     * @description An active benefit grant for a customer.
-     */
-    CustomerStateBenefitGrant: {
-      /**
-       * Id
-       * Format: uuid4
-       * @description The ID of the grant.
-       * @example d322132c-a9d0-4e0d-b8d3-d81ad021a3a9
-       */
-      id: string
-      /**
-       * Created At
-       * Format: date-time
-       * @description Creation timestamp of the object.
-       */
-      created_at: string
-      /**
-       * Modified At
-       * @description Last modification timestamp of the object.
-       */
-      modified_at: string | null
-      /**
-       * Granted At
-       * Format: date-time
-       * @description The timestamp when the benefit was granted.
-       * @example 2025-01-03T13:37:00Z
-       */
-      granted_at: string
-      /**
-       * Benefit Id
-       * Format: uuid4
-       * @description The ID of the benefit concerned by this grant.
-       * @example 397a17aa-15cf-4cb4-9333-18040203cf98
-       */
-      benefit_id: string
-      /**
-       * @description The type of the benefit concerned by this grant.
-       * @example custom
-       */
-      benefit_type: components['schemas']['BenefitType']
-      /**
-       * @description The metadata of the benefit concerned by this grant.
-       * @example {
-       *       "key": "value"
-       *     }
-       */
-      benefit_metadata: components['schemas']['MetadataOutputType']
-      /** Properties */
-      properties:
-        | components['schemas']['BenefitGrantDiscordProperties']
-        | components['schemas']['BenefitGrantGitHubRepositoryProperties']
-        | components['schemas']['BenefitGrantDownloadablesProperties']
-        | components['schemas']['BenefitGrantLicenseKeysProperties']
-        | components['schemas']['BenefitGrantCustomProperties']
-        | components['schemas']['BenefitGrantFeatureFlagProperties']
-    }
-    /**
      * CustomerStateIndividual
      * @description A customer along with additional state information:
      *
      *     * Active subscriptions
-     *     * Granted benefits
-     *     * Active meters
      */
     CustomerStateIndividual: {
       /**
@@ -16464,8 +10648,6 @@ export interface components {
        */
       name: string | null
       billing_address: components['schemas']['Address'] | null
-      /** Tax Id */
-      tax_id: [string, components['schemas']['TaxIDFormat']] | null
       /** Locale */
       locale?: string | null
       /**
@@ -16491,68 +10673,10 @@ export interface components {
        */
       active_subscriptions: components['schemas']['CustomerStateSubscription'][]
       /**
-       * Granted Benefits
-       * @description The customer's active benefit grants.
-       */
-      granted_benefits: components['schemas']['CustomerStateBenefitGrant'][]
-      /**
-       * Active Meters
-       * @description The customer's active meters.
-       */
-      active_meters: components['schemas']['CustomerStateMeter'][]
-      /**
        * Avatar Url
        * @example https://www.gravatar.com/avatar/xxx?d=404
        */
       readonly avatar_url: string
-    }
-    /**
-     * CustomerStateMeter
-     * @description An active meter for a customer, with latest consumed and credited units.
-     */
-    CustomerStateMeter: {
-      /**
-       * Id
-       * Format: uuid4
-       * @description The ID of the object.
-       */
-      id: string
-      /**
-       * Created At
-       * Format: date-time
-       * @description Creation timestamp of the object.
-       */
-      created_at: string
-      /**
-       * Modified At
-       * @description Last modification timestamp of the object.
-       */
-      modified_at: string | null
-      /**
-       * Meter Id
-       * Format: uuid4
-       * @description The ID of the meter.
-       * @example d498a884-e2cd-4d3e-8002-f536468a8b22
-       */
-      meter_id: string
-      /**
-       * Consumed Units
-       * @description The number of consumed units.
-       * @example 25
-       */
-      consumed_units: number
-      /**
-       * Credited Units
-       * @description The number of credited units.
-       * @example 100
-       */
-      credited_units: number
-      /**
-       * Balance
-       * @description The balance of the meter, i.e. the difference between credited and consumed units.
-       * @example 75
-       */
-      balance: number
     }
     /**
      * CustomerStateSubscription
@@ -16669,67 +10793,12 @@ export interface components {
        * @example null
        */
       discount_id: string | null
-      /**
-       * Meters
-       * @description List of meters associated with the subscription.
-       */
-      meters: components['schemas']['CustomerStateSubscriptionMeter'][]
-    }
-    /**
-     * CustomerStateSubscriptionMeter
-     * @description Current consumption and spending for a subscription meter.
-     */
-    CustomerStateSubscriptionMeter: {
-      /**
-       * Created At
-       * Format: date-time
-       * @description Creation timestamp of the object.
-       */
-      created_at: string
-      /**
-       * Modified At
-       * @description Last modification timestamp of the object.
-       */
-      modified_at: string | null
-      /**
-       * Id
-       * Format: uuid4
-       * @description The ID of the object.
-       */
-      id: string
-      /**
-       * Consumed Units
-       * @description The number of consumed units so far in this billing period.
-       * @example 25
-       */
-      consumed_units: number
-      /**
-       * Credited Units
-       * @description The number of credited units so far in this billing period.
-       * @example 100
-       */
-      credited_units: number
-      /**
-       * Amount
-       * @description The amount due in cents so far in this billing period.
-       * @example 0
-       */
-      amount: number
-      /**
-       * Meter Id
-       * Format: uuid4
-       * @description The ID of the meter.
-       * @example d498a884-e2cd-4d3e-8002-f536468a8b22
-       */
-      meter_id: string
     }
     /**
      * CustomerStateTeam
      * @description A team customer along with additional state information:
      *
      *     * Active subscriptions
-     *     * Granted benefits
-     *     * Active meters
      */
     CustomerStateTeam: {
       /**
@@ -16781,8 +10850,6 @@ export interface components {
        */
       name: string | null
       billing_address: components['schemas']['Address'] | null
-      /** Tax Id */
-      tax_id: [string, components['schemas']['TaxIDFormat']] | null
       /** Locale */
       locale?: string | null
       /**
@@ -16807,16 +10874,6 @@ export interface components {
        * @description The customer's active subscriptions.
        */
       active_subscriptions: components['schemas']['CustomerStateSubscription'][]
-      /**
-       * Granted Benefits
-       * @description The customer's active benefit grants.
-       */
-      granted_benefits: components['schemas']['CustomerStateBenefitGrant'][]
-      /**
-       * Active Meters
-       * @description The customer's active meters.
-       */
-      active_meters: components['schemas']['CustomerStateMeter'][]
       /**
        * Avatar Url
        * @example https://www.gravatar.com/avatar/xxx?d=404
@@ -16935,11 +10992,6 @@ export interface components {
       discount_id: string | null
       /** Checkout Id */
       checkout_id: string | null
-      /**
-       * Seats
-       * @description The number of seats for seat-based subscriptions. None for non-seat subscriptions.
-       */
-      seats?: number | null
       customer_cancellation_reason:
         | components['schemas']['CustomerCancellationReason']
         | null
@@ -16954,11 +11006,6 @@ export interface components {
         | components['schemas']['LegacyRecurringProductPrice']
         | components['schemas']['ProductPrice']
       )[]
-      /**
-       * Meters
-       * @description List of meters associated with the subscription.
-       */
-      meters: components['schemas']['CustomerSubscriptionMeter'][]
       /** @description Pending subscription update that will be applied at the beginning of the next period. If `null`, there is no pending update. */
       pending_update: components['schemas']['PendingSubscriptionUpdate'] | null
     }
@@ -16991,77 +11038,6 @@ export interface components {
        * @description Customer feedback and why they decided to cancel.
        */
       cancellation_comment?: string | null
-    }
-    /** CustomerSubscriptionMeter */
-    CustomerSubscriptionMeter: {
-      /**
-       * Created At
-       * Format: date-time
-       * @description Creation timestamp of the object.
-       */
-      created_at: string
-      /**
-       * Modified At
-       * @description Last modification timestamp of the object.
-       */
-      modified_at: string | null
-      /**
-       * Id
-       * Format: uuid4
-       * @description The ID of the object.
-       */
-      id: string
-      /**
-       * Consumed Units
-       * @description The number of consumed units so far in this billing period.
-       * @example 25
-       */
-      consumed_units: number
-      /**
-       * Credited Units
-       * @description The number of credited units so far in this billing period.
-       * @example 100
-       */
-      credited_units: number
-      /**
-       * Amount
-       * @description The amount due in cents so far in this billing period.
-       * @example 0
-       */
-      amount: number
-      /**
-       * Meter Id
-       * Format: uuid4
-       * @description The ID of the meter.
-       * @example d498a884-e2cd-4d3e-8002-f536468a8b22
-       */
-      meter_id: string
-      meter: components['schemas']['CustomerSubscriptionMeterMeter']
-    }
-    /** CustomerSubscriptionMeterMeter */
-    CustomerSubscriptionMeterMeter: {
-      /**
-       * Created At
-       * Format: date-time
-       * @description Creation timestamp of the object.
-       */
-      created_at: string
-      /**
-       * Modified At
-       * @description Last modification timestamp of the object.
-       */
-      modified_at: string | null
-      /**
-       * Id
-       * Format: uuid4
-       * @description The ID of the object.
-       */
-      id: string
-      /**
-       * Name
-       * @description The name of the meter. Will be shown on customer's invoices and usage.
-       */
-      name: string
     }
     /** CustomerSubscriptionProduct */
     CustomerSubscriptionProduct: {
@@ -17134,16 +11110,6 @@ export interface components {
         | components['schemas']['LegacyRecurringProductPrice']
         | components['schemas']['ProductPrice']
       )[]
-      /**
-       * BenefitPublic
-       * @description List of benefits granted by the product.
-       */
-      benefits: components['schemas']['BenefitPublic'][]
-      /**
-       * Medias
-       * @description List of medias associated to the product.
-       */
-      medias: components['schemas']['ProductMediaFileRead'][]
       organization: components['schemas']['CustomerOrganization']
     }
     /**
@@ -17163,7 +11129,6 @@ export interface components {
       | '-product'
     CustomerSubscriptionUpdate:
       | components['schemas']['CustomerSubscriptionUpdateProduct']
-      | components['schemas']['CustomerSubscriptionUpdateSeats']
       | components['schemas']['CustomerSubscriptionCancel']
       | components['schemas']['CustomerSubscriptionUpdateClear']
     /** CustomerSubscriptionUpdateClear */
@@ -17182,18 +11147,6 @@ export interface components {
        * @description Update subscription to another product.
        */
       product_id: string
-    }
-    /** CustomerSubscriptionUpdateSeats */
-    CustomerSubscriptionUpdateSeats: {
-      /**
-       * Seats
-       * @description Update the number of seats for this subscription.
-       */
-      seats: number
-      /** @description Determine how to handle the proration billing. If not provided, will use the default organization setting. */
-      proration_behavior?:
-        | components['schemas']['SubscriptionProrationBehavior']
-        | null
     }
     /**
      * CustomerTeam
@@ -17249,8 +11202,6 @@ export interface components {
        */
       name: string | null
       billing_address: components['schemas']['Address'] | null
-      /** Tax Id */
-      tax_id: [string, components['schemas']['TaxIDFormat']] | null
       /** Locale */
       locale?: string | null
       /**
@@ -17304,8 +11255,6 @@ export interface components {
       /** Name */
       name?: string | null
       billing_address?: components['schemas']['AddressInput'] | null
-      /** Tax Id */
-      tax_id?: string | null
       /** Locale */
       locale?: string | null
       /**
@@ -17360,8 +11309,6 @@ export interface components {
       /** Name */
       name?: string | null
       billing_address?: components['schemas']['AddressInput'] | null
-      /** Tax Id */
-      tax_id?: string | null
       /** Locale */
       locale?: string | null
       /**
@@ -17404,8 +11351,6 @@ export interface components {
       /** Name */
       name?: string | null
       billing_address?: components['schemas']['AddressInput'] | null
-      /** Tax Id */
-      tax_id?: string | null
       /** Locale */
       locale?: string | null
     }
@@ -17491,8 +11436,6 @@ export interface components {
       /** Email */
       email?: string | null
       billing_address?: components['schemas']['AddressDict'] | null
-      /** Tax Id */
-      tax_id?: string | null
       /** Metadata */
       metadata?: {
         [key: string]: string | number | boolean
@@ -17563,29 +11506,6 @@ export interface components {
       | '-created_at'
       | 'balance'
       | '-balance'
-    /** DiscordGuild */
-    DiscordGuild: {
-      /** Name */
-      name: string
-      /** Roles */
-      roles: components['schemas']['DiscordGuildRole'][]
-    }
-    /** DiscordGuildRole */
-    DiscordGuildRole: {
-      /** Id */
-      id: string
-      /** Name */
-      name: string
-      /** Position */
-      position: number
-      /** Is Polar Bot */
-      is_polar_bot: boolean
-      /**
-       * Color
-       * Format: color
-       */
-      color: string
-    }
     Discount:
       | components['schemas']['DiscountFixedOnceForeverDuration']
       | components['schemas']['DiscountFixedRepeatDuration']
@@ -18543,186 +12463,6 @@ export interface components {
       /** Products */
       products?: string[] | null
     }
-    /**
-     * Dispute
-     * @description Schema representing a dispute.
-     *
-     *     A dispute is a challenge raised by a customer or their bank regarding a payment.
-     */
-    Dispute: {
-      /**
-       * Created At
-       * Format: date-time
-       * @description Creation timestamp of the object.
-       */
-      created_at: string
-      /**
-       * Modified At
-       * @description Last modification timestamp of the object.
-       */
-      modified_at: string | null
-      /**
-       * Id
-       * Format: uuid4
-       * @description The ID of the object.
-       */
-      id: string
-      /**
-       * @description Status of the dispute. `prevented` means we issued a refund before the dispute was escalated, avoiding any fees.
-       * @example needs_response
-       * @example prevented
-       */
-      status: components['schemas']['DisputeStatus']
-      /**
-       * Resolved
-       * @description Whether the dispute has been resolved (won or lost).
-       * @example false
-       */
-      resolved: boolean
-      /**
-       * Closed
-       * @description Whether the dispute is closed (prevented, won, or lost).
-       * @example false
-       */
-      closed: boolean
-      /**
-       * Amount
-       * @description Amount in cents disputed.
-       * @example 1000
-       */
-      amount: number
-      /**
-       * Tax Amount
-       * @description Tax amount in cents disputed.
-       * @example 200
-       */
-      tax_amount: number
-      /**
-       * Currency
-       * @description Currency code of the dispute.
-       * @example usd
-       */
-      currency: string
-      /**
-       * Order Id
-       * Format: uuid4
-       * @description The ID of the order associated with the dispute.
-       * @example 57107b74-8400-4d80-a2fc-54c2b4239cb3
-       */
-      order_id: string
-      /**
-       * Payment Id
-       * Format: uuid4
-       * @description The ID of the payment associated with the dispute.
-       * @example 42b94870-36b9-4573-96b6-b90b1c99a353
-       */
-      payment_id: string
-    }
-    /**
-     * DisputeSortProperty
-     * @enum {string}
-     */
-    DisputeSortProperty: 'created_at' | '-created_at' | 'amount' | '-amount'
-    /**
-     * DisputeStatus
-     * @enum {string}
-     */
-    DisputeStatus:
-      | 'prevented'
-      | 'early_warning'
-      | 'needs_response'
-      | 'under_review'
-      | 'lost'
-      | 'won'
-    /**
-     * DownloadableFileCreate
-     * @description Schema to create a file to be associated with the downloadables benefit.
-     */
-    DownloadableFileCreate: {
-      /** Organization Id */
-      organization_id?: string | null
-      /** Name */
-      name: string
-      /** Mime Type */
-      mime_type: string
-      /** Size */
-      size: number
-      /** Checksum Sha256 Base64 */
-      checksum_sha256_base64?: string | null
-      upload: components['schemas']['S3FileCreateMultipart']
-      /**
-       * @description discriminator enum property added by openapi-typescript
-       * @enum {string}
-       */
-      service: 'downloadable'
-      /** Version */
-      version?: string | null
-    }
-    /**
-     * DownloadableFileRead
-     * @description File to be associated with the downloadables benefit.
-     */
-    DownloadableFileRead: {
-      /**
-       * Id
-       * Format: uuid4
-       * @description The ID of the object.
-       */
-      id: string
-      /**
-       * Organization Id
-       * Format: uuid4
-       */
-      organization_id: string
-      /** Name */
-      name: string
-      /** Path */
-      path: string
-      /** Mime Type */
-      mime_type: string
-      /** Size */
-      size: number
-      /** Storage Version */
-      storage_version: string | null
-      /** Checksum Etag */
-      checksum_etag: string | null
-      /** Checksum Sha256 Base64 */
-      checksum_sha256_base64: string | null
-      /** Checksum Sha256 Hex */
-      checksum_sha256_hex: string | null
-      /** Last Modified At */
-      last_modified_at: string | null
-      /** Version */
-      version: string | null
-      /**
-       * @description discriminator enum property added by openapi-typescript
-       * @enum {string}
-       */
-      service: 'downloadable'
-      /** Is Uploaded */
-      is_uploaded: boolean
-      /**
-       * Created At
-       * Format: date-time
-       */
-      created_at: string
-      /** Size Readable */
-      readonly size_readable: string
-    }
-    /** DownloadableRead */
-    DownloadableRead: {
-      /**
-       * Id
-       * Format: uuid4
-       */
-      id: string
-      /**
-       * Benefit Id
-       * Format: uuid4
-       */
-      benefit_id: string
-      file: components['schemas']['FileDownload']
-    }
     /** EmailOTPRequest */
     EmailOTPRequest: {
       /** Email */
@@ -19185,211 +12925,6 @@ export interface components {
       | 'apple'
       | 'github'
       | 'google'
-    /** Feedback */
-    Feedback: {
-      /**
-       * Created At
-       * Format: date-time
-       * @description Creation timestamp of the object.
-       */
-      created_at: string
-      /**
-       * Modified At
-       * @description Last modification timestamp of the object.
-       */
-      modified_at: string | null
-      /**
-       * Id
-       * Format: uuid4
-       */
-      id: string
-      type: components['schemas']['FeedbackType']
-      status: components['schemas']['FeedbackStatus']
-      /** Message */
-      message: string
-      /** Client Context */
-      client_context: {
-        [key: string]: unknown
-      }
-      /**
-       * User Id
-       * Format: uuid4
-       */
-      user_id: string
-      /**
-       * Organization Id
-       * Format: uuid4
-       */
-      organization_id: string
-    }
-    /** FeedbackCreate */
-    FeedbackCreate: {
-      type: components['schemas']['FeedbackType']
-      /** Message */
-      message: string
-      /**
-       * Organization Id
-       * Format: uuid
-       */
-      organization_id: string
-      /** Client Context */
-      client_context?: {
-        [key: string]: unknown
-      }
-    }
-    /**
-     * FeedbackStatus
-     * @enum {string}
-     */
-    FeedbackStatus: 'new' | 'triaged'
-    /**
-     * FeedbackType
-     * @enum {string}
-     */
-    FeedbackType: 'bug' | 'feedback' | 'question'
-    FileCreate:
-      | components['schemas']['DownloadableFileCreate']
-      | components['schemas']['ProductMediaFileCreate']
-      | components['schemas']['OrganizationAvatarFileCreate']
-    /** FileDownload */
-    FileDownload: {
-      /**
-       * Id
-       * Format: uuid4
-       * @description The ID of the object.
-       */
-      id: string
-      /**
-       * Organization Id
-       * Format: uuid4
-       */
-      organization_id: string
-      /** Name */
-      name: string
-      /** Path */
-      path: string
-      /** Mime Type */
-      mime_type: string
-      /** Size */
-      size: number
-      /** Storage Version */
-      storage_version: string | null
-      /** Checksum Etag */
-      checksum_etag: string | null
-      /** Checksum Sha256 Base64 */
-      checksum_sha256_base64: string | null
-      /** Checksum Sha256 Hex */
-      checksum_sha256_hex: string | null
-      /** Last Modified At */
-      last_modified_at: string | null
-      download: components['schemas']['S3DownloadURL']
-      /** Version */
-      version: string | null
-      /** Is Uploaded */
-      is_uploaded: boolean
-      service: components['schemas']['FileServiceTypes']
-      /** Size Readable */
-      readonly size_readable: string
-    }
-    /** FilePatch */
-    FilePatch: {
-      /** Name */
-      name?: string | null
-      /** Version */
-      version?: string | null
-    }
-    /**
-     * FileServiceTypes
-     * @enum {string}
-     */
-    FileServiceTypes: 'downloadable' | 'product_media' | 'organization_avatar'
-    /** FileUpload */
-    FileUpload: {
-      /**
-       * Id
-       * Format: uuid4
-       * @description The ID of the object.
-       */
-      id: string
-      /**
-       * Organization Id
-       * Format: uuid4
-       */
-      organization_id: string
-      /** Name */
-      name: string
-      /** Path */
-      path: string
-      /** Mime Type */
-      mime_type: string
-      /** Size */
-      size: number
-      /** Storage Version */
-      storage_version: string | null
-      /** Checksum Etag */
-      checksum_etag: string | null
-      /** Checksum Sha256 Base64 */
-      checksum_sha256_base64: string | null
-      /** Checksum Sha256 Hex */
-      checksum_sha256_hex: string | null
-      /** Last Modified At */
-      last_modified_at: string | null
-      upload: components['schemas']['S3FileUploadMultipart']
-      /** Version */
-      version: string | null
-      /**
-       * Is Uploaded
-       * @default false
-       */
-      is_uploaded: boolean
-      service: components['schemas']['FileServiceTypes']
-      /** Size Readable */
-      readonly size_readable: string
-    }
-    /** FileUploadCompleted */
-    FileUploadCompleted: {
-      /** Id */
-      id: string
-      /** Path */
-      path: string
-      /** Parts */
-      parts: components['schemas']['S3FileUploadCompletedPart'][]
-    }
-    /** Filter */
-    Filter: {
-      conjunction: components['schemas']['FilterConjunction']
-      /** Clauses */
-      clauses: (
-        | components['schemas']['FilterClause']
-        | components['schemas']['Filter']
-      )[]
-    }
-    /** FilterClause */
-    FilterClause: {
-      /** Property */
-      property: string
-      operator: components['schemas']['FilterOperator']
-      /** Value */
-      value: string | number | boolean
-    }
-    /**
-     * FilterConjunction
-     * @enum {string}
-     */
-    FilterConjunction: 'and' | 'or'
-    /**
-     * FilterOperator
-     * @enum {string}
-     */
-    FilterOperator:
-      | 'eq'
-      | 'ne'
-      | 'gt'
-      | 'gte'
-      | 'lt'
-      | 'lte'
-      | 'like'
-      | 'not_like'
     /**
      * GenericPayment
      * @description Schema of a payment with a generic payment method.
@@ -19414,7 +12949,7 @@ export interface components {
       id: string
       /**
        * @description The payment processor.
-       * @example stripe
+       * @example crypto
        */
       processor: components['schemas']['PaymentProcessor']
       /**
@@ -19479,41 +13014,11 @@ export interface components {
         [key: string]: unknown
       }
     }
-    /** GitHubInvitesBenefitOrganization */
-    GitHubInvitesBenefitOrganization: {
-      /** Name */
-      name: string
-      /** Is Personal */
-      is_personal: boolean
-      /** Plan Name */
-      plan_name: string
-      /** Is Free */
-      is_free: boolean
-    }
-    /** GitHubInvitesBenefitRepositories */
-    GitHubInvitesBenefitRepositories: {
-      /** Repositories */
-      repositories: components['schemas']['GitHubInvitesBenefitRepository'][]
-      /** Organizations */
-      organizations: components['schemas']['GitHubInvitesBenefitOrganization'][]
-    }
-    /** GitHubInvitesBenefitRepository */
-    GitHubInvitesBenefitRepository: {
-      /** Repository Owner */
-      repository_owner: string
-      /** Repository Name */
-      repository_name: string
-    }
     /** HTTPValidationError */
     HTTPValidationError: {
       /** Detail */
       detail?: components['schemas']['ValidationError'][]
     }
-    /**
-     * IdentityVerificationStatus
-     * @enum {string}
-     */
-    IdentityVerificationStatus: 'unverified' | 'pending' | 'verified' | 'failed'
     /** InsufficientBalance */
     InsufficientBalance: {
       /**
@@ -19651,8 +13156,6 @@ export interface components {
        * @description The currency in which the customer will be charged.
        */
       price_currency: string
-      /** @description The tax behavior of the price. If null, it defaults to the organization's default tax behavior. */
-      tax_behavior: components['schemas']['TaxBehaviorOption'] | null
       /**
        * Is Archived
        * @description Whether the price is archived and no longer available.
@@ -19729,8 +13232,6 @@ export interface components {
        * @description The currency in which the customer will be charged.
        */
       price_currency: string
-      /** @description The tax behavior of the price. If null, it defaults to the organization's default tax behavior. */
-      tax_behavior: components['schemas']['TaxBehaviorOption'] | null
       /**
        * Is Archived
        * @description Whether the price is archived and no longer available.
@@ -19797,8 +13298,6 @@ export interface components {
        * @description The currency in which the customer will be charged.
        */
       price_currency: string
-      /** @description The tax behavior of the price. If null, it defaults to the organization's default tax behavior. */
-      tax_behavior: components['schemas']['TaxBehaviorOption'] | null
       /**
        * Is Archived
        * @description Whether the price is archived and no longer available.
@@ -19823,377 +13322,6 @@ export interface components {
        * @constant
        */
       readonly legacy: true
-    }
-    /** LicenseKeyActivate */
-    LicenseKeyActivate: {
-      /** Key */
-      key: string
-      /**
-       * Organization Id
-       * Format: uuid4
-       */
-      organization_id: string
-      /** Label */
-      label: string
-      /**
-       * Conditions
-       * @description Key-value object allowing you to set conditions that must match when validating the license key.
-       *
-       *     The key must be a string with a maximum length of **40 characters**.
-       *     The value must be either:
-       *
-       *     * A string with a maximum length of **500 characters**
-       *     * An integer
-       *     * A floating-point number
-       *     * A boolean
-       *
-       *     You can store up to **50 key-value pairs**.
-       */
-      conditions?: {
-        [key: string]: string | number | boolean
-      }
-      /**
-       * Meta
-       * @description Key-value object allowing you to store additional information about the activation
-       *
-       *     The key must be a string with a maximum length of **40 characters**.
-       *     The value must be either:
-       *
-       *     * A string with a maximum length of **500 characters**
-       *     * An integer
-       *     * A floating-point number
-       *     * A boolean
-       *
-       *     You can store up to **50 key-value pairs**.
-       */
-      meta?: {
-        [key: string]: string | number | boolean
-      }
-    }
-    /** LicenseKeyActivationBase */
-    LicenseKeyActivationBase: {
-      /**
-       * Id
-       * Format: uuid4
-       */
-      id: string
-      /**
-       * License Key Id
-       * Format: uuid4
-       */
-      license_key_id: string
-      /** Label */
-      label: string
-      /** Meta */
-      meta: {
-        [key: string]: string | number | boolean
-      }
-      /**
-       * Created At
-       * Format: date-time
-       */
-      created_at: string
-      /** Modified At */
-      modified_at: string | null
-    }
-    /** LicenseKeyActivationRead */
-    LicenseKeyActivationRead: {
-      /**
-       * Id
-       * Format: uuid4
-       */
-      id: string
-      /**
-       * License Key Id
-       * Format: uuid4
-       */
-      license_key_id: string
-      /** Label */
-      label: string
-      /** Meta */
-      meta: {
-        [key: string]: string | number | boolean
-      }
-      /**
-       * Created At
-       * Format: date-time
-       */
-      created_at: string
-      /** Modified At */
-      modified_at: string | null
-      license_key: components['schemas']['LicenseKeyRead']
-    }
-    /** LicenseKeyCustomer */
-    LicenseKeyCustomer: {
-      /**
-       * Id
-       * Format: uuid4
-       * @description The ID of the customer.
-       * @example 992fae2a-2a17-4b7a-8d9e-e287cf90131b
-       */
-      id: string
-      /**
-       * Created At
-       * Format: date-time
-       * @description Creation timestamp of the object.
-       */
-      created_at: string
-      /**
-       * Modified At
-       * @description Last modification timestamp of the object.
-       */
-      modified_at: string | null
-      metadata: components['schemas']['MetadataOutputType']
-      /**
-       * External Id
-       * @description The ID of the customer in your system. This must be unique within the organization. Once set, it can't be updated.
-       * @example usr_1337
-       */
-      external_id?: string | null
-      /**
-       * Email
-       * @description The email address of the customer. This must be unique within the organization.
-       * @example customer@example.com
-       */
-      email?: string | null
-      /**
-       * Email Verified
-       * @description Whether the customer email address is verified. The address is automatically verified when the customer accesses the customer portal using their email address.
-       * @example true
-       */
-      email_verified: boolean
-      /**
-       * @description The type of customer: 'individual' for single users, 'team' for customers with multiple members.
-       * @example individual
-       */
-      type: components['schemas']['CustomerType']
-      /**
-       * Name
-       * @description The name of the customer.
-       * @example John Doe
-       */
-      name: string | null
-      billing_address: components['schemas']['Address'] | null
-      /** Tax Id */
-      tax_id: [string, components['schemas']['TaxIDFormat']] | null
-      /** Locale */
-      locale?: string | null
-      /**
-       * Organization Id
-       * Format: uuid4
-       * @description The ID of the organization owning the customer.
-       * @example 1dbfc517-0bbf-4301-9ba8-555ca42b9737
-       */
-      organization_id: string
-      /**
-       * Default Payment Method Id
-       * @description The ID of the customer's default payment method, if any. Use the payment methods endpoint to retrieve its details.
-       */
-      default_payment_method_id?: string | null
-      /**
-       * Deleted At
-       * @description Timestamp for when the customer was soft deleted.
-       */
-      deleted_at: string | null
-      /**
-       * Avatar Url
-       * @example https://www.gravatar.com/avatar/xxx?d=404
-       */
-      readonly avatar_url: string
-    }
-    /** LicenseKeyDeactivate */
-    LicenseKeyDeactivate: {
-      /** Key */
-      key: string
-      /**
-       * Organization Id
-       * Format: uuid4
-       */
-      organization_id: string
-      /**
-       * Activation Id
-       * Format: uuid4
-       */
-      activation_id: string
-    }
-    /** LicenseKeyRead */
-    LicenseKeyRead: {
-      /**
-       * Id
-       * Format: uuid4
-       * @description The ID of the object.
-       */
-      id: string
-      /**
-       * Created At
-       * Format: date-time
-       * @description Creation timestamp of the object.
-       */
-      created_at: string
-      /**
-       * Modified At
-       * @description Last modification timestamp of the object.
-       */
-      modified_at: string | null
-      /**
-       * Organization Id
-       * Format: uuid4
-       */
-      organization_id: string
-      /**
-       * Customer Id
-       * Format: uuid4
-       */
-      customer_id: string
-      customer: components['schemas']['LicenseKeyCustomer']
-      /**
-       * Benefit Id
-       * Format: uuid4
-       * @description The benefit ID.
-       */
-      benefit_id: string
-      /** Key */
-      key: string
-      /** Display Key */
-      display_key: string
-      status: components['schemas']['LicenseKeyStatus']
-      /** Limit Activations */
-      limit_activations: number | null
-      /** Usage */
-      usage: number
-      /** Limit Usage */
-      limit_usage: number | null
-      /** Validations */
-      validations: number
-      /** Last Validated At */
-      last_validated_at: string | null
-      /** Expires At */
-      expires_at: string | null
-    }
-    /**
-     * LicenseKeyStatus
-     * @enum {string}
-     */
-    LicenseKeyStatus: 'granted' | 'revoked' | 'disabled'
-    /** LicenseKeyUpdate */
-    LicenseKeyUpdate: {
-      status?: components['schemas']['LicenseKeyStatus'] | null
-      /**
-       * Usage
-       * @default 0
-       */
-      usage: number
-      /** Limit Activations */
-      limit_activations?: number | null
-      /** Limit Usage */
-      limit_usage?: number | null
-      /** Expires At */
-      expires_at?: string | null
-    }
-    /** LicenseKeyUser */
-    LicenseKeyUser: {
-      /**
-       * Id
-       * Format: uuid4
-       */
-      id: string
-      /** Email */
-      email?: string | null
-      /** Public Name */
-      public_name: string
-      /** Avatar Url */
-      avatar_url?: string | null
-    }
-    /** LicenseKeyValidate */
-    LicenseKeyValidate: {
-      /** Key */
-      key: string
-      /**
-       * Organization Id
-       * Format: uuid4
-       */
-      organization_id: string
-      /** Activation Id */
-      activation_id?: string | null
-      /** Benefit Id */
-      benefit_id?: string | null
-      /** Customer Id */
-      customer_id?: string | null
-      /** Increment Usage */
-      increment_usage?: number | null
-      /**
-       * Conditions
-       * @description Key-value object allowing you to set conditions that must match when validating the license key.
-       *
-       *     The key must be a string with a maximum length of **40 characters**.
-       *     The value must be either:
-       *
-       *     * A string with a maximum length of **500 characters**
-       *     * An integer
-       *     * A floating-point number
-       *     * A boolean
-       *
-       *     You can store up to **50 key-value pairs**.
-       */
-      conditions?: {
-        [key: string]: string | number | boolean
-      }
-    }
-    /** LicenseKeyWithActivations */
-    LicenseKeyWithActivations: {
-      /**
-       * Id
-       * Format: uuid4
-       * @description The ID of the object.
-       */
-      id: string
-      /**
-       * Created At
-       * Format: date-time
-       * @description Creation timestamp of the object.
-       */
-      created_at: string
-      /**
-       * Modified At
-       * @description Last modification timestamp of the object.
-       */
-      modified_at: string | null
-      /**
-       * Organization Id
-       * Format: uuid4
-       */
-      organization_id: string
-      /**
-       * Customer Id
-       * Format: uuid4
-       */
-      customer_id: string
-      customer: components['schemas']['LicenseKeyCustomer']
-      /**
-       * Benefit Id
-       * Format: uuid4
-       * @description The benefit ID.
-       */
-      benefit_id: string
-      /** Key */
-      key: string
-      /** Display Key */
-      display_key: string
-      status: components['schemas']['LicenseKeyStatus']
-      /** Limit Activations */
-      limit_activations: number | null
-      /** Usage */
-      usage: number
-      /** Limit Usage */
-      limit_usage: number | null
-      /** Validations */
-      validations: number
-      /** Last Validated At */
-      last_validated_at: string | null
-      /** Expires At */
-      expires_at: string | null
-      /** Activations */
-      activations: components['schemas']['LicenseKeyActivationBase'][]
     }
     /**
      * ListCustomerStats
@@ -20223,18 +13351,6 @@ export interface components {
       items: components['schemas']['Event'][]
       pagination: components['schemas']['CursorPagination']
     }
-    /** ListResource[BenefitGrant] */
-    ListResource_BenefitGrant_: {
-      /** Items */
-      items: components['schemas']['BenefitGrant'][]
-      pagination: components['schemas']['Pagination']
-    }
-    /** ListResource[Benefit] */
-    ListResource_Benefit_: {
-      /** Items */
-      items: components['schemas']['Benefit'][]
-      pagination: components['schemas']['Pagination']
-    }
     /** ListResource[CheckoutLink] */
     ListResource_CheckoutLink_: {
       /** Items */
@@ -20253,34 +13369,10 @@ export interface components {
       items: components['schemas']['CustomField'][]
       pagination: components['schemas']['Pagination']
     }
-    /** ListResource[CustomerBenefitGrant] */
-    ListResource_CustomerBenefitGrant_: {
-      /** Items */
-      items: components['schemas']['CustomerBenefitGrant'][]
-      pagination: components['schemas']['Pagination']
-    }
-    /** ListResource[CustomerCustomerMeter] */
-    ListResource_CustomerCustomerMeter_: {
-      /** Items */
-      items: components['schemas']['CustomerCustomerMeter'][]
-      pagination: components['schemas']['Pagination']
-    }
-    /** ListResource[CustomerMeter] */
-    ListResource_CustomerMeter_: {
-      /** Items */
-      items: components['schemas']['CustomerMeter'][]
-      pagination: components['schemas']['Pagination']
-    }
     /** ListResource[CustomerOrder] */
     ListResource_CustomerOrder_: {
       /** Items */
       items: components['schemas']['CustomerOrder'][]
-      pagination: components['schemas']['Pagination']
-    }
-    /** ListResource[CustomerPaymentMethod] */
-    ListResource_CustomerPaymentMethod_: {
-      /** Items */
-      items: components['schemas']['CustomerPaymentMethod'][]
       pagination: components['schemas']['Pagination']
     }
     /** ListResource[CustomerPortalMember] */
@@ -20313,18 +13405,6 @@ export interface components {
       items: components['schemas']['Discount'][]
       pagination: components['schemas']['Pagination']
     }
-    /** ListResource[Dispute] */
-    ListResource_Dispute_: {
-      /** Items */
-      items: components['schemas']['Dispute'][]
-      pagination: components['schemas']['Pagination']
-    }
-    /** ListResource[DownloadableRead] */
-    ListResource_DownloadableRead_: {
-      /** Items */
-      items: components['schemas']['DownloadableRead'][]
-      pagination: components['schemas']['Pagination']
-    }
     /** ListResource[EventName] */
     ListResource_EventName_: {
       /** Items */
@@ -20343,38 +13423,10 @@ export interface components {
       items: components['schemas']['Event'][]
       pagination: components['schemas']['Pagination']
     }
-    /** ListResource[FileRead] */
-    ListResource_FileRead_: {
-      /** Items */
-      items: (
-        | components['schemas']['DownloadableFileRead']
-        | components['schemas']['ProductMediaFileRead']
-        | components['schemas']['OrganizationAvatarFileRead']
-      )[]
-      pagination: components['schemas']['Pagination']
-    }
-    /** ListResource[LicenseKeyRead] */
-    ListResource_LicenseKeyRead_: {
-      /** Items */
-      items: components['schemas']['LicenseKeyRead'][]
-      pagination: components['schemas']['Pagination']
-    }
     /** ListResource[Member] */
     ListResource_Member_: {
       /** Items */
       items: components['schemas']['Member'][]
-      pagination: components['schemas']['Pagination']
-    }
-    /** ListResource[Meter] */
-    ListResource_Meter_: {
-      /** Items */
-      items: components['schemas']['Meter'][]
-      pagination: components['schemas']['Pagination']
-    }
-    /** ListResource[NotificationRecipientSchema] */
-    ListResource_NotificationRecipientSchema_: {
-      /** Items */
-      items: components['schemas']['NotificationRecipientSchema'][]
       pagination: components['schemas']['Pagination']
     }
     /** ListResource[OAuth2Client] */
@@ -20521,185 +13573,6 @@ export interface components {
        */
       items: components['schemas']['VarianceEvent'][]
     }
-    /** MaintainerAccountCreditsGrantedNotification */
-    MaintainerAccountCreditsGrantedNotification: {
-      /**
-       * Id
-       * Format: uuid4
-       */
-      id: string
-      /**
-       * Created At
-       * Format: date-time
-       */
-      created_at: string
-      /**
-       * @description discriminator enum property added by openapi-typescript
-       * @enum {string}
-       */
-      type: 'MaintainerAccountCreditsGrantedNotification'
-      payload: components['schemas']['MaintainerAccountCreditsGrantedNotificationPayload']
-    }
-    /** MaintainerAccountCreditsGrantedNotificationPayload */
-    MaintainerAccountCreditsGrantedNotificationPayload: {
-      /** Organization Name */
-      organization_name: string
-      /** Amount */
-      amount: number
-      /**
-       * Currency
-       * @default usd
-       */
-      currency: string
-      /** Formatted Amount */
-      readonly formatted_amount: string
-    }
-    /** MaintainerCreateAccountNotification */
-    MaintainerCreateAccountNotification: {
-      /**
-       * Id
-       * Format: uuid4
-       */
-      id: string
-      /**
-       * Created At
-       * Format: date-time
-       */
-      created_at: string
-      /**
-       * @description discriminator enum property added by openapi-typescript
-       * @enum {string}
-       */
-      type: 'MaintainerCreateAccountNotification'
-      payload: components['schemas']['MaintainerCreateAccountNotificationPayload']
-    }
-    /** MaintainerCreateAccountNotificationPayload */
-    MaintainerCreateAccountNotificationPayload: {
-      /** Organization Name */
-      organization_name: string
-      /** Url */
-      url: string
-    }
-    /** MaintainerNewPaidSubscriptionNotification */
-    MaintainerNewPaidSubscriptionNotification: {
-      /**
-       * Id
-       * Format: uuid4
-       */
-      id: string
-      /**
-       * Created At
-       * Format: date-time
-       */
-      created_at: string
-      /**
-       * @description discriminator enum property added by openapi-typescript
-       * @enum {string}
-       */
-      type: 'MaintainerNewPaidSubscriptionNotification'
-      payload: components['schemas']['MaintainerNewPaidSubscriptionNotificationPayload']
-    }
-    /** MaintainerNewPaidSubscriptionNotificationPayload */
-    MaintainerNewPaidSubscriptionNotificationPayload: {
-      /** Subscriber Name */
-      subscriber_name: string
-      /** Subscriber Email */
-      subscriber_email?: string | null
-      /** Tier Name */
-      tier_name: string
-      /** Tier Price Amount */
-      tier_price_amount: number | null
-      /** Tier Price Recurring Interval */
-      tier_price_recurring_interval: string
-      /**
-       * Tier Price Recurring Interval Count
-       * @default 1
-       */
-      tier_price_recurring_interval_count: number
-      /** Tier Organization Name */
-      tier_organization_name: string
-      /** Tier Organization Slug */
-      tier_organization_slug?: string | null
-      /** Subscription Id */
-      subscription_id?: string | null
-      /**
-       * Currency
-       * @default usd
-       */
-      currency: string
-      /** Formatted Price Amount */
-      readonly formatted_price_amount: string
-      /** Formatted Price With Interval */
-      readonly formatted_price_with_interval: string
-    }
-    /** MaintainerNewProductSaleNotification */
-    MaintainerNewProductSaleNotification: {
-      /**
-       * Id
-       * Format: uuid4
-       */
-      id: string
-      /**
-       * Created At
-       * Format: date-time
-       */
-      created_at: string
-      /**
-       * @description discriminator enum property added by openapi-typescript
-       * @enum {string}
-       */
-      type: 'MaintainerNewProductSaleNotification'
-      payload: components['schemas']['MaintainerNewProductSaleNotificationPayload']
-    }
-    /** MaintainerNewProductSaleNotificationPayload */
-    MaintainerNewProductSaleNotificationPayload: {
-      /** Product Name */
-      product_name: string
-      /** Product Price Amount */
-      product_price_amount: number
-      /**
-       * Customer Name
-       * @default
-       */
-      customer_name: string
-      /**
-       * Organization Name
-       * @default
-       */
-      organization_name: string
-      /** Customer Email */
-      customer_email?: string | null
-      /** Billing Address Country */
-      billing_address_country?: string | null
-      /** Billing Address City */
-      billing_address_city?: string | null
-      /** Billing Address Line1 */
-      billing_address_line1?: string | null
-      /** Product Image Url */
-      product_image_url?: string | null
-      /** Order Id */
-      order_id?: string | null
-      /** Order Date */
-      order_date?: string | null
-      /** Organization Slug */
-      organization_slug?: string | null
-      billing_reason?:
-        | components['schemas']['OrderBillingReasonInternal']
-        | null
-      /**
-       * Currency
-       * @default usd
-       */
-      currency: string
-      /** Formatted Price Amount */
-      readonly formatted_price_amount: string
-      /** Formatted Billing Reason */
-      readonly formatted_billing_reason: string | null
-      /** Formatted Address Country */
-      readonly formatted_address_country: string | null
-      /** Order Url */
-      readonly order_url: string | null
-    }
     /** ManualRetryLimitExceeded */
     ManualRetryLimitExceeded: {
       /**
@@ -20845,375 +13718,6 @@ export interface components {
     MetadataOutputType: {
       [key: string]: string | number | boolean
     }
-    /** Meter */
-    Meter: {
-      metadata: components['schemas']['MetadataOutputType']
-      /**
-       * Created At
-       * Format: date-time
-       * @description Creation timestamp of the object.
-       */
-      created_at: string
-      /**
-       * Modified At
-       * @description Last modification timestamp of the object.
-       */
-      modified_at: string | null
-      /**
-       * Id
-       * Format: uuid4
-       * @description The ID of the object.
-       */
-      id: string
-      /**
-       * Name
-       * @description The name of the meter. Will be shown on customer's invoices and usage.
-       */
-      name: string
-      /** @description The unit of the meter. */
-      unit: components['schemas']['MeterUnit']
-      /**
-       * Custom Label
-       * @description The label for the custom unit.
-       */
-      custom_label?: string | null
-      /**
-       * Custom Multiplier
-       * @description The multiplier to convert from base unit to display scale.
-       */
-      custom_multiplier?: number | null
-      /** @description The filter to apply on events that'll be used to calculate the meter. */
-      filter: components['schemas']['Filter']
-      /**
-       * Aggregation
-       * @description The aggregation to apply on the filtered events to calculate the meter.
-       */
-      aggregation:
-        | components['schemas']['CountAggregation']
-        | components['schemas']['PropertyAggregation']
-        | components['schemas']['UniqueAggregation']
-      /**
-       * Organization Id
-       * Format: uuid4
-       * @description The ID of the organization owning the meter.
-       */
-      organization_id: string
-      /**
-       * Archived At
-       * @description Whether the meter is archived and the time it was archived.
-       */
-      archived_at?: string | null
-    }
-    /** MeterCreate */
-    MeterCreate: {
-      /**
-       * Metadata
-       * @description Key-value object allowing you to store additional information.
-       *
-       *     The key must be a string with a maximum length of **40 characters**.
-       *     The value must be either:
-       *
-       *     * A string with a maximum length of **500 characters**
-       *     * An integer
-       *     * A floating-point number
-       *     * A boolean
-       *
-       *     You can store up to **50 key-value pairs**.
-       */
-      metadata?: {
-        [key: string]: string | number | boolean
-      }
-      /**
-       * Name
-       * @description The name of the meter. Will be shown on customer's invoices and usage.
-       */
-      name: string
-      /**
-       * @description The unit of the meter.
-       * @default scalar
-       */
-      unit: components['schemas']['MeterUnit']
-      /**
-       * Custom Label
-       * @description The label for the custom unit, e.g. 'request'. Required when unit is 'custom'.
-       */
-      custom_label?: string | null
-      /**
-       * Custom Multiplier
-       * @description The multiplier to convert from the base unit to display scale, e.g. 1000 to display per 1000 units. Defaults to 1 when not provided.
-       */
-      custom_multiplier?: number | null
-      /** @description The filter to apply on events that'll be used to calculate the meter. */
-      filter: components['schemas']['Filter']
-      /**
-       * Aggregation
-       * @description The aggregation to apply on the filtered events to calculate the meter.
-       */
-      aggregation:
-        | components['schemas']['CountAggregation']
-        | components['schemas']['PropertyAggregation']
-        | components['schemas']['UniqueAggregation']
-      /**
-       * Organization Id
-       * @description The ID of the organization owning the meter. **Required unless you use an organization token.**
-       */
-      organization_id?: string | null
-    }
-    /**
-     * MeterCreditEvent
-     * @description An event created by Polar when credits are added to a customer meter.
-     */
-    MeterCreditEvent: {
-      /**
-       * Id
-       * Format: uuid4
-       * @description The ID of the object.
-       */
-      id: string
-      /**
-       * Timestamp
-       * Format: date-time
-       * @description The timestamp of the event.
-       */
-      timestamp: string
-      /**
-       * Organization Id
-       * Format: uuid4
-       * @description The ID of the organization owning the event.
-       * @example 1dbfc517-0bbf-4301-9ba8-555ca42b9737
-       */
-      organization_id: string
-      /**
-       * Customer Id
-       * @description ID of the customer in your Polar organization associated with the event.
-       */
-      customer_id: string | null
-      /** @description The customer associated with the event. */
-      customer: components['schemas']['Customer'] | null
-      /**
-       * External Customer Id
-       * @description ID of the customer in your system associated with the event.
-       */
-      external_customer_id: string | null
-      /**
-       * Member Id
-       * @description ID of the member within the customer's organization who performed the action inside B2B.
-       */
-      member_id?: string | null
-      /**
-       * External Member Id
-       * @description ID of the member in your system within the customer's organization who performed the action inside B2B.
-       */
-      external_member_id?: string | null
-      /**
-       * Child Count
-       * @description Number of direct child events linked to this event.
-       * @default 0
-       */
-      child_count: number
-      /**
-       * Parent Id
-       * @description The ID of the parent event.
-       */
-      parent_id?: string | null
-      /**
-       * Label
-       * @description Human readable label of the event type.
-       */
-      label: string
-      /**
-       * Source
-       * @description The source of the event. `system` events are created by Polar. `user` events are the one you create through our ingestion API.
-       * @constant
-       */
-      source: 'system'
-      /**
-       * @description The name of the event. (enum property replaced by openapi-typescript)
-       * @enum {string}
-       */
-      name: 'meter.credited'
-      metadata: components['schemas']['MeterCreditedMetadata']
-    }
-    /** MeterCreditedMetadata */
-    MeterCreditedMetadata: {
-      /** Meter Id */
-      meter_id: string
-      /** Units */
-      units: number
-      /** Rollover */
-      rollover: boolean
-    }
-    /** MeterQuantities */
-    MeterQuantities: {
-      /** Quantities */
-      quantities: components['schemas']['MeterQuantity'][]
-      /**
-       * Total
-       * @description The total quantity for the period.
-       * @example 100
-       */
-      total: number
-    }
-    /** MeterQuantity */
-    MeterQuantity: {
-      /**
-       * Timestamp
-       * Format: date-time
-       * @description The timestamp for the current period.
-       */
-      timestamp: string
-      /**
-       * Quantity
-       * @description The quantity for the current period.
-       * @example 10
-       */
-      quantity: number
-    }
-    /**
-     * MeterResetEvent
-     * @description An event created by Polar when a customer meter is reset.
-     */
-    MeterResetEvent: {
-      /**
-       * Id
-       * Format: uuid4
-       * @description The ID of the object.
-       */
-      id: string
-      /**
-       * Timestamp
-       * Format: date-time
-       * @description The timestamp of the event.
-       */
-      timestamp: string
-      /**
-       * Organization Id
-       * Format: uuid4
-       * @description The ID of the organization owning the event.
-       * @example 1dbfc517-0bbf-4301-9ba8-555ca42b9737
-       */
-      organization_id: string
-      /**
-       * Customer Id
-       * @description ID of the customer in your Polar organization associated with the event.
-       */
-      customer_id: string | null
-      /** @description The customer associated with the event. */
-      customer: components['schemas']['Customer'] | null
-      /**
-       * External Customer Id
-       * @description ID of the customer in your system associated with the event.
-       */
-      external_customer_id: string | null
-      /**
-       * Member Id
-       * @description ID of the member within the customer's organization who performed the action inside B2B.
-       */
-      member_id?: string | null
-      /**
-       * External Member Id
-       * @description ID of the member in your system within the customer's organization who performed the action inside B2B.
-       */
-      external_member_id?: string | null
-      /**
-       * Child Count
-       * @description Number of direct child events linked to this event.
-       * @default 0
-       */
-      child_count: number
-      /**
-       * Parent Id
-       * @description The ID of the parent event.
-       */
-      parent_id?: string | null
-      /**
-       * Label
-       * @description Human readable label of the event type.
-       */
-      label: string
-      /**
-       * Source
-       * @description The source of the event. `system` events are created by Polar. `user` events are the one you create through our ingestion API.
-       * @constant
-       */
-      source: 'system'
-      /**
-       * @description The name of the event. (enum property replaced by openapi-typescript)
-       * @enum {string}
-       */
-      name: 'meter.reset'
-      metadata: components['schemas']['MeterResetMetadata']
-    }
-    /** MeterResetMetadata */
-    MeterResetMetadata: {
-      /** Meter Id */
-      meter_id: string
-    }
-    /**
-     * MeterSortProperty
-     * @enum {string}
-     */
-    MeterSortProperty: 'created_at' | '-created_at' | 'name' | '-name'
-    /**
-     * MeterUnit
-     * @enum {string}
-     */
-    MeterUnit: 'scalar' | 'token' | 'custom'
-    /** MeterUpdate */
-    MeterUpdate: {
-      /**
-       * Metadata
-       * @description Key-value object allowing you to store additional information.
-       *
-       *     The key must be a string with a maximum length of **40 characters**.
-       *     The value must be either:
-       *
-       *     * A string with a maximum length of **500 characters**
-       *     * An integer
-       *     * A floating-point number
-       *     * A boolean
-       *
-       *     You can store up to **50 key-value pairs**.
-       */
-      metadata?: {
-        [key: string]: string | number | boolean
-      }
-      /**
-       * Name
-       * @description The name of the meter. Will be shown on customer's invoices and usage.
-       */
-      name?: string | null
-      /** @description The unit of the meter. */
-      unit?: components['schemas']['MeterUnit'] | null
-      /**
-       * Custom Label
-       * @description The label for the custom unit. Required when unit is 'custom'.
-       */
-      custom_label?: string | null
-      /**
-       * Custom Multiplier
-       * @description The multiplier to convert from base unit to display scale. Required when unit is 'custom'.
-       */
-      custom_multiplier?: number | null
-      /** @description The filter to apply on events that'll be used to calculate the meter. */
-      filter?: components['schemas']['Filter'] | null
-      /**
-       * Aggregation
-       * @description The aggregation to apply on the filtered events to calculate the meter.
-       */
-      aggregation?:
-        | (
-            | components['schemas']['CountAggregation']
-            | components['schemas']['PropertyAggregation']
-            | components['schemas']['UniqueAggregation']
-          )
-        | null
-      /**
-       * Is Archived
-       * @description Whether the meter is archived. Archived meters are no longer used for billing.
-       */
-      is_archived?: boolean | null
-    }
     /**
      * Metric
      * @description Information about a metric.
@@ -21338,18 +13842,6 @@ export interface components {
       churned_subscriptions?: number | null
       /** Churn Rate */
       churn_rate?: number | null
-      /** Seats Total */
-      seats_total?: number | null
-      /** Seats Claimed */
-      seats_claimed?: number | null
-      /** Seats Pending */
-      seats_pending?: number | null
-      /** Seat Customers */
-      seat_customers?: number | null
-      /** New Seat Customers */
-      new_seat_customers?: number | null
-      /** Churned Seat Customers */
-      churned_seat_customers?: number | null
       /** Orders */
       orders?: number | null
       /** Revenue */
@@ -21422,10 +13914,6 @@ export interface components {
       gross_margin_percentage?: number | null
       /** Cashflow */
       cashflow?: number | null
-      /** Average Seats Per Customer */
-      average_seats_per_customer?: number | null
-      /** Seat Utilization Rate */
-      seat_utilization_rate?: number | null
     }
     /**
      * MetricType
@@ -21449,12 +13937,6 @@ export interface components {
       succeeded_checkouts?: components['schemas']['Metric'] | null
       churned_subscriptions?: components['schemas']['Metric'] | null
       churn_rate?: components['schemas']['Metric'] | null
-      seats_total?: components['schemas']['Metric'] | null
-      seats_claimed?: components['schemas']['Metric'] | null
-      seats_pending?: components['schemas']['Metric'] | null
-      seat_customers?: components['schemas']['Metric'] | null
-      new_seat_customers?: components['schemas']['Metric'] | null
-      churned_seat_customers?: components['schemas']['Metric'] | null
       orders?: components['schemas']['Metric'] | null
       revenue?: components['schemas']['Metric'] | null
       net_revenue?: components['schemas']['Metric'] | null
@@ -21505,8 +13987,6 @@ export interface components {
       gross_margin?: components['schemas']['Metric'] | null
       gross_margin_percentage?: components['schemas']['Metric'] | null
       cashflow?: components['schemas']['Metric'] | null
-      average_seats_per_customer?: components['schemas']['Metric'] | null
-      seat_utilization_rate?: components['schemas']['Metric'] | null
     }
     /**
      * MetricsIntervalLimit
@@ -21593,18 +14073,6 @@ export interface components {
       churned_subscriptions?: number | null
       /** Churn Rate */
       churn_rate?: number | null
-      /** Seats Total */
-      seats_total?: number | null
-      /** Seats Claimed */
-      seats_claimed?: number | null
-      /** Seats Pending */
-      seats_pending?: number | null
-      /** Seat Customers */
-      seat_customers?: number | null
-      /** New Seat Customers */
-      new_seat_customers?: number | null
-      /** Churned Seat Customers */
-      churned_seat_customers?: number | null
       /** Orders */
       orders?: number | null
       /** Revenue */
@@ -21677,21 +14145,6 @@ export interface components {
       gross_margin_percentage?: number | null
       /** Cashflow */
       cashflow?: number | null
-      /** Average Seats Per Customer */
-      average_seats_per_customer?: number | null
-      /** Seat Utilization Rate */
-      seat_utilization_rate?: number | null
-    }
-    /** MissingInvoiceBillingDetails */
-    MissingInvoiceBillingDetails: {
-      /**
-       * Error
-       * @example MissingInvoiceBillingDetails
-       * @constant
-       */
-      error: 'MissingInvoiceBillingDetails'
-      /** Detail */
-      detail: string
     }
     /** MissingPaymentMethodError */
     MissingPaymentMethodError: {
@@ -21715,17 +14168,6 @@ export interface components {
       /** Detail */
       detail: string
     }
-    /** NotPaidOrder */
-    NotPaidOrder: {
-      /**
-       * Error
-       * @example NotPaidOrder
-       * @constant
-       */
-      error: 'NotPaidOrder'
-      /** Detail */
-      detail: string
-    }
     /** NotPermitted */
     NotPermitted: {
       /**
@@ -21736,73 +14178,6 @@ export interface components {
       error: 'NotPermitted'
       /** Detail */
       detail: string
-    }
-    /** NotificationRecipientCreate */
-    NotificationRecipientCreate: {
-      /** @description Platform of the notification recipient. */
-      platform: components['schemas']['NotificationRecipientPlatform']
-      /**
-       * Expo Push Token
-       * @description Expo push token for the notification recipient.
-       */
-      expo_push_token: string
-    }
-    /**
-     * NotificationRecipientPlatform
-     * @enum {string}
-     */
-    NotificationRecipientPlatform: 'ios' | 'android'
-    /** NotificationRecipientSchema */
-    NotificationRecipientSchema: {
-      /**
-       * Created At
-       * Format: date-time
-       * @description Creation timestamp of the object.
-       */
-      created_at: string
-      /**
-       * Modified At
-       * @description Last modification timestamp of the object.
-       */
-      modified_at: string | null
-      /**
-       * Id
-       * Format: uuid4
-       */
-      id: string
-      /**
-       * User Id
-       * Format: uuid4
-       * @description ID of the user the notification recipient belongs to.
-       */
-      user_id: string
-      /** @description Platform of the notification recipient. */
-      platform: components['schemas']['NotificationRecipientPlatform']
-      /**
-       * Expo Push Token
-       * @description Expo push token for the notification recipient.
-       */
-      expo_push_token: string
-    }
-    /** NotificationsList */
-    NotificationsList: {
-      /** Notifications */
-      notifications: (
-        | components['schemas']['MaintainerNewPaidSubscriptionNotification']
-        | components['schemas']['MaintainerNewProductSaleNotification']
-        | components['schemas']['MaintainerCreateAccountNotification']
-        | components['schemas']['MaintainerAccountCreditsGrantedNotification']
-      )[]
-      /** Last Read Notification Id */
-      last_read_notification_id: string | null
-    }
-    /** NotificationsMarkRead */
-    NotificationsMarkRead: {
-      /**
-       * Notification Id
-       * Format: uuid4
-       */
-      notification_id: string
     }
     /** OAuth2Client */
     OAuth2Client: {
@@ -21834,7 +14209,7 @@ export interface components {
       response_types: 'code'[]
       /**
        * Scope
-       * @default openid profile email user:read user:write organizations:read organizations:write custom_fields:read custom_fields:write discounts:read discounts:write checkout_links:read checkout_links:write checkouts:read checkouts:write transactions:read transactions:write payouts:read payouts:write products:read products:write benefits:read benefits:write events:read events:write meters:read meters:write files:read files:write subscriptions:read subscriptions:write customers:read customers:write members:read members:write wallets:read wallets:write disputes:read customer_meters:read customer_sessions:write member_sessions:write customer_seats:read customer_seats:write orders:read orders:write refunds:read refunds:write payments:read metrics:read metrics:write webhooks:read webhooks:write license_keys:read license_keys:write customer_portal:read customer_portal:write notifications:read notifications:write notification_recipients:read notification_recipients:write organization_access_tokens:read organization_access_tokens:write
+       * @default openid profile email user:read user:write organizations:read organizations:write custom_fields:read custom_fields:write discounts:read discounts:write checkout_links:read checkout_links:write checkouts:read checkouts:write transactions:read transactions:write payouts:read payouts:write products:read products:write events:read events:write files:read files:write subscriptions:read subscriptions:write customers:read customers:write members:read members:write wallets:read wallets:write disputes:read customer_sessions:write member_sessions:write orders:read orders:write refunds:read refunds:write payments:read metrics:read metrics:write webhooks:read webhooks:write customer_portal:read customer_portal:write organization_access_tokens:read organization_access_tokens:write
        */
       scope: string
       /** Client Name */
@@ -21899,7 +14274,7 @@ export interface components {
       response_types: 'code'[]
       /**
        * Scope
-       * @default openid profile email user:read user:write organizations:read organizations:write custom_fields:read custom_fields:write discounts:read discounts:write checkout_links:read checkout_links:write checkouts:read checkouts:write transactions:read transactions:write payouts:read payouts:write products:read products:write benefits:read benefits:write events:read events:write meters:read meters:write files:read files:write subscriptions:read subscriptions:write customers:read customers:write members:read members:write wallets:read wallets:write disputes:read customer_meters:read customer_sessions:write member_sessions:write customer_seats:read customer_seats:write orders:read orders:write refunds:read refunds:write payments:read metrics:read metrics:write webhooks:read webhooks:write license_keys:read license_keys:write customer_portal:read customer_portal:write notifications:read notifications:write notification_recipients:read notification_recipients:write organization_access_tokens:read organization_access_tokens:write
+       * @default openid profile email user:read user:write organizations:read organizations:write custom_fields:read custom_fields:write discounts:read discounts:write checkout_links:read checkout_links:write checkouts:read checkouts:write transactions:read transactions:write payouts:read payouts:write products:read products:write events:read events:write files:read files:write subscriptions:read subscriptions:write customers:read customers:write members:read members:write wallets:read wallets:write disputes:read customer_sessions:write member_sessions:write orders:read orders:write refunds:read refunds:write payments:read metrics:read metrics:write webhooks:read webhooks:write customer_portal:read customer_portal:write organization_access_tokens:read organization_access_tokens:write
        */
       scope: string
       /** Client Name */
@@ -21945,7 +14320,7 @@ export interface components {
       response_types: 'code'[]
       /**
        * Scope
-       * @default openid profile email user:read user:write organizations:read organizations:write custom_fields:read custom_fields:write discounts:read discounts:write checkout_links:read checkout_links:write checkouts:read checkouts:write transactions:read transactions:write payouts:read payouts:write products:read products:write benefits:read benefits:write events:read events:write meters:read meters:write files:read files:write subscriptions:read subscriptions:write customers:read customers:write members:read members:write wallets:read wallets:write disputes:read customer_meters:read customer_sessions:write member_sessions:write customer_seats:read customer_seats:write orders:read orders:write refunds:read refunds:write payments:read metrics:read metrics:write webhooks:read webhooks:write license_keys:read license_keys:write customer_portal:read customer_portal:write notifications:read notifications:write notification_recipients:read notification_recipients:write organization_access_tokens:read organization_access_tokens:write
+       * @default openid profile email user:read user:write organizations:read organizations:write custom_fields:read custom_fields:write discounts:read discounts:write checkout_links:read checkout_links:write checkouts:read checkouts:write transactions:read transactions:write payouts:read payouts:write products:read products:write events:read events:write files:read files:write subscriptions:read subscriptions:write customers:read customers:write members:read members:write wallets:read wallets:write disputes:read customer_sessions:write member_sessions:write orders:read orders:write refunds:read refunds:write payments:read metrics:read metrics:write webhooks:read webhooks:write customer_portal:read customer_portal:write organization_access_tokens:read organization_access_tokens:write
        */
       scope: string
       /** Client Name */
@@ -22072,12 +14447,6 @@ export interface components {
        */
       net_amount: number
       /**
-       * Tax Amount
-       * @description Sales tax amount in cents.
-       * @example 720
-       */
-      tax_amount: number
-      /**
        * Total Amount
        * @description Amount in cents, after discounts and taxes.
        * @example 9720
@@ -22102,12 +14471,6 @@ export interface components {
        */
       refunded_amount: number
       /**
-       * Refunded Tax Amount
-       * @description Sales tax refunded in cents.
-       * @example 0
-       */
-      refunded_tax_amount: number
-      /**
        * Currency
        * @example usd
        */
@@ -22119,21 +14482,6 @@ export interface components {
        */
       billing_name: string | null
       billing_address: components['schemas']['Address'] | null
-      /**
-       * Invoice Number
-       * @description The invoice number associated with this order. `null` while the order is in `draft` status; assigned at finalize.
-       */
-      invoice_number: string | null
-      /**
-       * Is Invoice Generated
-       * @description Whether an invoice has been generated for this order.
-       */
-      is_invoice_generated: boolean
-      /**
-       * Receipt Number
-       * @description The receipt number for this order. Set once the order is paid for organizations with receipts enabled. When set, a downloadable receipt PDF can be obtained via the receipt endpoint.
-       */
-      receipt_number: string | null
       /**
        * Seats
        * @description Number of seats purchased (for seat-based one-time orders).
@@ -22201,12 +14549,6 @@ export interface components {
        * @example 9000
        */
       readonly refundable_amount: number
-      /**
-       * Refundable Tax Amount
-       * @description Sales tax in cents that would be refunded if the full refundable amount is refunded.
-       * @example 720
-       */
-      readonly refundable_tax_amount: number
     }
     /**
      * OrderBillingReason
@@ -22342,8 +14684,6 @@ export interface components {
        */
       name: string | null
       billing_address: components['schemas']['Address'] | null
-      /** Tax Id */
-      tax_id: [string, components['schemas']['TaxIDFormat']] | null
       /** Locale */
       locale?: string | null
       /**
@@ -22381,17 +14721,6 @@ export interface components {
       payment_method_id?: string | null
     }
     /**
-     * OrderInvoice
-     * @description Order's invoice data.
-     */
-    OrderInvoice: {
-      /**
-       * Url
-       * @description The URL to the invoice.
-       */
-      url: string
-    }
-    /**
      * OrderItemSchema
      * @description An order line item.
      */
@@ -22425,12 +14754,6 @@ export interface components {
        * @example 10000
        */
       amount: number
-      /**
-       * Tax Amount
-       * @description Sales tax amount in cents.
-       * @example 720
-       */
-      tax_amount: number
       /**
        * Proration
        * @description Whether this charge is due to a proration.
@@ -22554,8 +14877,6 @@ export interface components {
       currency?: string
       /** Net Amount */
       net_amount?: number
-      /** Tax Amount */
-      tax_amount?: number
       /** Applied Balance Amount */
       applied_balance_amount?: number
       /** Discount Amount */
@@ -22635,17 +14956,6 @@ export interface components {
        * @description The ID of the organization owning the product.
        */
       organization_id: string
-    }
-    /**
-     * OrderReceipt
-     * @description Order's receipt data.
-     */
-    OrderReceipt: {
-      /**
-       * Url
-       * @description The URL to the receipt PDF.
-       */
-      url: string
     }
     /**
      * OrderRefundedEvent
@@ -22740,8 +15050,6 @@ export interface components {
       | '-created_at'
       | 'status'
       | '-status'
-      | 'invoice_number'
-      | '-invoice_number'
       | 'amount'
       | '-amount'
       | 'net_amount'
@@ -22878,11 +15186,6 @@ export interface components {
       discount_id: string | null
       /** Checkout Id */
       checkout_id: string | null
-      /**
-       * Seats
-       * @description The number of seats for seat-based subscriptions. None for non-seat subscriptions.
-       */
-      seats?: number | null
       customer_cancellation_reason:
         | components['schemas']['CustomerCancellationReason']
         | null
@@ -23032,13 +15335,6 @@ export interface components {
        */
       slug: string
       /**
-       * Avatar Url
-       * @description Avatar URL shown in checkout, customer portal, emails etc.
-       */
-      avatar_url: string | null
-      /** @description Proration behavior applied when customer updates their subscription from the portal. */
-      proration_behavior: components['schemas']['SubscriptionProrationBehavior']
-      /**
        * Allow Customer Updates
        * @description Whether customers can update their subscriptions from the customer portal.
        */
@@ -23070,16 +15366,12 @@ export interface components {
        * @description Default presentment currency. Used as fallback in checkout and customer portal, if the customer's local currency is not available.
        */
       default_presentment_currency: string
-      /** @description Default tax behavior applied on products. */
-      default_tax_behavior: components['schemas']['TaxBehaviorOption']
       /** @description Organization feature settings */
       feature_settings:
         | components['schemas']['OrganizationFeatureSettings']
         | null
       /** @description Settings related to subscriptions management */
       subscription_settings: components['schemas']['OrganizationSubscriptionSettings']
-      /** @description Settings related to notifications */
-      notification_settings: components['schemas']['OrganizationNotificationSettings']
       /** @description Settings related to customer emails */
       customer_email_settings: components['schemas']['OrganizationCustomerEmailSettings']
       /** @description Settings related to the customer portal */
@@ -23422,116 +15714,6 @@ export interface components {
       /** Scopes */
       scopes?: components['schemas']['AvailableScope'][] | null
     }
-    /** OrganizationAppealRequest */
-    OrganizationAppealRequest: {
-      /**
-       * Reason
-       * @description Detailed explanation of why this organization should be approved. Minimum 50 characters.
-       */
-      reason: string
-    }
-    /** OrganizationAppealResponse */
-    OrganizationAppealResponse: {
-      /**
-       * Success
-       * @description Whether the appeal was successfully submitted
-       */
-      success: boolean
-      /**
-       * Message
-       * @description Success or error message
-       */
-      message: string
-      /**
-       * Appeal Submitted At
-       * Format: date-time
-       * @description When the appeal was submitted
-       */
-      appeal_submitted_at: string
-    }
-    /**
-     * OrganizationAvatarFileCreate
-     * @description Schema to create a file to be used as an organization avatar.
-     */
-    OrganizationAvatarFileCreate: {
-      /** Organization Id */
-      organization_id?: string | null
-      /** Name */
-      name: string
-      /**
-       * Mime Type
-       * @description MIME type of the file. Only images are supported for this type of file.
-       */
-      mime_type: string
-      /**
-       * Size
-       * @description Size of the file. A maximum of 1 MB is allowed for this type of file.
-       */
-      size: number
-      /** Checksum Sha256 Base64 */
-      checksum_sha256_base64?: string | null
-      upload: components['schemas']['S3FileCreateMultipart']
-      /**
-       * @description discriminator enum property added by openapi-typescript
-       * @enum {string}
-       */
-      service: 'organization_avatar'
-      /** Version */
-      version?: string | null
-    }
-    /**
-     * OrganizationAvatarFileRead
-     * @description File to be used as an organization avatar.
-     */
-    OrganizationAvatarFileRead: {
-      /**
-       * Id
-       * Format: uuid4
-       * @description The ID of the object.
-       */
-      id: string
-      /**
-       * Organization Id
-       * Format: uuid4
-       */
-      organization_id: string
-      /** Name */
-      name: string
-      /** Path */
-      path: string
-      /** Mime Type */
-      mime_type: string
-      /** Size */
-      size: number
-      /** Storage Version */
-      storage_version: string | null
-      /** Checksum Etag */
-      checksum_etag: string | null
-      /** Checksum Sha256 Base64 */
-      checksum_sha256_base64: string | null
-      /** Checksum Sha256 Hex */
-      checksum_sha256_hex: string | null
-      /** Last Modified At */
-      last_modified_at: string | null
-      /** Version */
-      version: string | null
-      /**
-       * @description discriminator enum property added by openapi-typescript
-       * @enum {string}
-       */
-      service: 'organization_avatar'
-      /** Is Uploaded */
-      is_uploaded: boolean
-      /**
-       * Created At
-       * Format: date-time
-       */
-      created_at: string
-      /** Size Readable */
-      readonly size_readable: string
-      /** Public Url */
-      readonly public_url: string
-    }
     /** OrganizationBillingDetails */
     OrganizationBillingDetails: {
       /**
@@ -23541,19 +15723,12 @@ export interface components {
       billing_name?: string | null
       /** @description Postal address used on invoices. */
       billing_address?: components['schemas']['AddressInput'] | null
-      /**
-       * Tax Id
-       * @description Tax identifier value (without the format suffix).
-       */
-      tax_id?: string | null
     }
     /** OrganizationBillingDetailsUpdate */
     OrganizationBillingDetailsUpdate: {
       /** Billing Name */
       billing_name?: string | null
       billing_address?: components['schemas']['AddressInput'] | null
-      /** Tax Id */
-      tax_id?: string | null
     }
     /** OrganizationCapabilities */
     OrganizationCapabilities: {
@@ -23630,8 +15805,6 @@ export interface components {
       name: string
       /** Slug */
       slug: string
-      /** Avatar Url */
-      avatar_url?: string | null
       /** Legal Entity */
       legal_entity?:
         | (
@@ -23911,9 +16084,6 @@ export interface components {
       subscription_settings?:
         | components['schemas']['OrganizationSubscriptionSettings']
         | null
-      notification_settings?:
-        | components['schemas']['OrganizationNotificationSettings']
-        | null
       customer_email_settings?:
         | components['schemas']['OrganizationCustomerEmailSettings']
         | null
@@ -23925,11 +16095,6 @@ export interface components {
        * @default usd
        */
       default_presentment_currency: components['schemas']['PresentmentCurrency']
-      /**
-       * @description Default tax behavior applied on products.
-       * @default location
-       */
-      default_tax_behavior: components['schemas']['TaxBehaviorOption']
     }
     /** OrganizationCustomerEmailSettings */
     OrganizationCustomerEmailSettings: {
@@ -24070,12 +16235,6 @@ export interface components {
        */
       issue_funding_enabled: boolean
       /**
-       * Seat Based Pricing Enabled
-       * @description If this organization has seat-based pricing enabled
-       * @default false
-       */
-      seat_based_pricing_enabled: boolean
-      /**
        * Wallets Enabled
        * @description If this organization has Wallets enabled
        * @default false
@@ -24170,13 +16329,6 @@ export interface components {
        */
       slug: string
       /**
-       * Avatar Url
-       * @description Avatar URL shown in checkout, customer portal, emails etc.
-       */
-      avatar_url: string | null
-      /** @description Proration behavior applied when customer updates their subscription from the portal. */
-      proration_behavior: components['schemas']['SubscriptionProrationBehavior']
-      /**
        * Allow Customer Updates
        * @description Whether customers can update their subscriptions from the customer portal.
        */
@@ -24208,16 +16360,12 @@ export interface components {
        * @description Default presentment currency. Used as fallback in checkout and customer portal, if the customer's local currency is not available.
        */
       default_presentment_currency: string
-      /** @description Default tax behavior applied on products. */
-      default_tax_behavior: components['schemas']['TaxBehaviorOption']
       /** @description Organization feature settings */
       feature_settings:
         | components['schemas']['OrganizationFeatureSettings']
         | null
       /** @description Settings related to subscriptions management */
       subscription_settings: components['schemas']['OrganizationSubscriptionSettings']
-      /** @description Settings related to notifications */
-      notification_settings: components['schemas']['OrganizationNotificationSettings']
       /** @description Settings related to customer emails */
       customer_email_settings: components['schemas']['OrganizationCustomerEmailSettings']
       /** @description Settings related to the customer portal */
@@ -24709,157 +16857,6 @@ export interface components {
       /** Currency */
       currency: string
     }
-    /** OrganizationReviewAppeal */
-    OrganizationReviewAppeal: {
-      /**
-       * Submitted At
-       * Format: date-time
-       */
-      submitted_at: string
-      /** Reviewed At */
-      reviewed_at?: string | null
-      decision?: components['schemas']['AppealDecision'] | null
-    }
-    /**
-     * OrganizationReviewCheck
-     * @description A single item in the self-review checklist.
-     */
-    OrganizationReviewCheck: {
-      key: components['schemas']['OrganizationReviewCheckKey']
-      status: components['schemas']['OrganizationReviewCheckStatus']
-      /**
-       * Reasons
-       * @description Reasons for the current status. Empty when `passed`.
-       */
-      reasons?: components['schemas']['OrganizationReviewCheckReason'][]
-      /**
-       * Value
-       * @description Optional contextual value associated with the check, e.g. the product URL for the `product_url` check.
-       */
-      value?: string | null
-      /**
-       * Sub Checks
-       * @description Per-component breakdown, populated only for aggregate checks (currently `setup_readiness`). The parent `status` is the source of truth for gating.
-       */
-      sub_checks?: components['schemas']['OrganizationReviewSubCheck'][]
-    }
-    /**
-     * OrganizationReviewCheckKey
-     * @description Stable identifiers for each check. Adding a new key is a coordinated FE+BE change.
-     * @enum {string}
-     */
-    OrganizationReviewCheckKey:
-      | 'identity.email'
-      | 'identity.social_links'
-      | 'identity.stripe_identity_verification'
-      | 'product_description'
-      | 'product_url'
-      | 'payout_account'
-      | 'product_configuration'
-      | 'setup_readiness'
-    /**
-     * OrganizationReviewCheckReason
-     * @description Reasons explaining a check's status. Scoped reasons are namespaced
-     *     with the prefix of the check key they apply to.
-     * @enum {string}
-     */
-    OrganizationReviewCheckReason:
-      | 'not_started'
-      | 'in_progress'
-      | 'external_pending'
-      | 'identity.rejected'
-      | 'identity.personal_email'
-      | 'identity.domain_mismatch'
-      | 'product_url.unreachable'
-      | 'payout_account.requirements_due'
-      | 'payout_account.payouts_disabled'
-      | 'setup_readiness.webhook_missing'
-      | 'setup_readiness.checkout_link_not_fulfillable'
-    /**
-     * OrganizationReviewCheckStatus
-     * @enum {string}
-     */
-    OrganizationReviewCheckStatus: 'passed' | 'warning' | 'failed' | 'pending'
-    /**
-     * OrganizationReviewState
-     * @description Merchant self-review checklist. Frozen once `submitted_at` is set.
-     */
-    OrganizationReviewState: {
-      /**
-       * Can Submit
-       * @description True when `submitted_at` is null AND no preliminary check is `failed` or `pending`. Warnings do not block submission.
-       */
-      can_submit: boolean
-      /** Submitted At */
-      submitted_at?: string | null
-      /** Verdict */
-      verdict?: ('pass' | 'fail') | null
-      appeal?: components['schemas']['OrganizationReviewAppeal'] | null
-      /** Preliminary Steps */
-      preliminary_steps?: components['schemas']['OrganizationReviewCheck'][]
-    }
-    /** OrganizationReviewStatus */
-    OrganizationReviewStatus: {
-      /**
-       * Verdict
-       * @description AI validation verdict
-       */
-      verdict?: ('PASS' | 'FAIL' | 'UNCERTAIN') | null
-      /**
-       * Reason
-       * @description Reason for the verdict
-       */
-      reason?: string | null
-      /**
-       * Appeal Submitted At
-       * @description When appeal was submitted
-       */
-      appeal_submitted_at?: string | null
-      /**
-       * Appeal Reason
-       * @description Reason for the appeal
-       */
-      appeal_reason?: string | null
-      /** @description Decision on the appeal (approved/rejected) */
-      appeal_decision?: components['schemas']['AppealDecision'] | null
-      /**
-       * Appeal Reviewed At
-       * @description When appeal was reviewed
-       */
-      appeal_reviewed_at?: string | null
-    }
-    /**
-     * OrganizationReviewSubCheck
-     * @description A nested sub-item that contributes to a parent check's rolled-up status.
-     *
-     *     Sub-checks expose the per-component breakdown for aggregate checks (e.g.
-     *     `setup_readiness`) so the frontend doesn't have to re-derive which path
-     *     is configured. The parent's `status` is the source of truth for gating;
-     *     reasons explaining a sub-item live on the sub-check itself.
-     */
-    OrganizationReviewSubCheck: {
-      key: components['schemas']['OrganizationReviewSubCheckKey']
-      status: components['schemas']['OrganizationReviewCheckStatus']
-      /**
-       * Reasons
-       * @description Reasons for the sub-check's current status. Empty when `passed`.
-       */
-      reasons?: components['schemas']['OrganizationReviewCheckReason'][]
-      /**
-       * Value
-       * @description Optional contextual value associated with the sub-check.
-       */
-      value?: string | null
-    }
-    /**
-     * OrganizationReviewSubCheckKey
-     * @description Stable identifiers for nested sub-checks inside a parent check.
-     * @enum {string}
-     */
-    OrganizationReviewSubCheckKey:
-      | 'setup_readiness.checkout_link'
-      | 'setup_readiness.access_token'
-      | 'setup_readiness.webhook'
     /**
      * OrganizationRole
      * @enum {string}
@@ -24918,7 +16915,6 @@ export interface components {
       | 'tiktok'
       | 'linkedin'
       | 'threads'
-      | 'discord'
       | 'other'
     /**
      * OrganizationSortProperty
@@ -24931,8 +16927,6 @@ export interface components {
       | '-slug'
       | 'name'
       | '-name'
-      | 'next_review_threshold'
-      | '-next_review_threshold'
       | 'days_in_status'
       | '-days_in_status'
     /**
@@ -25083,17 +17077,6 @@ export interface components {
     }
     /** OrganizationSubscriptionSettings */
     OrganizationSubscriptionSettings: {
-      /** Allow Multiple Subscriptions */
-      allow_multiple_subscriptions: boolean
-      /**
-       * PublicSubscriptionProrationBehavior
-       * @enum {string}
-       */
-      proration_behavior: 'invoice' | 'prorate' | 'next_period'
-      /** Benefit Revocation Grace Period */
-      benefit_revocation_grace_period: number
-      /** Prevent Trial Abuse */
-      prevent_trial_abuse: boolean
       /** Allow Customer Updates */
       allow_customer_updates: boolean
     }
@@ -25109,8 +17092,6 @@ export interface components {
     OrganizationUpdate: {
       /** Name */
       name?: string | null
-      /** Avatar Url */
-      avatar_url?: string | null
       /**
        * Email
        * @description Public support email.
@@ -25383,9 +17364,6 @@ export interface components {
       subscription_settings?:
         | components['schemas']['OrganizationSubscriptionSettings']
         | null
-      notification_settings?:
-        | components['schemas']['OrganizationNotificationSettings']
-        | null
       customer_email_settings?:
         | components['schemas']['OrganizationCustomerEmailSettings']
         | null
@@ -25396,8 +17374,6 @@ export interface components {
       default_presentment_currency?:
         | components['schemas']['PresentmentCurrency']
         | null
-      /** @description Default tax behavior applied on products. */
-      default_tax_behavior?: components['schemas']['TaxBehaviorOption'] | null
     }
     /** OrganizationValidateWebsiteRequest */
     OrganizationValidateWebsiteRequest: {
@@ -25460,13 +17436,6 @@ export interface components {
        */
       slug: string
       /**
-       * Avatar Url
-       * @description Avatar URL shown in checkout, customer portal, emails etc.
-       */
-      avatar_url: string | null
-      /** @description Proration behavior applied when customer updates their subscription from the portal. */
-      proration_behavior: components['schemas']['SubscriptionProrationBehavior']
-      /**
        * Allow Customer Updates
        * @description Whether customers can update their subscriptions from the customer portal.
        */
@@ -25498,16 +17467,12 @@ export interface components {
        * @description Default presentment currency. Used as fallback in checkout and customer portal, if the customer's local currency is not available.
        */
       default_presentment_currency: string
-      /** @description Default tax behavior applied on products. */
-      default_tax_behavior: components['schemas']['TaxBehaviorOption']
       /** @description Organization feature settings */
       feature_settings:
         | components['schemas']['OrganizationFeatureSettings']
         | null
       /** @description Settings related to subscriptions management */
       subscription_settings: components['schemas']['OrganizationSubscriptionSettings']
-      /** @description Settings related to notifications */
-      notification_settings: components['schemas']['OrganizationNotificationSettings']
       /** @description Settings related to customer emails */
       customer_email_settings: components['schemas']['OrganizationCustomerEmailSettings']
       /** @description Settings related to the customer portal */
@@ -25835,52 +17800,9 @@ export interface components {
       /** Detail */
       detail: string
     }
-    /** PaymentIntentFailedError */
-    PaymentIntentFailedError: {
-      /**
-       * Error
-       * @example PaymentIntentFailedError
-       * @constant
-       */
-      error: 'PaymentIntentFailedError'
-      /** Detail */
-      detail: string
-    }
     PaymentMethod:
       | components['schemas']['CustomerPaymentMethodCard']
       | components['schemas']['CustomerPaymentMethodGeneric']
-    /** PaymentMethodCard */
-    PaymentMethodCard: {
-      /**
-       * Id
-       * Format: uuid4
-       * @description The ID of the object.
-       */
-      id: string
-      /**
-       * Created At
-       * Format: date-time
-       * @description Creation timestamp of the object.
-       */
-      created_at: string
-      /**
-       * Modified At
-       * @description Last modification timestamp of the object.
-       */
-      modified_at: string | null
-      processor: components['schemas']['PaymentProcessor']
-      /**
-       * Customer Id
-       * Format: uuid4
-       */
-      customer_id: string
-      /**
-       * Type
-       * @constant
-       */
-      type: 'card'
-      method_metadata: components['schemas']['PaymentMethodCardMetadata']
-    }
     /** PaymentMethodCardMetadata */
     PaymentMethodCardMetadata: {
       /** Brand */
@@ -25893,56 +17815,6 @@ export interface components {
       exp_year: number
       /** Wallet */
       wallet?: string | null
-    }
-    /** PaymentMethodGeneric */
-    PaymentMethodGeneric: {
-      /**
-       * Id
-       * Format: uuid4
-       * @description The ID of the object.
-       */
-      id: string
-      /**
-       * Created At
-       * Format: date-time
-       * @description Creation timestamp of the object.
-       */
-      created_at: string
-      /**
-       * Modified At
-       * @description Last modification timestamp of the object.
-       */
-      modified_at: string | null
-      processor: components['schemas']['PaymentProcessor']
-      /**
-       * Customer Id
-       * Format: uuid4
-       */
-      customer_id: string
-      /** Type */
-      type: string
-    }
-    /** PaymentMethodInUseByActiveSubscription */
-    PaymentMethodInUseByActiveSubscription: {
-      /**
-       * Error
-       * @example PaymentMethodInUseByActiveSubscription
-       * @constant
-       */
-      error: 'PaymentMethodInUseByActiveSubscription'
-      /** Detail */
-      detail: string
-    }
-    /** PaymentMethodSetupFailed */
-    PaymentMethodSetupFailed: {
-      /**
-       * Error
-       * @example PaymentMethodSetupFailed
-       * @constant
-       */
-      error: 'PaymentMethodSetupFailed'
-      /** Detail */
-      detail: string
     }
     /** PaymentNotReady */
     PaymentNotReady: {
@@ -25959,7 +17831,7 @@ export interface components {
      * PaymentProcessor
      * @enum {string}
      */
-    PaymentProcessor: 'stripe'
+    PaymentProcessor: 'crypto'
     /**
      * PaymentSortProperty
      * @enum {string}
@@ -26018,10 +17890,6 @@ export interface components {
        * Format: uuid4
        */
       account_id: string
-      /** Invoice Number */
-      invoice_number?: string | null
-      /** Is Invoice Generated */
-      is_invoice_generated: boolean
       /**
        * Transaction Id
        * Format: uuid4
@@ -26063,16 +17931,22 @@ export interface components {
     PayoutAccountCreate: {
       /**
        * Type
+       * @default manual
        * @constant
        */
-      type: 'stripe'
+      type: 'manual'
       /**
        * Organization Id
        * Format: uuid
        * @description Organization ID to create or get account for
        */
       organization_id: string
-      country: components['schemas']['StripeAccountCountry']
+      /**
+       * Country
+       * @description ISO 3166-1 alpha-2 country code
+       * @default US
+       */
+      country: string
     }
     /** PayoutAccountLink */
     PayoutAccountLink: {
@@ -26083,7 +17957,7 @@ export interface components {
      * PayoutAccountType
      * @enum {string}
      */
-    PayoutAccountType: 'stripe' | 'manual'
+    PayoutAccountType: 'manual' | 'crypto'
     /** PayoutAttempt */
     PayoutAttempt: {
       /**
@@ -26153,16 +18027,6 @@ export interface components {
       /** Net Amount */
       net_amount: number
     }
-    /** PayoutGenerateInvoice */
-    PayoutGenerateInvoice: {
-      /** Invoice Number */
-      invoice_number?: string | null
-    }
-    /** PayoutInvoice */
-    PayoutInvoice: {
-      /** Url */
-      url: string
-    }
     /**
      * PayoutSortProperty
      * @enum {string}
@@ -26222,11 +18086,6 @@ export interface components {
        * @description ID of the new product to apply to the subscription. If `null`, the product won't be changed.
        */
       product_id: string | null
-      /**
-       * Seats
-       * @description Number of seats to apply to the subscription. If `null`, the number of seats won't be changed.
-       */
-      seats: number | null
     }
     /** PersonalAccessToken */
     PersonalAccessToken: {
@@ -26464,10 +18323,10 @@ export interface components {
       | 'zmw'
     /**
      * Processor
-     * @description Supported payment or payout processors, i.e rails for transactions.
+     * @description Supported payment or payout processors.
      * @enum {string}
      */
-    Processor: 'stripe' | 'manual'
+    Processor: 'crypto' | 'manual'
     /**
      * Product
      * @description A product.
@@ -26544,31 +18403,10 @@ export interface components {
         | components['schemas']['ProductPrice']
       )[]
       /**
-       * Benefits
-       * @description List of benefits granted by the product.
-       */
-      benefits: components['schemas']['Benefit'][]
-      /**
-       * Medias
-       * @description List of medias associated to the product.
-       */
-      medias: components['schemas']['ProductMediaFileRead'][]
-      /**
        * Attached Custom Fields
        * @description List of custom fields attached to the product.
        */
       attached_custom_fields: components['schemas']['AttachedCustomField'][]
-    }
-    /**
-     * ProductBenefitsUpdate
-     * @description Schema to update the benefits granted by a product.
-     */
-    ProductBenefitsUpdate: {
-      /**
-       * Benefits
-       * @description List of benefit IDs. Each one must be on the same organization as the product.
-       */
-      benefits: string[]
     }
     /**
      * ProductBillingType
@@ -26614,20 +18452,13 @@ export interface components {
       visibility: components['schemas']['ProductVisibility']
       /**
        * ProductPriceCreateList
-       * @description List of available prices for this product. It should contain at most one static price (fixed, custom or free), and any number of metered prices. Metered prices are not supported on one-time purchase products.
+       * @description List of available prices for this product. It should contain at most one static price (fixed, custom or free).
        */
       prices: (
         | components['schemas']['ProductPriceFixedCreate']
         | components['schemas']['ProductPriceCustomCreate']
         | components['schemas']['ProductPriceFreeCreate']
-        | components['schemas']['ProductPriceSeatBasedCreate']
-        | components['schemas']['ProductPriceMeteredUnitCreate']
       )[]
-      /**
-       * Medias
-       * @description List of file IDs. Each one must be on the same organization as the product, of type `product_media` and correctly uploaded.
-       */
-      medias?: string[] | null
       /**
        * Attached Custom Fields
        * @description List of custom fields to attach.
@@ -26685,20 +18516,13 @@ export interface components {
       visibility: components['schemas']['ProductVisibility']
       /**
        * ProductPriceCreateList
-       * @description List of available prices for this product. It should contain at most one static price (fixed, custom or free), and any number of metered prices. Metered prices are not supported on one-time purchase products.
+       * @description List of available prices for this product. It should contain at most one static price (fixed, custom or free).
        */
       prices: (
         | components['schemas']['ProductPriceFixedCreate']
         | components['schemas']['ProductPriceCustomCreate']
         | components['schemas']['ProductPriceFreeCreate']
-        | components['schemas']['ProductPriceSeatBasedCreate']
-        | components['schemas']['ProductPriceMeteredUnitCreate']
       )[]
-      /**
-       * Medias
-       * @description List of file IDs. Each one must be on the same organization as the product, of type `product_media` and correctly uploaded.
-       */
-      medias?: string[] | null
       /**
        * Attached Custom Fields
        * @description List of custom fields to attach.
@@ -26725,95 +18549,10 @@ export interface components {
        */
       recurring_interval_count: number
     }
-    /**
-     * ProductMediaFileCreate
-     * @description Schema to create a file to be used as a product media file.
-     */
-    ProductMediaFileCreate: {
-      /** Organization Id */
-      organization_id?: string | null
-      /** Name */
-      name: string
-      /**
-       * Mime Type
-       * @description MIME type of the file. Only images are supported for this type of file.
-       */
-      mime_type: string
-      /**
-       * Size
-       * @description Size of the file. A maximum of 10 MB is allowed for this type of file.
-       */
-      size: number
-      /** Checksum Sha256 Base64 */
-      checksum_sha256_base64?: string | null
-      upload: components['schemas']['S3FileCreateMultipart']
-      /**
-       * @description discriminator enum property added by openapi-typescript
-       * @enum {string}
-       */
-      service: 'product_media'
-      /** Version */
-      version?: string | null
-    }
-    /**
-     * ProductMediaFileRead
-     * @description File to be used as a product media file.
-     */
-    ProductMediaFileRead: {
-      /**
-       * Id
-       * Format: uuid4
-       * @description The ID of the object.
-       */
-      id: string
-      /**
-       * Organization Id
-       * Format: uuid4
-       */
-      organization_id: string
-      /** Name */
-      name: string
-      /** Path */
-      path: string
-      /** Mime Type */
-      mime_type: string
-      /** Size */
-      size: number
-      /** Storage Version */
-      storage_version: string | null
-      /** Checksum Etag */
-      checksum_etag: string | null
-      /** Checksum Sha256 Base64 */
-      checksum_sha256_base64: string | null
-      /** Checksum Sha256 Hex */
-      checksum_sha256_hex: string | null
-      /** Last Modified At */
-      last_modified_at: string | null
-      /** Version */
-      version: string | null
-      /**
-       * @description discriminator enum property added by openapi-typescript
-       * @enum {string}
-       */
-      service: 'product_media'
-      /** Is Uploaded */
-      is_uploaded: boolean
-      /**
-       * Created At
-       * Format: date-time
-       */
-      created_at: string
-      /** Size Readable */
-      readonly size_readable: string
-      /** Public Url */
-      readonly public_url: string
-    }
     ProductPrice:
       | components['schemas']['ProductPriceFixed']
       | components['schemas']['ProductPriceCustom']
       | components['schemas']['ProductPriceFree']
-      | components['schemas']['ProductPriceSeatBased']
-      | components['schemas']['ProductPriceMeteredUnit']
     /**
      * ProductPriceCustom
      * @description A pay-what-you-want price for a product.
@@ -26848,8 +18587,6 @@ export interface components {
        * @description The currency in which the customer will be charged.
        */
       price_currency: string
-      /** @description The tax behavior of the price. If null, it defaults to the organization's default tax behavior. */
-      tax_behavior: components['schemas']['TaxBehaviorOption'] | null
       /**
        * Is Archived
        * @description Whether the price is archived and no longer available.
@@ -26892,8 +18629,6 @@ export interface components {
        * @default usd
        */
       price_currency: components['schemas']['PresentmentCurrency']
-      /** @description The tax behavior of the price. If not set, it will default to the organization's default tax behavior. */
-      tax_behavior?: components['schemas']['TaxBehaviorOption'] | null
       /**
        * Minimum Amount
        * @description The minimum amount the customer can pay. If set to 0, the price is 'free or pay what you want' and $0 is accepted. If set to a value below the minimum price amount for the currency, it will be rejected. Defaults to the minimum price amount for the currency. Minimum per currency:
@@ -27215,8 +18950,6 @@ export interface components {
        * @description The currency in which the customer will be charged.
        */
       price_currency: string
-      /** @description The tax behavior of the price. If null, it defaults to the organization's default tax behavior. */
-      tax_behavior: components['schemas']['TaxBehaviorOption'] | null
       /**
        * Is Archived
        * @description Whether the price is archived and no longer available.
@@ -27249,8 +18982,6 @@ export interface components {
        * @default usd
        */
       price_currency: components['schemas']['PresentmentCurrency']
-      /** @description The tax behavior of the price. If not set, it will default to the organization's default tax behavior. */
-      tax_behavior?: components['schemas']['TaxBehaviorOption'] | null
       /**
        * Price Amount
        * @description The price in cents.
@@ -27419,8 +19150,6 @@ export interface components {
        * @description The currency in which the customer will be charged.
        */
       price_currency: string
-      /** @description The tax behavior of the price. If null, it defaults to the organization's default tax behavior. */
-      tax_behavior: components['schemas']['TaxBehaviorOption'] | null
       /**
        * Is Archived
        * @description Whether the price is archived and no longer available.
@@ -27448,278 +19177,6 @@ export interface components {
        * @default usd
        */
       price_currency: components['schemas']['PresentmentCurrency']
-      /** @description The tax behavior of the price. If not set, it will default to the organization's default tax behavior. */
-      tax_behavior?: components['schemas']['TaxBehaviorOption'] | null
-    }
-    /**
-     * ProductPriceMeter
-     * @description A meter associated to a metered price.
-     */
-    ProductPriceMeter: {
-      /**
-       * Id
-       * Format: uuid4
-       * @description The ID of the object.
-       */
-      id: string
-      /**
-       * Name
-       * @description The name of the meter.
-       */
-      name: string
-      /** @description The unit of the meter. */
-      unit: components['schemas']['MeterUnit']
-      /**
-       * Custom Label
-       * @description The label for the custom unit.
-       */
-      custom_label?: string | null
-      /**
-       * Custom Multiplier
-       * @description The multiplier to convert from base unit to display scale.
-       */
-      custom_multiplier?: number | null
-    }
-    /**
-     * ProductPriceMeteredUnit
-     * @description A metered, usage-based, price for a product, with a fixed unit price.
-     */
-    ProductPriceMeteredUnit: {
-      /**
-       * Created At
-       * Format: date-time
-       * @description Creation timestamp of the object.
-       */
-      created_at: string
-      /**
-       * Modified At
-       * @description Last modification timestamp of the object.
-       */
-      modified_at: string | null
-      /**
-       * Id
-       * Format: uuid4
-       * @description The ID of the price.
-       */
-      id: string
-      /** @description The source of the price . `catalog` is a predefined price, while `ad_hoc` is a price created dynamically on a Checkout session. */
-      source: components['schemas']['ProductPriceSource']
-      /**
-       * @description discriminator enum property added by openapi-typescript
-       * @enum {string}
-       */
-      amount_type: 'metered_unit'
-      /**
-       * Price Currency
-       * @description The currency in which the customer will be charged.
-       */
-      price_currency: string
-      /** @description The tax behavior of the price. If null, it defaults to the organization's default tax behavior. */
-      tax_behavior: components['schemas']['TaxBehaviorOption'] | null
-      /**
-       * Is Archived
-       * @description Whether the price is archived and no longer available.
-       */
-      is_archived: boolean
-      /**
-       * Product Id
-       * Format: uuid4
-       * @description The ID of the product owning the price.
-       */
-      product_id: string
-      /**
-       * Unit Amount
-       * @description The price per unit in cents.
-       */
-      unit_amount: string
-      /**
-       * Cap Amount
-       * @description The maximum amount in cents that can be charged, regardless of the number of units consumed.
-       */
-      cap_amount: number | null
-      /**
-       * Meter Id
-       * Format: uuid4
-       * @description The ID of the meter associated to the price.
-       */
-      meter_id: string
-      /** @description The meter associated to the price. */
-      meter: components['schemas']['ProductPriceMeter']
-    }
-    /**
-     * ProductPriceMeteredUnitCreate
-     * @description Schema to create a metered price with a fixed unit price.
-     */
-    ProductPriceMeteredUnitCreate: {
-      /**
-       * @description discriminator enum property added by openapi-typescript
-       * @enum {string}
-       */
-      amount_type: 'metered_unit'
-      /**
-       * @description The currency in which the customer will be charged.
-       * @default usd
-       */
-      price_currency: components['schemas']['PresentmentCurrency']
-      /** @description The tax behavior of the price. If not set, it will default to the organization's default tax behavior. */
-      tax_behavior?: components['schemas']['TaxBehaviorOption'] | null
-      /**
-       * Meter Id
-       * Format: uuid4
-       * @description The ID of the meter associated to the price.
-       */
-      meter_id: string
-      /**
-       * Unit Amount
-       * @description The price per unit in cents. Supports up to 12 decimal places.
-       */
-      unit_amount: number | string
-      /**
-       * Cap Amount
-       * @description Optional maximum amount in cents that can be charged, regardless of the number of units consumed.
-       */
-      cap_amount?: number | null
-    }
-    /**
-     * ProductPriceSeatBased
-     * @description A seat-based price for a product.
-     */
-    ProductPriceSeatBased: {
-      /**
-       * Created At
-       * Format: date-time
-       * @description Creation timestamp of the object.
-       */
-      created_at: string
-      /**
-       * Modified At
-       * @description Last modification timestamp of the object.
-       */
-      modified_at: string | null
-      /**
-       * Id
-       * Format: uuid4
-       * @description The ID of the price.
-       */
-      id: string
-      /** @description The source of the price . `catalog` is a predefined price, while `ad_hoc` is a price created dynamically on a Checkout session. */
-      source: components['schemas']['ProductPriceSource']
-      /**
-       * @description discriminator enum property added by openapi-typescript
-       * @enum {string}
-       */
-      amount_type: 'seat_based'
-      /**
-       * Price Currency
-       * @description The currency in which the customer will be charged.
-       */
-      price_currency: string
-      /** @description The tax behavior of the price. If null, it defaults to the organization's default tax behavior. */
-      tax_behavior: components['schemas']['TaxBehaviorOption'] | null
-      /**
-       * Is Archived
-       * @description Whether the price is archived and no longer available.
-       */
-      is_archived: boolean
-      /**
-       * Product Id
-       * Format: uuid4
-       * @description The ID of the product owning the price.
-       */
-      product_id: string
-      /** @description Tiered pricing based on seat quantity */
-      seat_tiers: components['schemas']['ProductPriceSeatTiers-Output']
-    }
-    /**
-     * ProductPriceSeatBasedCreate
-     * @description Schema to create a seat-based price with volume-based tiers.
-     */
-    ProductPriceSeatBasedCreate: {
-      /**
-       * @description discriminator enum property added by openapi-typescript
-       * @enum {string}
-       */
-      amount_type: 'seat_based'
-      /**
-       * @description The currency in which the customer will be charged.
-       * @default usd
-       */
-      price_currency: components['schemas']['PresentmentCurrency']
-      /** @description The tax behavior of the price. If not set, it will default to the organization's default tax behavior. */
-      tax_behavior?: components['schemas']['TaxBehaviorOption'] | null
-      /** @description Tiered pricing based on seat quantity */
-      seat_tiers: components['schemas']['ProductPriceSeatTiers-Input']
-    }
-    /**
-     * ProductPriceSeatTier
-     * @description A pricing tier for seat-based pricing.
-     */
-    ProductPriceSeatTier: {
-      /**
-       * Min Seats
-       * @description Minimum number of seats (inclusive)
-       */
-      min_seats: number
-      /**
-       * Max Seats
-       * @description Maximum number of seats (inclusive). None for unlimited.
-       */
-      max_seats?: number | null
-      /**
-       * Price Per Seat
-       * @description Price per seat in cents for this tier
-       */
-      price_per_seat: number
-    }
-    /**
-     * ProductPriceSeatTiers
-     * @description List of pricing tiers for seat-based pricing.
-     *
-     *     The minimum and maximum seat limits are derived from the tiers:
-     *     - minimum_seats = first tier's min_seats
-     *     - maximum_seats = last tier's max_seats (None for unlimited)
-     */
-    'ProductPriceSeatTiers-Input': {
-      /**
-       * @description How tiers are applied. 'volume' prices all seats at the matching tier's rate. 'graduated' prices each tier's range independently.
-       * @default volume
-       */
-      seat_tier_type: components['schemas']['SeatTierType']
-      /**
-       * Tiers
-       * @description List of pricing tiers
-       */
-      tiers: components['schemas']['ProductPriceSeatTier'][]
-    }
-    /**
-     * ProductPriceSeatTiers
-     * @description List of pricing tiers for seat-based pricing.
-     *
-     *     The minimum and maximum seat limits are derived from the tiers:
-     *     - minimum_seats = first tier's min_seats
-     *     - maximum_seats = last tier's max_seats (None for unlimited)
-     */
-    'ProductPriceSeatTiers-Output': {
-      /**
-       * @description How tiers are applied. 'volume' prices all seats at the matching tier's rate. 'graduated' prices each tier's range independently.
-       * @default volume
-       */
-      seat_tier_type: components['schemas']['SeatTierType']
-      /**
-       * Tiers
-       * @description List of pricing tiers
-       */
-      tiers: components['schemas']['ProductPriceSeatTier'][]
-      /**
-       * Minimum Seats
-       * @description Minimum number of seats required for purchase, derived from first tier.
-       */
-      readonly minimum_seats: number
-      /**
-       * Maximum Seats
-       * @description Maximum number of seats allowed for purchase, derived from last tier. None for unlimited.
-       */
-      readonly maximum_seats: number | null
     }
     /**
      * ProductPriceSource
@@ -27807,16 +19264,9 @@ export interface components {
                 | components['schemas']['ProductPriceFixedCreate']
                 | components['schemas']['ProductPriceCustomCreate']
                 | components['schemas']['ProductPriceFreeCreate']
-                | components['schemas']['ProductPriceSeatBasedCreate']
-                | components['schemas']['ProductPriceMeteredUnitCreate']
               )
           )[]
         | null
-      /**
-       * Medias
-       * @description List of file IDs. Each one must be on the same organization as the product, of type `product_media` and correctly uploaded.
-       */
-      medias?: string[] | null
       /** Attached Custom Fields */
       attached_custom_fields?:
         | components['schemas']['AttachedCustomFieldCreate'][]
@@ -27827,16 +19277,6 @@ export interface components {
      * @enum {string}
      */
     ProductVisibility: 'draft' | 'private' | 'public'
-    /** PropertyAggregation */
-    PropertyAggregation: {
-      /**
-       * @description discriminator enum property added by openapi-typescript
-       * @enum {string}
-       */
-      func: 'avg' | 'max' | 'min' | 'sum'
-      /** Property */
-      property: string
-    }
     /**
      * PropertyGroupStat
      * @description Aggregate statistics for events grouped by a metadata property value.
@@ -27912,7 +19352,6 @@ export interface components {
       customer_id: string
       /** Revoke Benefits */
       revoke_benefits: boolean
-      dispute: components['schemas']['RefundDispute'] | null
     }
     /** RefundCreate */
     RefundCreate: {
@@ -27962,80 +19401,6 @@ export interface components {
       revoke_benefits: boolean
     }
     /**
-     * RefundDispute
-     * @description Dispute associated with a refund,
-     *     in case we prevented a dispute by issuing a refund.
-     */
-    RefundDispute: {
-      /**
-       * Created At
-       * Format: date-time
-       * @description Creation timestamp of the object.
-       */
-      created_at: string
-      /**
-       * Modified At
-       * @description Last modification timestamp of the object.
-       */
-      modified_at: string | null
-      /**
-       * Id
-       * Format: uuid4
-       * @description The ID of the object.
-       */
-      id: string
-      /**
-       * @description Status of the dispute. `prevented` means we issued a refund before the dispute was escalated, avoiding any fees.
-       * @example needs_response
-       * @example prevented
-       */
-      status: components['schemas']['DisputeStatus']
-      /**
-       * Resolved
-       * @description Whether the dispute has been resolved (won or lost).
-       * @example false
-       */
-      resolved: boolean
-      /**
-       * Closed
-       * @description Whether the dispute is closed (prevented, won, or lost).
-       * @example false
-       */
-      closed: boolean
-      /**
-       * Amount
-       * @description Amount in cents disputed.
-       * @example 1000
-       */
-      amount: number
-      /**
-       * Tax Amount
-       * @description Tax amount in cents disputed.
-       * @example 200
-       */
-      tax_amount: number
-      /**
-       * Currency
-       * @description Currency code of the dispute.
-       * @example usd
-       */
-      currency: string
-      /**
-       * Order Id
-       * Format: uuid4
-       * @description The ID of the order associated with the dispute.
-       * @example 57107b74-8400-4d80-a2fc-54c2b4239cb3
-       */
-      order_id: string
-      /**
-       * Payment Id
-       * Format: uuid4
-       * @description The ID of the payment associated with the dispute.
-       * @example 42b94870-36b9-4573-96b6-b90b1c99a353
-       */
-      payment_id: string
-    }
-    /**
      * RefundReason
      * @enum {string}
      */
@@ -28081,82 +19446,6 @@ export interface components {
     }
     /** RevokeTokenResponse */
     RevokeTokenResponse: Record<string, never>
-    /** S3DownloadURL */
-    S3DownloadURL: {
-      /** Url */
-      url: string
-      /**
-       * Headers
-       * @default {}
-       */
-      headers: {
-        [key: string]: string
-      }
-      /**
-       * Expires At
-       * Format: date-time
-       */
-      expires_at: string
-    }
-    /** S3FileCreateMultipart */
-    S3FileCreateMultipart: {
-      /** Parts */
-      parts: components['schemas']['S3FileCreatePart'][]
-    }
-    /** S3FileCreatePart */
-    S3FileCreatePart: {
-      /** Number */
-      number: number
-      /** Chunk Start */
-      chunk_start: number
-      /** Chunk End */
-      chunk_end: number
-      /** Checksum Sha256 Base64 */
-      checksum_sha256_base64?: string | null
-    }
-    /** S3FileUploadCompletedPart */
-    S3FileUploadCompletedPart: {
-      /** Number */
-      number: number
-      /** Checksum Etag */
-      checksum_etag: string
-      /** Checksum Sha256 Base64 */
-      checksum_sha256_base64: string | null
-    }
-    /** S3FileUploadMultipart */
-    S3FileUploadMultipart: {
-      /** Id */
-      id: string
-      /** Path */
-      path: string
-      /** Parts */
-      parts: components['schemas']['S3FileUploadPart'][]
-    }
-    /** S3FileUploadPart */
-    S3FileUploadPart: {
-      /** Number */
-      number: number
-      /** Chunk Start */
-      chunk_start: number
-      /** Chunk End */
-      chunk_end: number
-      /** Checksum Sha256 Base64 */
-      checksum_sha256_base64?: string | null
-      /** Url */
-      url: string
-      /**
-       * Expires At
-       * Format: date-time
-       */
-      expires_at: string
-      /**
-       * Headers
-       * @default {}
-       */
-      headers: {
-        [key: string]: string
-      }
-    }
     /**
      * Scope
      * @enum {string}
@@ -28183,12 +19472,8 @@ export interface components {
       | 'payouts:write'
       | 'products:read'
       | 'products:write'
-      | 'benefits:read'
-      | 'benefits:write'
       | 'events:read'
       | 'events:write'
-      | 'meters:read'
-      | 'meters:write'
       | 'files:read'
       | 'files:write'
       | 'subscriptions:read'
@@ -28200,11 +19485,8 @@ export interface components {
       | 'wallets:read'
       | 'wallets:write'
       | 'disputes:read'
-      | 'customer_meters:read'
       | 'customer_sessions:write'
       | 'member_sessions:write'
-      | 'customer_seats:read'
-      | 'customer_seats:write'
       | 'orders:read'
       | 'orders:write'
       | 'refunds:read'
@@ -28214,14 +19496,8 @@ export interface components {
       | 'metrics:write'
       | 'webhooks:read'
       | 'webhooks:write'
-      | 'license_keys:read'
-      | 'license_keys:write'
       | 'customer_portal:read'
       | 'customer_portal:write'
-      | 'notifications:read'
-      | 'notifications:write'
-      | 'notification_recipients:read'
-      | 'notification_recipients:write'
       | 'organization_access_tokens:read'
       | 'organization_access_tokens:write'
     /** SearchResultCustomer */
@@ -28316,309 +19592,6 @@ export interface components {
         | components['schemas']['SearchResultSubscription']
       )[]
     }
-    /** SeatAssign */
-    SeatAssign: {
-      /**
-       * Subscription Id
-       * @description Subscription ID. Required if neither order_id nor checkout_id is provided.
-       */
-      subscription_id?: string | null
-      /**
-       * Order Id
-       * @description Order ID for one-time purchases. Required if subscription_id is not provided.
-       */
-      order_id?: string | null
-      /**
-       * Email
-       * @description Email of the customer to assign the seat to
-       */
-      email?: string | null
-      /**
-       * External Customer Id
-       * @description External customer ID for the seat assignment
-       */
-      external_customer_id?: string | null
-      /**
-       * Customer Id
-       * @description Customer ID for the seat assignment
-       */
-      customer_id?: string | null
-      /**
-       * External Member Id
-       * @description External member ID for the seat assignment. Can be used alone (lookup existing member) or with email (create/validate member).
-       */
-      external_member_id?: string | null
-      /**
-       * Member Id
-       * @description Member ID for the seat assignment.
-       */
-      member_id?: string | null
-      /**
-       * Metadata
-       * @description Additional metadata for the seat (max 10 keys, 1KB total)
-       */
-      metadata?: {
-        [key: string]: unknown
-      } | null
-      /**
-       * Immediate Claim
-       * @description If true, the seat will be immediately claimed without sending an invitation email. API-only feature.
-       * @default false
-       */
-      immediate_claim: boolean
-    }
-    /** SeatClaim */
-    SeatClaim: {
-      /**
-       * Invitation Token
-       * @description Invitation token to claim the seat
-       */
-      invitation_token: string
-    }
-    /**
-     * SeatClaimInfo
-     * @description Read-only information about a seat claim invitation.
-     *     Safe for email scanners - no side effects when fetched.
-     */
-    SeatClaimInfo: {
-      /**
-       * Product Name
-       * @description Name of the product
-       */
-      product_name: string
-      /**
-       * Product Id
-       * Format: uuid
-       * @description ID of the product
-       */
-      product_id: string
-      /**
-       * Organization Name
-       * @description Name of the organization
-       */
-      organization_name: string
-      /**
-       * Organization Slug
-       * @description Slug of the organization
-       */
-      organization_slug: string
-      /**
-       * Customer Email
-       * @description Email of the customer assigned to this seat
-       */
-      customer_email: string
-      /**
-       * Can Claim
-       * @description Whether the seat can be claimed
-       */
-      can_claim: boolean
-    }
-    /**
-     * SeatStatus
-     * @enum {string}
-     */
-    SeatStatus: 'pending' | 'claimed' | 'revoked'
-    /**
-     * SeatTierType
-     * @enum {string}
-     */
-    SeatTierType: 'volume' | 'graduated'
-    /** SeatsList */
-    SeatsList: {
-      /**
-       * Seats
-       * @description List of seats
-       */
-      seats: components['schemas']['CustomerSeat'][]
-      /**
-       * Available Seats
-       * @description Number of available seats
-       */
-      available_seats: number
-      /**
-       * Total Seats
-       * @description Total number of seats for the subscription
-       */
-      total_seats: number
-    }
-    /** SlackIntegration */
-    SlackIntegration: {
-      /**
-       * Created At
-       * Format: date-time
-       * @description Creation timestamp of the object.
-       */
-      created_at: string
-      /**
-       * Modified At
-       * @description Last modification timestamp of the object.
-       */
-      modified_at: string | null
-      /**
-       * Id
-       * Format: uuid4
-       * @description ID of the Slack integration.
-       */
-      id: string
-      /**
-       * Organization Id
-       * Format: uuid4
-       * @description Organization that owns the Slack integration.
-       */
-      organization_id: string
-      /**
-       * Display Name
-       * @description Display name used by the Slack app.
-       */
-      display_name: string
-      /**
-       * Slack App Id
-       * @description Slack app ID.
-       */
-      slack_app_id: string
-      /**
-       * Client Id
-       * @description Slack client ID.
-       */
-      client_id: string
-      /**
-       * Client Id Last 4
-       * @description Last four characters of the Client ID (display only).
-       */
-      client_id_last_4: string
-      /**
-       * Client Secret Last 4
-       * @description Last four characters of the client secret (display only).
-       */
-      client_secret_last_4: string
-      /**
-       * Signing Secret Last 4
-       * @description Last four characters of the signing secret (display only).
-       */
-      signing_secret_last_4: string
-      /**
-       * Team Id
-       * @description Slack workspace ID, if installed.
-       */
-      team_id: string | null
-      /**
-       * Team Name
-       * @description Slack workspace name, if installed.
-       */
-      team_name: string | null
-      /**
-       * Bot User Id
-       * @description Installed bot user ID, if any.
-       */
-      bot_user_id: string | null
-      /**
-       * Authed User Id
-       * @description Slack user ID that authorized the app, if installed.
-       */
-      authed_user_id: string | null
-      /**
-       * Scopes
-       * @description Granted Slack bot scopes, if any.
-       */
-      scopes: string[] | null
-      /**
-       * Installed At
-       * @description Timestamp when the Slack app was installed.
-       */
-      installed_at: string | null
-      /**
-       * Revoked At
-       * @description Timestamp when the Slack app was revoked or uninstalled.
-       */
-      revoked_at: string | null
-    }
-    /** SlackIntegrationCredentialsUpdate */
-    SlackIntegrationCredentialsUpdate: {
-      /**
-       * Organization Id
-       * Format: uuid4
-       * @description Organization the integration belongs to.
-       */
-      organization_id: string
-      /**
-       * Display Name
-       * @description Display name used by the bot user in your Slack workspace. Reflected in the manifest.
-       */
-      display_name: string
-      /**
-       * Slack App Id
-       * @description App ID from your Slack app's Basic Information page.
-       */
-      slack_app_id: string
-      /**
-       * Client Id
-       * @description Client ID from your Slack app's Basic Information page.
-       */
-      client_id: string
-      /**
-       * Client Secret
-       * @description Client Secret from your Slack app's Basic Information page. Omit to keep the existing value when updating other fields.
-       */
-      client_secret?: string | null
-      /**
-       * Signing Secret
-       * @description Signing Secret from your Slack app's Basic Information page. Omit to keep the existing value when updating other fields.
-       */
-      signing_secret?: string | null
-    }
-    /** SlackIntegrationManifest */
-    SlackIntegrationManifest: {
-      /**
-       * Manifest
-       * @description YAML manifest to paste into Slack.
-       */
-      manifest: string
-    }
-    /** SlackIntegrationManifestRequest */
-    SlackIntegrationManifestRequest: {
-      /**
-       * Display Name
-       * @description Name shown in your Slack workspace for the app and bot user. Defaults to your organization name; customize before pasting into Slack.
-       */
-      display_name: string
-    }
-    /** SlackWorkspaceUser */
-    SlackWorkspaceUser: {
-      /**
-       * Id
-       * @description Slack user ID (e.g. U01234567).
-       */
-      id: string
-      /**
-       * Name
-       * @description Username (handle without @).
-       */
-      name: string
-      /**
-       * Real Name
-       * @description Display name, if set.
-       */
-      real_name?: string | null
-      /**
-       * Image Url
-       * @description Avatar URL (image_72), if available.
-       */
-      image_url?: string | null
-      /**
-       * Is Admin
-       * @description Whether the user is a workspace admin.
-       * @default false
-       */
-      is_admin: boolean
-    }
-    /** SlackWorkspaceUsersResponse */
-    SlackWorkspaceUsersResponse: {
-      /**
-       * Users
-       * @description Active, non-bot users in the connected Slack workspace.
-       */
-      users: components['schemas']['SlackWorkspaceUser'][]
-    }
     /**
      * StatisticsPeriod
      * @description Event statistics for a single time period.
@@ -28648,130 +19621,6 @@ export interface components {
        */
       stats: components['schemas']['EventStatistics'][]
     }
-    /**
-     * StripeAccountCountry
-     * @enum {string}
-     */
-    StripeAccountCountry:
-      | 'AL'
-      | 'AG'
-      | 'AR'
-      | 'AM'
-      | 'AU'
-      | 'AT'
-      | 'BH'
-      | 'BE'
-      | 'BO'
-      | 'BA'
-      | 'BG'
-      | 'KH'
-      | 'CA'
-      | 'CL'
-      | 'CO'
-      | 'CR'
-      | 'HR'
-      | 'CY'
-      | 'CZ'
-      | 'CI'
-      | 'DK'
-      | 'DO'
-      | 'EC'
-      | 'EG'
-      | 'SV'
-      | 'EE'
-      | 'ET'
-      | 'FI'
-      | 'FR'
-      | 'GM'
-      | 'DE'
-      | 'GH'
-      | 'GR'
-      | 'GT'
-      | 'GY'
-      | 'HK'
-      | 'HU'
-      | 'IS'
-      | 'IN'
-      | 'ID'
-      | 'IE'
-      | 'IL'
-      | 'IT'
-      | 'JM'
-      | 'JP'
-      | 'JO'
-      | 'KE'
-      | 'KW'
-      | 'LV'
-      | 'LI'
-      | 'LT'
-      | 'LU'
-      | 'MO'
-      | 'MG'
-      | 'MY'
-      | 'MT'
-      | 'MU'
-      | 'MX'
-      | 'MD'
-      | 'MN'
-      | 'MA'
-      | 'NA'
-      | 'NL'
-      | 'NZ'
-      | 'NG'
-      | 'MK'
-      | 'NO'
-      | 'OM'
-      | 'PA'
-      | 'PY'
-      | 'PE'
-      | 'PH'
-      | 'PL'
-      | 'PT'
-      | 'QA'
-      | 'RO'
-      | 'RW'
-      | 'SA'
-      | 'SN'
-      | 'RS'
-      | 'SG'
-      | 'SK'
-      | 'SI'
-      | 'ZA'
-      | 'KR'
-      | 'ES'
-      | 'LK'
-      | 'LC'
-      | 'SE'
-      | 'CH'
-      | 'TZ'
-      | 'TH'
-      | 'TT'
-      | 'TN'
-      | 'TR'
-      | 'AE'
-      | 'GB'
-      | 'US'
-      | 'UY'
-      | 'UZ'
-      | 'VN'
-      | 'DZ'
-      | 'AO'
-      | 'AZ'
-      | 'BS'
-      | 'BD'
-      | 'BJ'
-      | 'BT'
-      | 'BW'
-      | 'BN'
-      | 'GA'
-      | 'KZ'
-      | 'LA'
-      | 'MC'
-      | 'MZ'
-      | 'NE'
-      | 'PK'
-      | 'SM'
-      | 'TW'
     /**
      * SubType
      * @enum {string}
@@ -28889,11 +19738,6 @@ export interface components {
       discount_id: string | null
       /** Checkout Id */
       checkout_id: string | null
-      /**
-       * Seats
-       * @description The number of seats for seat-based subscriptions. None for non-seat subscriptions.
-       */
-      seats?: number | null
       customer_cancellation_reason:
         | components['schemas']['CustomerCancellationReason']
         | null
@@ -28926,11 +19770,6 @@ export interface components {
         | components['schemas']['LegacyRecurringProductPrice']
         | components['schemas']['ProductPrice']
       )[]
-      /**
-       * Meters
-       * @description List of meters associated with the subscription.
-       */
-      meters: components['schemas']['SubscriptionMeter'][]
       /** @description Pending subscription update that will be applied at the beginning of the next period. If `null`, there is no pending update. */
       pending_update: components['schemas']['PendingSubscriptionUpdate'] | null
     }
@@ -29174,13 +20013,8 @@ export interface components {
        */
       base_amount: number
       /**
-       * Metered Amount
-       * @description Total metered usage charges in cents (sum of all meter charges)
-       */
-      metered_amount: number
-      /**
        * Subtotal Amount
-       * @description Subtotal amount in cents (base + metered, before discount and tax)
+       * @description Subtotal amount in cents before discount and tax.
        */
       subtotal_amount: number
       /**
@@ -29419,8 +20253,6 @@ export interface components {
        */
       name: string | null
       billing_address: components['schemas']['Address'] | null
-      /** Tax Id */
-      tax_id: [string, components['schemas']['TaxIDFormat']] | null
       /** Locale */
       locale?: string | null
       /**
@@ -29546,56 +20378,6 @@ export interface components {
       error: 'SubscriptionLocked'
       /** Detail */
       detail: string
-    }
-    /**
-     * SubscriptionMeter
-     * @description Current consumption and spending for a subscription meter.
-     */
-    SubscriptionMeter: {
-      /**
-       * Created At
-       * Format: date-time
-       * @description Creation timestamp of the object.
-       */
-      created_at: string
-      /**
-       * Modified At
-       * @description Last modification timestamp of the object.
-       */
-      modified_at: string | null
-      /**
-       * Id
-       * Format: uuid4
-       * @description The ID of the object.
-       */
-      id: string
-      /**
-       * Consumed Units
-       * @description The number of consumed units so far in this billing period.
-       * @example 25
-       */
-      consumed_units: number
-      /**
-       * Credited Units
-       * @description The number of credited units so far in this billing period.
-       * @example 100
-       */
-      credited_units: number
-      /**
-       * Amount
-       * @description The amount due in cents so far in this billing period.
-       * @example 0
-       */
-      amount: number
-      /**
-       * Meter Id
-       * Format: uuid4
-       * @description The ID of the meter.
-       * @example d498a884-e2cd-4d3e-8002-f536468a8b22
-       */
-      meter_id: string
-      /** @description The meter associated with this subscription. */
-      meter: components['schemas']['Meter']
     }
     /**
      * SubscriptionPastDueEvent
@@ -30226,7 +21008,6 @@ export interface components {
       | components['schemas']['SubscriptionUpdateProduct']
       | components['schemas']['SubscriptionUpdateDiscount']
       | components['schemas']['SubscriptionUpdateTrial']
-      | components['schemas']['SubscriptionUpdateSeats']
       | components['schemas']['SubscriptionUpdateBillingPeriod']
       | components['schemas']['SubscriptionCancel']
       | components['schemas']['SubscriptionRevoke']
@@ -30352,18 +21133,6 @@ export interface components {
         | components['schemas']['SubscriptionProrationBehavior']
         | null
     }
-    /** SubscriptionUpdateSeats */
-    SubscriptionUpdateSeats: {
-      /**
-       * Seats
-       * @description Update the number of seats for this subscription.
-       */
-      seats: number
-      /** @description Determine how to handle the proration billing. If not provided, will use the default organization setting. */
-      proration_behavior?:
-        | components['schemas']['SubscriptionProrationBehavior']
-        | null
-    }
     /** SubscriptionUpdateTrial */
     SubscriptionUpdateTrial: {
       /**
@@ -30480,12 +21249,6 @@ export interface components {
       github_username?: string | null
     }
     SystemEvent:
-      | components['schemas']['MeterCreditEvent']
-      | components['schemas']['MeterResetEvent']
-      | components['schemas']['BenefitGrantedEvent']
-      | components['schemas']['BenefitCycledEvent']
-      | components['schemas']['BenefitUpdatedEvent']
-      | components['schemas']['BenefitRevokedEvent']
       | components['schemas']['SubscriptionCreatedEvent']
       | components['schemas']['SubscriptionUpdatedEvent']
       | components['schemas']['SubscriptionCycledEvent']
@@ -30535,99 +21298,6 @@ export interface components {
       enabled: boolean
     }
     /**
-     * TaxBehavior
-     * @enum {string}
-     */
-    TaxBehavior: 'inclusive' | 'exclusive'
-    /**
-     * TaxBehaviorOption
-     * @enum {string}
-     */
-    TaxBehaviorOption: 'location' | 'inclusive' | 'exclusive'
-    /**
-     * TaxIDFormat
-     * @description List of supported tax ID formats.
-     *
-     *     Ref: https://docs.stripe.com/billing/customer/tax-ids#supported-tax-id
-     * @enum {string}
-     */
-    TaxIDFormat:
-      | 'ad_nrt'
-      | 'ae_trn'
-      | 'ar_cuit'
-      | 'au_abn'
-      | 'au_arn'
-      | 'bg_uic'
-      | 'bh_vat'
-      | 'bo_tin'
-      | 'br_cnpj'
-      | 'br_cpf'
-      | 'ca_bn'
-      | 'ca_gst_hst'
-      | 'ca_pst_bc'
-      | 'ca_pst_mb'
-      | 'ca_pst_sk'
-      | 'ca_qst'
-      | 'ch_uid'
-      | 'ch_vat'
-      | 'cl_tin'
-      | 'cn_tin'
-      | 'co_nit'
-      | 'cr_tin'
-      | 'de_stn'
-      | 'do_rcn'
-      | 'ec_ruc'
-      | 'eg_tin'
-      | 'es_cif'
-      | 'eu_oss_vat'
-      | 'eu_vat'
-      | 'gb_vat'
-      | 'ge_vat'
-      | 'hk_br'
-      | 'hr_oib'
-      | 'hu_tin'
-      | 'id_npwp'
-      | 'il_vat'
-      | 'in_gst'
-      | 'is_vat'
-      | 'jp_cn'
-      | 'jp_rn'
-      | 'jp_trn'
-      | 'ke_pin'
-      | 'kr_brn'
-      | 'kz_bin'
-      | 'li_uid'
-      | 'mk_vat'
-      | 'mx_rfc'
-      | 'my_frp'
-      | 'my_itn'
-      | 'my_sst'
-      | 'ng_tin'
-      | 'no_vat'
-      | 'no_voec'
-      | 'nz_gst'
-      | 'om_vat'
-      | 'pe_ruc'
-      | 'ph_tin'
-      | 'ro_tin'
-      | 'rs_pib'
-      | 'ru_inn'
-      | 'ru_kpp'
-      | 'sa_vat'
-      | 'sg_gst'
-      | 'sg_uen'
-      | 'si_tin'
-      | 'sv_nit'
-      | 'th_vat'
-      | 'tr_tin'
-      | 'tw_vat'
-      | 'ua_vat'
-      | 'us_ein'
-      | 'uy_ruc'
-      | 've_rif'
-      | 'vn_tin'
-      | 'za_vat'
-    /**
      * TimeInterval
      * @enum {string}
      */
@@ -30675,16 +21345,12 @@ export interface components {
       currency: string
       /** Amount */
       amount: number
-      /** Tax Amount */
-      tax_amount: number
       /** Account Currency */
       account_currency: string
       /** Account Amount */
       account_amount: number
       /** Presentment Amount */
       presentment_amount: number | null
-      /** Presentment Tax Amount */
-      presentment_tax_amount: number | null
       /** Presentment Currency */
       presentment_currency: string | null
       /** Exchange Rate */
@@ -30738,16 +21404,12 @@ export interface components {
       currency: string
       /** Amount */
       amount: number
-      /** Tax Amount */
-      tax_amount: number
       /** Account Currency */
       account_currency: string
       /** Account Amount */
       account_amount: number
       /** Presentment Amount */
       presentment_amount: number | null
-      /** Presentment Tax Amount */
-      presentment_tax_amount: number | null
       /** Presentment Currency */
       presentment_currency: string | null
       /** Exchange Rate */
@@ -30941,27 +21603,6 @@ export interface components {
      * @enum {string}
      */
     TrialInterval: 'day' | 'week' | 'month' | 'year'
-    /** Unauthorized */
-    Unauthorized: {
-      /**
-       * Error
-       * @example Unauthorized
-       * @constant
-       */
-      error: 'Unauthorized'
-      /** Detail */
-      detail: string
-    }
-    /** UniqueAggregation */
-    UniqueAggregation: {
-      /**
-       * @description discriminator enum property added by openapi-typescript
-       * @enum {string}
-       */
-      func: 'unique'
-      /** Property */
-      property: string
-    }
     /**
      * UserDeletionBlockedReason
      * @description Reasons why a user account cannot be immediately deleted.
@@ -31063,13 +21704,6 @@ export interface components {
       source: 'user'
       metadata: components['schemas']['EventMetadataOutput']
     }
-    /** UserIdentityVerification */
-    UserIdentityVerification: {
-      /** Id */
-      id: string
-      /** Client Secret */
-      client_secret: string
-    }
     /** UserInfoOrganization */
     UserInfoOrganization: {
       /** Sub */
@@ -31131,17 +21765,6 @@ export interface components {
       accepted_terms_of_service: boolean
       /** Is Admin */
       is_admin: boolean
-      /** Identity Verified */
-      identity_verified: boolean
-      identity_verification_status: components['schemas']['IdentityVerificationStatus']
-      /** First Name */
-      first_name: string | null
-      /** Last Name */
-      last_name: string | null
-      /** Country */
-      country: string | null
-      /** Date Of Birth */
-      date_of_birth: string | null
       /** Oauth Accounts */
       oauth_accounts: components['schemas']['OAuthAccountRead'][]
       /**
@@ -31159,317 +21782,8 @@ export interface components {
     }
     /** UserUpdate */
     UserUpdate: {
-      /** First Name */
-      first_name?: string | null
-      /** Last Name */
-      last_name?: string | null
-      country?:
-        | (
-            | 'AD'
-            | 'AE'
-            | 'AF'
-            | 'AG'
-            | 'AI'
-            | 'AL'
-            | 'AM'
-            | 'AO'
-            | 'AQ'
-            | 'AR'
-            | 'AS'
-            | 'AT'
-            | 'AU'
-            | 'AW'
-            | 'AX'
-            | 'AZ'
-            | 'BA'
-            | 'BB'
-            | 'BD'
-            | 'BE'
-            | 'BF'
-            | 'BG'
-            | 'BH'
-            | 'BI'
-            | 'BJ'
-            | 'BL'
-            | 'BM'
-            | 'BN'
-            | 'BO'
-            | 'BQ'
-            | 'BR'
-            | 'BS'
-            | 'BT'
-            | 'BV'
-            | 'BW'
-            | 'BY'
-            | 'BZ'
-            | 'CA'
-            | 'CC'
-            | 'CD'
-            | 'CF'
-            | 'CG'
-            | 'CH'
-            | 'CI'
-            | 'CK'
-            | 'CL'
-            | 'CM'
-            | 'CN'
-            | 'CO'
-            | 'CR'
-            | 'CV'
-            | 'CW'
-            | 'CX'
-            | 'CY'
-            | 'CZ'
-            | 'DE'
-            | 'DJ'
-            | 'DK'
-            | 'DM'
-            | 'DO'
-            | 'DZ'
-            | 'EC'
-            | 'EE'
-            | 'EG'
-            | 'EH'
-            | 'ER'
-            | 'ES'
-            | 'ET'
-            | 'FI'
-            | 'FJ'
-            | 'FK'
-            | 'FM'
-            | 'FO'
-            | 'FR'
-            | 'GA'
-            | 'GB'
-            | 'GD'
-            | 'GE'
-            | 'GF'
-            | 'GG'
-            | 'GH'
-            | 'GI'
-            | 'GL'
-            | 'GM'
-            | 'GN'
-            | 'GP'
-            | 'GQ'
-            | 'GR'
-            | 'GS'
-            | 'GT'
-            | 'GU'
-            | 'GW'
-            | 'GY'
-            | 'HK'
-            | 'HM'
-            | 'HN'
-            | 'HR'
-            | 'HT'
-            | 'HU'
-            | 'ID'
-            | 'IE'
-            | 'IL'
-            | 'IM'
-            | 'IN'
-            | 'IO'
-            | 'IQ'
-            | 'IS'
-            | 'IT'
-            | 'JE'
-            | 'JM'
-            | 'JO'
-            | 'JP'
-            | 'KE'
-            | 'KG'
-            | 'KH'
-            | 'KI'
-            | 'KM'
-            | 'KN'
-            | 'KR'
-            | 'KW'
-            | 'KY'
-            | 'KZ'
-            | 'LA'
-            | 'LB'
-            | 'LC'
-            | 'LI'
-            | 'LK'
-            | 'LR'
-            | 'LS'
-            | 'LT'
-            | 'LU'
-            | 'LV'
-            | 'LY'
-            | 'MA'
-            | 'MC'
-            | 'MD'
-            | 'ME'
-            | 'MF'
-            | 'MG'
-            | 'MH'
-            | 'MK'
-            | 'ML'
-            | 'MM'
-            | 'MN'
-            | 'MO'
-            | 'MP'
-            | 'MQ'
-            | 'MR'
-            | 'MS'
-            | 'MT'
-            | 'MU'
-            | 'MV'
-            | 'MW'
-            | 'MX'
-            | 'MY'
-            | 'MZ'
-            | 'NA'
-            | 'NC'
-            | 'NE'
-            | 'NF'
-            | 'NG'
-            | 'NI'
-            | 'NL'
-            | 'NO'
-            | 'NP'
-            | 'NR'
-            | 'NU'
-            | 'NZ'
-            | 'OM'
-            | 'PA'
-            | 'PE'
-            | 'PF'
-            | 'PG'
-            | 'PH'
-            | 'PK'
-            | 'PL'
-            | 'PM'
-            | 'PN'
-            | 'PR'
-            | 'PS'
-            | 'PT'
-            | 'PW'
-            | 'PY'
-            | 'QA'
-            | 'RE'
-            | 'RO'
-            | 'RS'
-            | 'RW'
-            | 'SA'
-            | 'SB'
-            | 'SC'
-            | 'SD'
-            | 'SE'
-            | 'SG'
-            | 'SH'
-            | 'SI'
-            | 'SJ'
-            | 'SK'
-            | 'SL'
-            | 'SM'
-            | 'SN'
-            | 'SO'
-            | 'SR'
-            | 'SS'
-            | 'ST'
-            | 'SV'
-            | 'SX'
-            | 'SZ'
-            | 'TC'
-            | 'TD'
-            | 'TF'
-            | 'TG'
-            | 'TH'
-            | 'TJ'
-            | 'TK'
-            | 'TL'
-            | 'TM'
-            | 'TN'
-            | 'TO'
-            | 'TR'
-            | 'TT'
-            | 'TV'
-            | 'TW'
-            | 'TZ'
-            | 'UA'
-            | 'UG'
-            | 'UM'
-            | 'US'
-            | 'UY'
-            | 'UZ'
-            | 'VA'
-            | 'VC'
-            | 'VE'
-            | 'VG'
-            | 'VI'
-            | 'VN'
-            | 'VU'
-            | 'WF'
-            | 'WS'
-            | 'YE'
-            | 'YT'
-            | 'ZA'
-            | 'ZM'
-            | 'ZW'
-          )
-        | null
-      /** Date Of Birth */
-      date_of_birth?: string | null
       /** Accepted Terms Of Service */
       accepted_terms_of_service?: boolean | null
-    }
-    /** ValidatedLicenseKey */
-    ValidatedLicenseKey: {
-      /**
-       * Id
-       * Format: uuid4
-       * @description The ID of the object.
-       */
-      id: string
-      /**
-       * Created At
-       * Format: date-time
-       * @description Creation timestamp of the object.
-       */
-      created_at: string
-      /**
-       * Modified At
-       * @description Last modification timestamp of the object.
-       */
-      modified_at: string | null
-      /**
-       * Organization Id
-       * Format: uuid4
-       */
-      organization_id: string
-      /**
-       * Customer Id
-       * Format: uuid4
-       */
-      customer_id: string
-      customer: components['schemas']['LicenseKeyCustomer']
-      /**
-       * Benefit Id
-       * Format: uuid4
-       * @description The benefit ID.
-       */
-      benefit_id: string
-      /** Key */
-      key: string
-      /** Display Key */
-      display_key: string
-      status: components['schemas']['LicenseKeyStatus']
-      /** Limit Activations */
-      limit_activations: number | null
-      /** Usage */
-      usage: number
-      /** Limit Usage */
-      limit_usage: number | null
-      /** Validations */
-      validations: number
-      /** Last Validated At */
-      last_validated_at: string | null
-      /** Expires At */
-      expires_at: string | null
-      activation?: components['schemas']['LicenseKeyActivationBase'] | null
     }
     /** ValidationError */
     ValidationError: {
@@ -31615,137 +21929,10 @@ export interface components {
      */
     WalletType: 'usage' | 'billing'
     /**
-     * WebhookBenefitCreatedPayload
-     * @description Sent when a new benefit is created.
-     *
-     *     **Discord & Slack support:** Basic
-     */
-    WebhookBenefitCreatedPayload: {
-      /**
-       * Type
-       * @example benefit.created
-       * @constant
-       */
-      type: 'benefit.created'
-      /**
-       * Timestamp
-       * Format: date-time
-       */
-      timestamp: string
-      /** Benefit */
-      data: components['schemas']['Benefit']
-    }
-    /**
-     * WebhookBenefitGrantCreatedPayload
-     * @description Sent when a new benefit grant is created.
-     *
-     *     **Discord & Slack support:** Basic
-     */
-    WebhookBenefitGrantCreatedPayload: {
-      /**
-       * Type
-       * @example benefit_grant.created
-       * @constant
-       */
-      type: 'benefit_grant.created'
-      /**
-       * Timestamp
-       * Format: date-time
-       */
-      timestamp: string
-      /** BenefitGrantWebhook */
-      data: components['schemas']['BenefitGrantWebhook']
-    }
-    /**
-     * WebhookBenefitGrantCycledPayload
-     * @description Sent when a benefit grant is cycled,
-     *     meaning the related subscription has been renewed for another period.
-     *
-     *     **Discord & Slack support:** Basic
-     */
-    WebhookBenefitGrantCycledPayload: {
-      /**
-       * Type
-       * @example benefit_grant.cycled
-       * @constant
-       */
-      type: 'benefit_grant.cycled'
-      /**
-       * Timestamp
-       * Format: date-time
-       */
-      timestamp: string
-      /** BenefitGrantWebhook */
-      data: components['schemas']['BenefitGrantWebhook']
-    }
-    /**
-     * WebhookBenefitGrantRevokedPayload
-     * @description Sent when a benefit grant is revoked.
-     *
-     *     **Discord & Slack support:** Basic
-     */
-    WebhookBenefitGrantRevokedPayload: {
-      /**
-       * Type
-       * @example benefit_grant.revoked
-       * @constant
-       */
-      type: 'benefit_grant.revoked'
-      /**
-       * Timestamp
-       * Format: date-time
-       */
-      timestamp: string
-      /** BenefitGrantWebhook */
-      data: components['schemas']['BenefitGrantWebhook']
-    }
-    /**
-     * WebhookBenefitGrantUpdatedPayload
-     * @description Sent when a benefit grant is updated.
-     *
-     *     **Discord & Slack support:** Basic
-     */
-    WebhookBenefitGrantUpdatedPayload: {
-      /**
-       * Type
-       * @example benefit_grant.updated
-       * @constant
-       */
-      type: 'benefit_grant.updated'
-      /**
-       * Timestamp
-       * Format: date-time
-       */
-      timestamp: string
-      /** BenefitGrantWebhook */
-      data: components['schemas']['BenefitGrantWebhook']
-    }
-    /**
-     * WebhookBenefitUpdatedPayload
-     * @description Sent when a benefit is updated.
-     *
-     *     **Discord & Slack support:** Basic
-     */
-    WebhookBenefitUpdatedPayload: {
-      /**
-       * Type
-       * @example benefit.updated
-       * @constant
-       */
-      type: 'benefit.updated'
-      /**
-       * Timestamp
-       * Format: date-time
-       */
-      timestamp: string
-      /** Benefit */
-      data: components['schemas']['Benefit']
-    }
-    /**
      * WebhookCheckoutCreatedPayload
      * @description Sent when a new checkout is created.
      *
-     *     **Discord & Slack support:** Basic
+     *     **Slack support:** Basic
      */
     WebhookCheckoutCreatedPayload: {
       /**
@@ -31768,7 +21955,7 @@ export interface components {
      *     This event fires when a checkout reaches its expiration time without being completed.
      *     Developers can use this to send reminder emails or track checkout abandonment.
      *
-     *     **Discord & Slack support:** Basic
+     *     **Slack support:** Basic
      */
     WebhookCheckoutExpiredPayload: {
       /**
@@ -31788,7 +21975,7 @@ export interface components {
      * WebhookCheckoutUpdatedPayload
      * @description Sent when a checkout is updated.
      *
-     *     **Discord & Slack support:** Basic
+     *     **Slack support:** Basic
      */
     WebhookCheckoutUpdatedPayload: {
       /**
@@ -31813,7 +22000,7 @@ export interface components {
      *     * After a successful checkout.
      *     * Programmatically via the API.
      *
-     *     **Discord & Slack support:** Basic
+     *     **Slack support:** Basic
      */
     WebhookCustomerCreatedPayload: {
       /**
@@ -31833,7 +22020,7 @@ export interface components {
      * WebhookCustomerDeletedPayload
      * @description Sent when a customer is deleted.
      *
-     *     **Discord & Slack support:** Basic
+     *     **Slack support:** Basic
      */
     WebhookCustomerDeletedPayload: {
       /**
@@ -31850,67 +22037,6 @@ export interface components {
       data: components['schemas']['Customer']
     }
     /**
-     * WebhookCustomerSeatAssignedPayload
-     * @description Sent when a new customer seat is assigned.
-     *
-     *     This event is triggered when a seat is assigned to a customer by the organization.
-     *     The customer will receive an invitation email to claim the seat.
-     */
-    WebhookCustomerSeatAssignedPayload: {
-      /**
-       * Type
-       * @example customer_seat.assigned
-       * @constant
-       */
-      type: 'customer_seat.assigned'
-      /**
-       * Timestamp
-       * Format: date-time
-       */
-      timestamp: string
-      data: components['schemas']['CustomerSeat']
-    }
-    /**
-     * WebhookCustomerSeatClaimedPayload
-     * @description Sent when a customer seat is claimed.
-     *
-     *     This event is triggered when a customer accepts the seat invitation and claims their access.
-     */
-    WebhookCustomerSeatClaimedPayload: {
-      /**
-       * Type
-       * @example customer_seat.claimed
-       * @constant
-       */
-      type: 'customer_seat.claimed'
-      /**
-       * Timestamp
-       * Format: date-time
-       */
-      timestamp: string
-      data: components['schemas']['CustomerSeat']
-    }
-    /**
-     * WebhookCustomerSeatRevokedPayload
-     * @description Sent when a customer seat is revoked.
-     *
-     *     This event is triggered when access to a seat is revoked, either manually by the organization or automatically when a subscription is canceled.
-     */
-    WebhookCustomerSeatRevokedPayload: {
-      /**
-       * Type
-       * @example customer_seat.revoked
-       * @constant
-       */
-      type: 'customer_seat.revoked'
-      /**
-       * Timestamp
-       * Format: date-time
-       */
-      timestamp: string
-      data: components['schemas']['CustomerSeat']
-    }
-    /**
      * WebhookCustomerStateChangedPayload
      * @description Sent when a customer state has changed.
      *
@@ -31918,9 +22044,8 @@ export interface components {
      *
      *     * Customer is created, updated or deleted.
      *     * A subscription is created or updated.
-     *     * A benefit is granted or revoked.
      *
-     *     **Discord & Slack support:** Basic
+     *     **Slack support:** Basic
      */
     WebhookCustomerStateChangedPayload: {
       /**
@@ -31942,9 +22067,9 @@ export interface components {
      *
      *     This event is fired when the customer details are updated.
      *
-     *     If you want to be notified when a customer subscription or benefit state changes, you should listen to the `customer_state_changed` event.
+     *     If you want to be notified when a customer subscription state changes, you should listen to the `customer_state_changed` event.
      *
-     *     **Discord & Slack support:** Basic
+     *     **Slack support:** Basic
      */
     WebhookCustomerUpdatedPayload: {
       /**
@@ -32177,9 +22302,6 @@ export interface components {
       | 'customer.updated'
       | 'customer.deleted'
       | 'customer.state_changed'
-      | 'customer_seat.assigned'
-      | 'customer_seat.claimed'
-      | 'customer_seat.revoked'
       | 'member.created'
       | 'member.updated'
       | 'member.deleted'
@@ -32198,18 +22320,12 @@ export interface components {
       | 'refund.updated'
       | 'product.created'
       | 'product.updated'
-      | 'benefit.created'
-      | 'benefit.updated'
-      | 'benefit_grant.created'
-      | 'benefit_grant.cycled'
-      | 'benefit_grant.updated'
-      | 'benefit_grant.revoked'
       | 'organization.updated'
     /**
      * WebhookFormat
      * @enum {string}
      */
-    WebhookFormat: 'raw' | 'discord' | 'slack'
+    WebhookFormat: 'raw' | 'slack'
     /**
      * WebhookMemberCreatedPayload
      * @description Sent when a new member is created.
@@ -32219,7 +22335,7 @@ export interface components {
      *     either programmatically via the API or when an owner is automatically
      *     created for a new customer.
      *
-     *     **Discord & Slack support:** Basic
+     *     **Slack support:** Basic
      */
     WebhookMemberCreatedPayload: {
       /**
@@ -32240,9 +22356,8 @@ export interface components {
      * @description Sent when a member is deleted.
      *
      *     This event is triggered when a member is removed from a customer.
-     *     Any active seats assigned to the member will be automatically revoked.
      *
-     *     **Discord & Slack support:** Basic
+     *     **Slack support:** Basic
      */
     WebhookMemberDeletedPayload: {
       /**
@@ -32265,7 +22380,7 @@ export interface components {
      *     This event is triggered when member details are updated,
      *     such as their name or role within the customer.
      *
-     *     **Discord & Slack support:** Basic
+     *     **Slack support:** Basic
      */
     WebhookMemberUpdatedPayload: {
       /**
@@ -32295,7 +22410,7 @@ export interface components {
      *     > [!WARNING]
      *     > The order might not be paid yet, so the `status` field might be `pending`.
      *
-     *     **Discord & Slack support:** Full
+     *     **Slack support:** Full
      */
     WebhookOrderCreatedPayload: {
       /**
@@ -32317,7 +22432,7 @@ export interface components {
      *
      *     When you receive this event, the order is fully processed and payment has been received.
      *
-     *     **Discord & Slack support:** Full
+     *     **Slack support:** Full
      */
     WebhookOrderPaidPayload: {
       /**
@@ -32337,7 +22452,7 @@ export interface components {
      * WebhookOrderRefundedPayload
      * @description Sent when an order is fully or partially refunded.
      *
-     *     **Discord & Slack support:** Full
+     *     **Slack support:** Full
      */
     WebhookOrderRefundedPayload: {
       /**
@@ -32362,7 +22477,7 @@ export interface components {
      *     * Its status changes, e.g. from `pending` to `paid`.
      *     * It's refunded, partially or fully.
      *
-     *     **Discord & Slack support:** Full
+     *     **Slack support:** Full
      */
     WebhookOrderUpdatedPayload: {
       /**
@@ -32382,7 +22497,7 @@ export interface components {
      * WebhookOrganizationUpdatedPayload
      * @description Sent when a organization is updated.
      *
-     *     **Discord & Slack support:** Basic
+     *     **Slack support:** Basic
      */
     WebhookOrganizationUpdatedPayload: {
       /**
@@ -32402,7 +22517,7 @@ export interface components {
      * WebhookProductCreatedPayload
      * @description Sent when a new product is created.
      *
-     *     **Discord & Slack support:** Basic
+     *     **Slack support:** Basic
      */
     WebhookProductCreatedPayload: {
       /**
@@ -32422,7 +22537,7 @@ export interface components {
      * WebhookProductUpdatedPayload
      * @description Sent when a product is updated.
      *
-     *     **Discord & Slack support:** Basic
+     *     **Slack support:** Basic
      */
     WebhookProductUpdatedPayload: {
       /**
@@ -32442,7 +22557,7 @@ export interface components {
      * WebhookRefundCreatedPayload
      * @description Sent when a refund is created regardless of status.
      *
-     *     **Discord & Slack support:** Full
+     *     **Slack support:** Full
      */
     WebhookRefundCreatedPayload: {
       /**
@@ -32462,7 +22577,7 @@ export interface components {
      * WebhookRefundUpdatedPayload
      * @description Sent when a refund is updated.
      *
-     *     **Discord & Slack support:** Full
+     *     **Slack support:** Full
      */
     WebhookRefundUpdatedPayload: {
       /**
@@ -32483,7 +22598,7 @@ export interface components {
      * @description Sent when a subscription becomes active,
      *     whether because it's a new paid subscription or because payment was recovered.
      *
-     *     **Discord & Slack support:** Full
+     *     **Slack support:** Full
      */
     WebhookSubscriptionActivePayload: {
       /**
@@ -32504,7 +22619,7 @@ export interface components {
      * @description Sent when a subscription is canceled.
      *     Customers might still have access until the end of the current period.
      *
-     *     **Discord & Slack support:** Full
+     *     **Slack support:** Full
      */
     WebhookSubscriptionCanceledPayload: {
       /**
@@ -32526,7 +22641,7 @@ export interface components {
      *
      *     When this event occurs, the subscription `status` might not be `active` yet, as we can still have to wait for the first payment to be processed.
      *
-     *     **Discord & Slack support:** Full
+     *     **Slack support:** Full
      */
     WebhookSubscriptionCreatedPayload: {
       /**
@@ -32547,11 +22662,9 @@ export interface components {
      * @description Sent when a subscription payment fails and the subscription enters `past_due` status.
      *
      *     This is a recoverable state - the customer can update their payment method to restore the subscription.
-     *     Benefits may be revoked depending on the organization's grace period settings.
-     *
      *     If payment retries are exhausted, a `subscription.revoked` event will be sent.
      *
-     *     **Discord & Slack support:** Full
+     *     **Slack support:** Full
      */
     WebhookSubscriptionPastDuePayload: {
       /**
@@ -32574,7 +22687,7 @@ export interface components {
      *
      *     For payment failures that can still be recovered, see `subscription.past_due`.
      *
-     *     **Discord & Slack support:** Full
+     *     **Slack support:** Full
      */
     WebhookSubscriptionRevokedPayload: {
       /**
@@ -32598,7 +22711,7 @@ export interface components {
      *     subscription would renew. During this time, they can change their mind and
      *     undo the cancellation. This event is triggered when they do so.
      *
-     *     **Discord & Slack support:** Full
+     *     **Slack support:** Full
      */
     WebhookSubscriptionUncanceledPayload: {
       /**
@@ -32622,7 +22735,7 @@ export interface components {
      *
      *     To listen specifically for renewals, you can listen to `order.created` events and check the `billing_reason` field.
      *
-     *     **Discord & Slack support:** On cancellation, past due, and revocation. Renewals are skipped.
+     *     **Slack support:** On cancellation, past due, and revocation. Renewals are skipped.
      */
     WebhookSubscriptionUpdatedPayload: {
       /**
@@ -32955,26 +23068,6 @@ export interface operations {
       }
     }
   }
-  'users:create_identity_verification': {
-    parameters: {
-      query?: never
-      header?: never
-      path?: never
-      cookie?: never
-    }
-    requestBody?: never
-    responses: {
-      /** @description Successful Response */
-      200: {
-        headers: {
-          [name: string]: unknown
-        }
-        content: {
-          'application/json': components['schemas']['UserIdentityVerification']
-        }
-      }
-    }
-  }
   'users:disconnect_oauth_account': {
     parameters: {
       query?: never
@@ -33001,645 +23094,6 @@ export interface operations {
         content?: never
       }
       /** @description OAuth account not found */
-      404: {
-        headers: {
-          [name: string]: unknown
-        }
-        content?: never
-      }
-      /** @description Validation Error */
-      422: {
-        headers: {
-          [name: string]: unknown
-        }
-        content: {
-          'application/json': components['schemas']['HTTPValidationError']
-        }
-      }
-    }
-  }
-  'integrations_github_repository_benefit:integrations.github_repository_benefit.user_authorize': {
-    parameters: {
-      query?: {
-        return_to?: string | null
-      }
-      header?: never
-      path?: never
-      cookie?: never
-    }
-    requestBody?: never
-    responses: {
-      /** @description Successful Response */
-      200: {
-        headers: {
-          [name: string]: unknown
-        }
-        content: {
-          'application/json': unknown
-        }
-      }
-      /** @description Validation Error */
-      422: {
-        headers: {
-          [name: string]: unknown
-        }
-        content: {
-          'application/json': components['schemas']['HTTPValidationError']
-        }
-      }
-    }
-  }
-  'integrations_github_repository_benefit:integrations.github_repository_benefit.user_callback': {
-    parameters: {
-      query?: {
-        code?: string | null
-        code_verifier?: string | null
-        state?: string | null
-        error?: string | null
-      }
-      header?: never
-      path?: never
-      cookie?: never
-    }
-    requestBody?: never
-    responses: {
-      /** @description Successful Response */
-      200: {
-        headers: {
-          [name: string]: unknown
-        }
-        content: {
-          'application/json': unknown
-        }
-      }
-      /** @description Validation Error */
-      422: {
-        headers: {
-          [name: string]: unknown
-        }
-        content: {
-          'application/json': components['schemas']['HTTPValidationError']
-        }
-      }
-    }
-  }
-  'integrations_github_repository_benefit:integrations.github_repository_benefit.user_repositories': {
-    parameters: {
-      query?: never
-      header?: never
-      path?: never
-      cookie?: never
-    }
-    requestBody?: never
-    responses: {
-      /** @description Successful Response */
-      200: {
-        headers: {
-          [name: string]: unknown
-        }
-        content: {
-          'application/json': components['schemas']['GitHubInvitesBenefitRepositories']
-        }
-      }
-    }
-  }
-  'integrations_github_repository_benefit:integrations.github_repository_benefit.installation_install': {
-    parameters: {
-      query?: never
-      header?: never
-      path?: never
-      cookie?: never
-    }
-    requestBody?: never
-    responses: {
-      /** @description Successful Response */
-      200: {
-        headers: {
-          [name: string]: unknown
-        }
-        content: {
-          'application/json': unknown
-        }
-      }
-    }
-  }
-  'integrations_github_repository_benefit:integrations.github_repository_benefit.installation_callback': {
-    parameters: {
-      query?: never
-      header?: never
-      path?: never
-      cookie?: never
-    }
-    requestBody?: never
-    responses: {
-      /** @description Successful Response */
-      200: {
-        headers: {
-          [name: string]: unknown
-        }
-        content: {
-          'application/json': unknown
-        }
-      }
-    }
-  }
-  'integrations_discord:integrations.discord.bot_authorize': {
-    parameters: {
-      query?: {
-        return_to?: string | null
-      }
-      header?: never
-      path?: never
-      cookie?: never
-    }
-    requestBody?: never
-    responses: {
-      /** @description Successful Response */
-      200: {
-        headers: {
-          [name: string]: unknown
-        }
-        content: {
-          'application/json': unknown
-        }
-      }
-      /** @description Validation Error */
-      422: {
-        headers: {
-          [name: string]: unknown
-        }
-        content: {
-          'application/json': components['schemas']['HTTPValidationError']
-        }
-      }
-    }
-  }
-  'integrations_discord:integrations.discord.bot_callback': {
-    parameters: {
-      query: {
-        state: string
-        code?: string | null
-        code_verifier?: string | null
-        error?: string | null
-      }
-      header?: never
-      path?: never
-      cookie?: never
-    }
-    requestBody?: never
-    responses: {
-      /** @description Successful Response */
-      200: {
-        headers: {
-          [name: string]: unknown
-        }
-        content: {
-          'application/json': unknown
-        }
-      }
-      /** @description Validation Error */
-      422: {
-        headers: {
-          [name: string]: unknown
-        }
-        content: {
-          'application/json': components['schemas']['HTTPValidationError']
-        }
-      }
-    }
-  }
-  'integrations_discord:discord_guild_lookup': {
-    parameters: {
-      query: {
-        guild_token: string
-      }
-      header?: never
-      path?: never
-      cookie?: never
-    }
-    requestBody?: never
-    responses: {
-      /** @description Successful Response */
-      200: {
-        headers: {
-          [name: string]: unknown
-        }
-        content: {
-          'application/json': components['schemas']['DiscordGuild']
-        }
-      }
-      /** @description Validation Error */
-      422: {
-        headers: {
-          [name: string]: unknown
-        }
-        content: {
-          'application/json': components['schemas']['HTTPValidationError']
-        }
-      }
-    }
-  }
-  'integrations_slack:get_integration': {
-    parameters: {
-      query: {
-        integration_id: string
-      }
-      header?: never
-      path?: never
-      cookie?: never
-    }
-    requestBody?: never
-    responses: {
-      /** @description Successful Response */
-      200: {
-        headers: {
-          [name: string]: unknown
-        }
-        content: {
-          'application/json': components['schemas']['SlackIntegration']
-        }
-      }
-      /** @description No Slack integration configured. */
-      404: {
-        headers: {
-          [name: string]: unknown
-        }
-        content?: never
-      }
-      /** @description Validation Error */
-      422: {
-        headers: {
-          [name: string]: unknown
-        }
-        content: {
-          'application/json': components['schemas']['HTTPValidationError']
-        }
-      }
-    }
-  }
-  'integrations_slack:delete_integration': {
-    parameters: {
-      query: {
-        integration_id: string
-      }
-      header?: never
-      path?: never
-      cookie?: never
-    }
-    requestBody?: never
-    responses: {
-      /** @description Successful Response */
-      204: {
-        headers: {
-          [name: string]: unknown
-        }
-        content?: never
-      }
-      /** @description No Slack integration configured. */
-      404: {
-        headers: {
-          [name: string]: unknown
-        }
-        content?: never
-      }
-      /** @description Validation Error */
-      422: {
-        headers: {
-          [name: string]: unknown
-        }
-        content: {
-          'application/json': components['schemas']['HTTPValidationError']
-        }
-      }
-    }
-  }
-  'integrations_slack:list_workspace_users': {
-    parameters: {
-      query: {
-        integration_id: string
-      }
-      header?: never
-      path?: never
-      cookie?: never
-    }
-    requestBody?: never
-    responses: {
-      /** @description Successful Response */
-      200: {
-        headers: {
-          [name: string]: unknown
-        }
-        content: {
-          'application/json': components['schemas']['SlackWorkspaceUsersResponse']
-        }
-      }
-      /** @description No Slack integration configured. */
-      404: {
-        headers: {
-          [name: string]: unknown
-        }
-        content?: never
-      }
-      /** @description Validation Error */
-      422: {
-        headers: {
-          [name: string]: unknown
-        }
-        content: {
-          'application/json': components['schemas']['HTTPValidationError']
-        }
-      }
-    }
-  }
-  'integrations_slack:post_manifest': {
-    parameters: {
-      query?: never
-      header?: never
-      path?: never
-      cookie?: never
-    }
-    requestBody: {
-      content: {
-        'application/json': components['schemas']['SlackIntegrationManifestRequest']
-      }
-    }
-    responses: {
-      /** @description Successful Response */
-      200: {
-        headers: {
-          [name: string]: unknown
-        }
-        content: {
-          'application/json': components['schemas']['SlackIntegrationManifest']
-        }
-      }
-      /** @description Validation Error */
-      422: {
-        headers: {
-          [name: string]: unknown
-        }
-        content: {
-          'application/json': components['schemas']['HTTPValidationError']
-        }
-      }
-    }
-  }
-  'integrations_slack:post_credentials': {
-    parameters: {
-      query?: never
-      header?: never
-      path?: never
-      cookie?: never
-    }
-    requestBody: {
-      content: {
-        'application/json': components['schemas']['SlackIntegrationCredentialsUpdate']
-      }
-    }
-    responses: {
-      /** @description Successful Response */
-      200: {
-        headers: {
-          [name: string]: unknown
-        }
-        content: {
-          'application/json': components['schemas']['SlackIntegration']
-        }
-      }
-      /** @description No Slack integration configured. */
-      404: {
-        headers: {
-          [name: string]: unknown
-        }
-        content?: never
-      }
-      /** @description Validation Error */
-      422: {
-        headers: {
-          [name: string]: unknown
-        }
-        content: {
-          'application/json': components['schemas']['HTTPValidationError']
-        }
-      }
-    }
-  }
-  'integrations_slack:authorize': {
-    parameters: {
-      query: {
-        integration_id: string
-        return_to?: string | null
-      }
-      header?: never
-      path?: never
-      cookie?: never
-    }
-    requestBody?: never
-    responses: {
-      /** @description Successful Response */
-      200: {
-        headers: {
-          [name: string]: unknown
-        }
-        content: {
-          'application/json': unknown
-        }
-      }
-      /** @description No Slack integration configured. */
-      404: {
-        headers: {
-          [name: string]: unknown
-        }
-        content?: never
-      }
-      /** @description Validation Error */
-      422: {
-        headers: {
-          [name: string]: unknown
-        }
-        content: {
-          'application/json': components['schemas']['HTTPValidationError']
-        }
-      }
-    }
-  }
-  'integrations_slack:integrations.slack.callback': {
-    parameters: {
-      query: {
-        code?: string | null
-        error?: string | null
-        state: string
-      }
-      header?: never
-      path?: never
-      cookie?: never
-    }
-    requestBody?: never
-    responses: {
-      /** @description Successful Response */
-      200: {
-        headers: {
-          [name: string]: unknown
-        }
-        content: {
-          'application/json': unknown
-        }
-      }
-      /** @description Validation Error */
-      422: {
-        headers: {
-          [name: string]: unknown
-        }
-        content: {
-          'application/json': components['schemas']['HTTPValidationError']
-        }
-      }
-    }
-  }
-  'notifications:get': {
-    parameters: {
-      query?: never
-      header?: never
-      path?: never
-      cookie?: never
-    }
-    requestBody?: never
-    responses: {
-      /** @description Successful Response */
-      200: {
-        headers: {
-          [name: string]: unknown
-        }
-        content: {
-          'application/json': components['schemas']['NotificationsList']
-        }
-      }
-    }
-  }
-  'notifications:mark_read': {
-    parameters: {
-      query?: never
-      header?: never
-      path?: never
-      cookie?: never
-    }
-    requestBody: {
-      content: {
-        'application/json': components['schemas']['NotificationsMarkRead']
-      }
-    }
-    responses: {
-      /** @description Successful Response */
-      200: {
-        headers: {
-          [name: string]: unknown
-        }
-        content: {
-          'application/json': unknown
-        }
-      }
-      /** @description Validation Error */
-      422: {
-        headers: {
-          [name: string]: unknown
-        }
-        content: {
-          'application/json': components['schemas']['HTTPValidationError']
-        }
-      }
-    }
-  }
-  'notifications:list': {
-    parameters: {
-      query?: {
-        /** @description Filter by Expo push token. */
-        expo_push_token?: string | null
-        /** @description Filter by platform. */
-        platform?: components['schemas']['NotificationRecipientPlatform'] | null
-        /** @description Page number, defaults to 1. */
-        page?: number
-        /** @description Size of a page, defaults to 10. Maximum is 100. */
-        limit?: number
-      }
-      header?: never
-      path?: never
-      cookie?: never
-    }
-    requestBody?: never
-    responses: {
-      /** @description Successful Response */
-      200: {
-        headers: {
-          [name: string]: unknown
-        }
-        content: {
-          'application/json': components['schemas']['ListResource_NotificationRecipientSchema_']
-        }
-      }
-      /** @description Validation Error */
-      422: {
-        headers: {
-          [name: string]: unknown
-        }
-        content: {
-          'application/json': components['schemas']['HTTPValidationError']
-        }
-      }
-    }
-  }
-  'notifications:create': {
-    parameters: {
-      query?: never
-      header?: never
-      path?: never
-      cookie?: never
-    }
-    requestBody: {
-      content: {
-        'application/json': components['schemas']['NotificationRecipientCreate']
-      }
-    }
-    responses: {
-      /** @description Device subscribed to notifications. */
-      201: {
-        headers: {
-          [name: string]: unknown
-        }
-        content: {
-          'application/json': components['schemas']['NotificationRecipientSchema']
-        }
-      }
-      /** @description Validation Error */
-      422: {
-        headers: {
-          [name: string]: unknown
-        }
-        content: {
-          'application/json': components['schemas']['HTTPValidationError']
-        }
-      }
-    }
-  }
-  'notifications:delete': {
-    parameters: {
-      query?: never
-      header?: never
-      path: {
-        /** @description The notification recipient ID. */
-        id: string
-      }
-      cookie?: never
-    }
-    requestBody?: never
-    responses: {
-      /** @description Notification recipient unsubscribed from notifications. */
-      204: {
-        headers: {
-          [name: string]: unknown
-        }
-        content?: never
-      }
-      /** @description Notification recipient not found. */
       404: {
         headers: {
           [name: string]: unknown
@@ -34196,46 +23650,6 @@ export interface operations {
       }
     }
   }
-  'organizations:submit_review': {
-    parameters: {
-      query?: never
-      header?: never
-      path: {
-        id: string
-      }
-      cookie?: never
-    }
-    requestBody?: never
-    responses: {
-      /** @description Organization submitted for review. */
-      200: {
-        headers: {
-          [name: string]: unknown
-        }
-        content: {
-          'application/json': components['schemas']['Organization']
-        }
-      }
-      /** @description Organization not found. */
-      404: {
-        headers: {
-          [name: string]: unknown
-        }
-        content: {
-          'application/json': components['schemas']['ResourceNotFound']
-        }
-      }
-      /** @description Validation Error */
-      422: {
-        headers: {
-          [name: string]: unknown
-        }
-        content: {
-          'application/json': components['schemas']['HTTPValidationError']
-        }
-      }
-    }
-  }
   'organizations:get_payment_status': {
     parameters: {
       query?: never
@@ -34531,97 +23945,6 @@ export interface operations {
       }
     }
   }
-  'organizations:validate_with_ai': {
-    parameters: {
-      query?: never
-      header?: never
-      path: {
-        id: string
-      }
-      cookie?: never
-    }
-    requestBody?: never
-    responses: {
-      /** @description AI validation status returned. */
-      200: {
-        headers: {
-          [name: string]: unknown
-        }
-        content: {
-          'application/json': components['schemas']['OrganizationReviewStatus']
-        }
-      }
-      /** @description Organization not found. */
-      404: {
-        headers: {
-          [name: string]: unknown
-        }
-        content: {
-          'application/json': components['schemas']['ResourceNotFound']
-        }
-      }
-      /** @description Validation Error */
-      422: {
-        headers: {
-          [name: string]: unknown
-        }
-        content: {
-          'application/json': components['schemas']['HTTPValidationError']
-        }
-      }
-    }
-  }
-  'organizations:submit_appeal': {
-    parameters: {
-      query?: never
-      header?: never
-      path: {
-        id: string
-      }
-      cookie?: never
-    }
-    requestBody: {
-      content: {
-        'application/json': components['schemas']['OrganizationAppealRequest']
-      }
-    }
-    responses: {
-      /** @description Appeal submitted successfully. */
-      200: {
-        headers: {
-          [name: string]: unknown
-        }
-        content: {
-          'application/json': components['schemas']['OrganizationAppealResponse']
-        }
-      }
-      /** @description Invalid appeal request. */
-      400: {
-        headers: {
-          [name: string]: unknown
-        }
-        content?: never
-      }
-      /** @description Organization not found. */
-      404: {
-        headers: {
-          [name: string]: unknown
-        }
-        content: {
-          'application/json': components['schemas']['ResourceNotFound']
-        }
-      }
-      /** @description Validation Error */
-      422: {
-        headers: {
-          [name: string]: unknown
-        }
-        content: {
-          'application/json': components['schemas']['HTTPValidationError']
-        }
-      }
-    }
-  }
   'organizations:mark_ai_onboarding_complete': {
     parameters: {
       query?: never
@@ -34640,86 +23963,6 @@ export interface operations {
         }
         content: {
           'application/json': components['schemas']['Organization']
-        }
-      }
-      /** @description Organization not found. */
-      404: {
-        headers: {
-          [name: string]: unknown
-        }
-        content: {
-          'application/json': components['schemas']['ResourceNotFound']
-        }
-      }
-      /** @description Validation Error */
-      422: {
-        headers: {
-          [name: string]: unknown
-        }
-        content: {
-          'application/json': components['schemas']['HTTPValidationError']
-        }
-      }
-    }
-  }
-  'organizations:get_review_status': {
-    parameters: {
-      query?: never
-      header?: never
-      path: {
-        id: string
-      }
-      cookie?: never
-    }
-    requestBody?: never
-    responses: {
-      /** @description Organization review status retrieved. */
-      200: {
-        headers: {
-          [name: string]: unknown
-        }
-        content: {
-          'application/json': components['schemas']['OrganizationReviewStatus']
-        }
-      }
-      /** @description Organization not found. */
-      404: {
-        headers: {
-          [name: string]: unknown
-        }
-        content: {
-          'application/json': components['schemas']['ResourceNotFound']
-        }
-      }
-      /** @description Validation Error */
-      422: {
-        headers: {
-          [name: string]: unknown
-        }
-        content: {
-          'application/json': components['schemas']['HTTPValidationError']
-        }
-      }
-    }
-  }
-  'organizations:get_review': {
-    parameters: {
-      query?: never
-      header?: never
-      path: {
-        id: string
-      }
-      cookie?: never
-    }
-    requestBody?: never
-    responses: {
-      /** @description Organization self-review checklist returned. */
-      200: {
-        headers: {
-          [name: string]: unknown
-        }
-        content: {
-          'application/json': components['schemas']['OrganizationReviewState']
         }
       }
       /** @description Organization not found. */
@@ -36474,323 +25717,6 @@ export interface operations {
       }
     }
   }
-  'benefits:list': {
-    parameters: {
-      query?: {
-        /** @description Filter by organization ID. */
-        organization_id?: string | string[] | null
-        /** @description Filter by benefit type. */
-        type?:
-          | components['schemas']['BenefitType']
-          | components['schemas']['BenefitType'][]
-          | null
-        /** @description Filter by benefit IDs. */
-        id?: string | string[] | null
-        /** @description Exclude benefits with these IDs. */
-        exclude_id?: string | string[] | null
-        /** @description Filter by description. */
-        query?: string | null
-        /** @description Page number, defaults to 1. */
-        page?: number
-        /** @description Size of a page, defaults to 10. Maximum is 100. */
-        limit?: number
-        /** @description Sorting criterion. Several criteria can be used simultaneously and will be applied in order. Add a minus sign `-` before the criteria name to sort by descending order. */
-        sorting?: components['schemas']['BenefitSortProperty'][] | null
-        /** @description Filter by metadata key-value pairs. It uses the `deepObject` style, e.g. `?metadata[key]=value`. */
-        metadata?: components['schemas']['MetadataQuery']
-      }
-      header?: never
-      path?: never
-      cookie?: never
-    }
-    requestBody?: never
-    responses: {
-      /** @description Successful Response */
-      200: {
-        headers: {
-          [name: string]: unknown
-        }
-        content: {
-          'application/json': components['schemas']['ListResource_Benefit_']
-        }
-      }
-      /** @description Validation Error */
-      422: {
-        headers: {
-          [name: string]: unknown
-        }
-        content: {
-          'application/json': components['schemas']['HTTPValidationError']
-        }
-      }
-    }
-  }
-  'benefits:create': {
-    parameters: {
-      query?: never
-      header?: never
-      path?: never
-      cookie?: never
-    }
-    requestBody: {
-      content: {
-        'application/json': components['schemas']['BenefitCreate']
-      }
-    }
-    responses: {
-      /** @description Benefit created. */
-      201: {
-        headers: {
-          [name: string]: unknown
-        }
-        content: {
-          'application/json': components['schemas']['Benefit']
-        }
-      }
-      /** @description Validation Error */
-      422: {
-        headers: {
-          [name: string]: unknown
-        }
-        content: {
-          'application/json': components['schemas']['HTTPValidationError']
-        }
-      }
-    }
-  }
-  'benefits:get': {
-    parameters: {
-      query?: never
-      header?: never
-      path: {
-        id: string
-      }
-      cookie?: never
-    }
-    requestBody?: never
-    responses: {
-      /** @description Successful Response */
-      200: {
-        headers: {
-          [name: string]: unknown
-        }
-        content: {
-          'application/json': components['schemas']['Benefit']
-        }
-      }
-      /** @description Benefit not found. */
-      404: {
-        headers: {
-          [name: string]: unknown
-        }
-        content: {
-          'application/json': components['schemas']['ResourceNotFound']
-        }
-      }
-      /** @description Validation Error */
-      422: {
-        headers: {
-          [name: string]: unknown
-        }
-        content: {
-          'application/json': components['schemas']['HTTPValidationError']
-        }
-      }
-    }
-  }
-  'benefits:delete': {
-    parameters: {
-      query?: never
-      header?: never
-      path: {
-        id: string
-      }
-      cookie?: never
-    }
-    requestBody?: never
-    responses: {
-      /** @description Benefit deleted. */
-      204: {
-        headers: {
-          [name: string]: unknown
-        }
-        content?: never
-      }
-      /** @description This benefit is not deletable. */
-      403: {
-        headers: {
-          [name: string]: unknown
-        }
-        content: {
-          'application/json': components['schemas']['NotPermitted']
-        }
-      }
-      /** @description Benefit not found. */
-      404: {
-        headers: {
-          [name: string]: unknown
-        }
-        content: {
-          'application/json': components['schemas']['ResourceNotFound']
-        }
-      }
-      /** @description Validation Error */
-      422: {
-        headers: {
-          [name: string]: unknown
-        }
-        content: {
-          'application/json': components['schemas']['HTTPValidationError']
-        }
-      }
-    }
-  }
-  'benefits:update': {
-    parameters: {
-      query?: never
-      header?: never
-      path: {
-        id: string
-      }
-      cookie?: never
-    }
-    requestBody: {
-      content: {
-        'application/json':
-          | components['schemas']['BenefitCustomUpdate']
-          | components['schemas']['BenefitDiscordUpdate']
-          | components['schemas']['BenefitGitHubRepositoryUpdate']
-          | components['schemas']['BenefitDownloadablesUpdate']
-          | components['schemas']['BenefitLicenseKeysUpdate']
-          | components['schemas']['BenefitMeterCreditUpdate']
-          | components['schemas']['BenefitFeatureFlagUpdate']
-      }
-    }
-    responses: {
-      /** @description Benefit updated. */
-      200: {
-        headers: {
-          [name: string]: unknown
-        }
-        content: {
-          'application/json': components['schemas']['Benefit']
-        }
-      }
-      /** @description Benefit not found. */
-      404: {
-        headers: {
-          [name: string]: unknown
-        }
-        content: {
-          'application/json': components['schemas']['ResourceNotFound']
-        }
-      }
-      /** @description Validation Error */
-      422: {
-        headers: {
-          [name: string]: unknown
-        }
-        content: {
-          'application/json': components['schemas']['HTTPValidationError']
-        }
-      }
-    }
-  }
-  'benefits:grants': {
-    parameters: {
-      query?: {
-        /** @description Filter by granted status. If `true`, only granted benefits will be returned. If `false`, only revoked benefits will be returned. */
-        is_granted?: boolean | null
-        /** @description Filter by customer. */
-        customer_id?: string | string[] | null
-        /** @description Filter by member. */
-        member_id?: string | string[] | null
-        /** @description Page number, defaults to 1. */
-        page?: number
-        /** @description Size of a page, defaults to 10. Maximum is 100. */
-        limit?: number
-      }
-      header?: never
-      path: {
-        id: string
-      }
-      cookie?: never
-    }
-    requestBody?: never
-    responses: {
-      /** @description Successful Response */
-      200: {
-        headers: {
-          [name: string]: unknown
-        }
-        content: {
-          'application/json': components['schemas']['ListResource_BenefitGrant_']
-        }
-      }
-      /** @description Benefit not found. */
-      404: {
-        headers: {
-          [name: string]: unknown
-        }
-        content: {
-          'application/json': components['schemas']['ResourceNotFound']
-        }
-      }
-      /** @description Validation Error */
-      422: {
-        headers: {
-          [name: string]: unknown
-        }
-        content: {
-          'application/json': components['schemas']['HTTPValidationError']
-        }
-      }
-    }
-  }
-  'benefit-grants:list': {
-    parameters: {
-      query?: {
-        /** @description Filter by organization ID. */
-        organization_id?: string | string[] | null
-        /** @description Filter by customer ID. */
-        customer_id?: string | string[] | null
-        /** @description Filter by customer external ID. */
-        external_customer_id?: string | string[] | null
-        /** @description Filter by granted status. If `true`, only granted benefits will be returned. If `false`, only revoked benefits will be returned. */
-        is_granted?: boolean | null
-        /** @description Page number, defaults to 1. */
-        page?: number
-        /** @description Size of a page, defaults to 10. Maximum is 100. */
-        limit?: number
-        /** @description Sorting criterion. Several criteria can be used simultaneously and will be applied in order. Add a minus sign `-` before the criteria name to sort by descending order. */
-        sorting?: components['schemas']['BenefitGrantSortProperty'][] | null
-      }
-      header?: never
-      path?: never
-      cookie?: never
-    }
-    requestBody?: never
-    responses: {
-      /** @description Successful Response */
-      200: {
-        headers: {
-          [name: string]: unknown
-        }
-        content: {
-          'application/json': components['schemas']['ListResource_BenefitGrant_']
-        }
-      }
-      /** @description Validation Error */
-      422: {
-        headers: {
-          [name: string]: unknown
-        }
-        content: {
-          'application/json': components['schemas']['HTTPValidationError']
-        }
-      }
-    }
-  }
   'webhooks:list_webhook_endpoints': {
     parameters: {
       query?: {
@@ -37131,8 +26057,6 @@ export interface operations {
         is_archived?: boolean | null
         /** @description Filter on recurring products. If `true`, only subscriptions tiers are returned. If `false`, only one-time purchase products are returned. */
         is_recurring?: boolean | null
-        /** @description Filter products granting specific benefit. */
-        benefit_id?: string | string[] | null
         /** @description Filter by visibility. */
         visibility?: components['schemas']['ProductVisibility'][] | null
         /** @description Page number, defaults to 1. */
@@ -37259,59 +26183,6 @@ export interface operations {
     }
     responses: {
       /** @description Product updated. */
-      200: {
-        headers: {
-          [name: string]: unknown
-        }
-        content: {
-          'application/json': components['schemas']['Product']
-        }
-      }
-      /** @description You don't have the permission to update this product. */
-      403: {
-        headers: {
-          [name: string]: unknown
-        }
-        content: {
-          'application/json': components['schemas']['NotPermitted']
-        }
-      }
-      /** @description Product not found. */
-      404: {
-        headers: {
-          [name: string]: unknown
-        }
-        content: {
-          'application/json': components['schemas']['ResourceNotFound']
-        }
-      }
-      /** @description Validation Error */
-      422: {
-        headers: {
-          [name: string]: unknown
-        }
-        content: {
-          'application/json': components['schemas']['HTTPValidationError']
-        }
-      }
-    }
-  }
-  'products:update_benefits': {
-    parameters: {
-      query?: never
-      header?: never
-      path: {
-        id: string
-      }
-      cookie?: never
-    }
-    requestBody: {
-      content: {
-        'application/json': components['schemas']['ProductBenefitsUpdate']
-      }
-    }
-    responses: {
-      /** @description Product benefits updated. */
       200: {
         headers: {
           [name: string]: unknown
@@ -37636,129 +26507,6 @@ export interface operations {
       }
     }
   }
-  'orders:invoice': {
-    parameters: {
-      query?: never
-      header?: never
-      path: {
-        /** @description The order ID. */
-        id: string
-      }
-      cookie?: never
-    }
-    requestBody?: never
-    responses: {
-      /** @description Successful Response */
-      200: {
-        headers: {
-          [name: string]: unknown
-        }
-        content: {
-          'application/json': components['schemas']['OrderInvoice']
-        }
-      }
-      /** @description Order not found. */
-      404: {
-        headers: {
-          [name: string]: unknown
-        }
-        content: {
-          'application/json': components['schemas']['ResourceNotFound']
-        }
-      }
-      /** @description Validation Error */
-      422: {
-        headers: {
-          [name: string]: unknown
-        }
-        content: {
-          'application/json': components['schemas']['HTTPValidationError']
-        }
-      }
-    }
-  }
-  'orders:generate_invoice': {
-    parameters: {
-      query?: never
-      header?: never
-      path: {
-        /** @description The order ID. */
-        id: string
-      }
-      cookie?: never
-    }
-    requestBody?: never
-    responses: {
-      /** @description Successful Response */
-      202: {
-        headers: {
-          [name: string]: unknown
-        }
-        content: {
-          'application/json': unknown
-        }
-      }
-      /** @description Order is not paid or is missing billing name or address. */
-      422: {
-        headers: {
-          [name: string]: unknown
-        }
-        content: {
-          'application/json':
-            | components['schemas']['MissingInvoiceBillingDetails']
-            | components['schemas']['NotPaidOrder']
-        }
-      }
-    }
-  }
-  'orders:receipt': {
-    parameters: {
-      query?: never
-      header?: never
-      path: {
-        /** @description The order ID. */
-        id: string
-      }
-      cookie?: never
-    }
-    requestBody?: never
-    responses: {
-      /** @description Successful Response */
-      200: {
-        headers: {
-          [name: string]: unknown
-        }
-        content: {
-          'application/json': components['schemas']['OrderReceipt']
-        }
-      }
-      /** @description Receipt generation in progress. */
-      202: {
-        headers: {
-          [name: string]: unknown
-        }
-        content?: never
-      }
-      /** @description Order not found. */
-      404: {
-        headers: {
-          [name: string]: unknown
-        }
-        content: {
-          'application/json': components['schemas']['ResourceNotFound']
-        }
-      }
-      /** @description Validation Error */
-      422: {
-        headers: {
-          [name: string]: unknown
-        }
-        content: {
-          'application/json': components['schemas']['HTTPValidationError']
-        }
-      }
-    }
-  }
   'refunds:list': {
     parameters: {
       query?: {
@@ -37838,92 +26586,6 @@ export interface operations {
         }
         content: {
           'application/json': components['schemas']['RefundedAlready']
-        }
-      }
-      /** @description Validation Error */
-      422: {
-        headers: {
-          [name: string]: unknown
-        }
-        content: {
-          'application/json': components['schemas']['HTTPValidationError']
-        }
-      }
-    }
-  }
-  'disputes:list': {
-    parameters: {
-      query?: {
-        /** @description Filter by organization ID. */
-        organization_id?: string | string[] | null
-        /** @description Filter by order ID. */
-        order_id?: string | string[] | null
-        /** @description Filter by dispute status. */
-        status?:
-          | components['schemas']['DisputeStatus']
-          | components['schemas']['DisputeStatus'][]
-          | null
-        /** @description Page number, defaults to 1. */
-        page?: number
-        /** @description Size of a page, defaults to 10. Maximum is 100. */
-        limit?: number
-        /** @description Sorting criterion. Several criteria can be used simultaneously and will be applied in order. Add a minus sign `-` before the criteria name to sort by descending order. */
-        sorting?: components['schemas']['DisputeSortProperty'][] | null
-      }
-      header?: never
-      path?: never
-      cookie?: never
-    }
-    requestBody?: never
-    responses: {
-      /** @description Successful Response */
-      200: {
-        headers: {
-          [name: string]: unknown
-        }
-        content: {
-          'application/json': components['schemas']['ListResource_Dispute_']
-        }
-      }
-      /** @description Validation Error */
-      422: {
-        headers: {
-          [name: string]: unknown
-        }
-        content: {
-          'application/json': components['schemas']['HTTPValidationError']
-        }
-      }
-    }
-  }
-  'disputes:get': {
-    parameters: {
-      query?: never
-      header?: never
-      path: {
-        /** @description The dispute ID. */
-        id: string
-      }
-      cookie?: never
-    }
-    requestBody?: never
-    responses: {
-      /** @description Successful Response */
-      200: {
-        headers: {
-          [name: string]: unknown
-        }
-        content: {
-          'application/json': components['schemas']['Dispute']
-        }
-      }
-      /** @description Dispute not found. */
-      404: {
-        headers: {
-          [name: string]: unknown
-        }
-        content: {
-          'application/json': components['schemas']['ResourceNotFound']
         }
       }
       /** @description Validation Error */
@@ -38241,7 +26903,7 @@ export interface operations {
     }
     requestBody: {
       content: {
-        'application/json': components['schemas']['CheckoutConfirmStripe']
+        'application/json': components['schemas']['CheckoutConfirm']
       }
     }
     responses: {
@@ -38319,238 +26981,6 @@ export interface operations {
         }
         content: {
           'application/json': unknown
-        }
-      }
-      /** @description Validation Error */
-      422: {
-        headers: {
-          [name: string]: unknown
-        }
-        content: {
-          'application/json': components['schemas']['HTTPValidationError']
-        }
-      }
-    }
-  }
-  'files:list': {
-    parameters: {
-      query?: {
-        /** @description Filter by organization ID. */
-        organization_id?: string | string[] | null
-        /** @description Filter by file ID. */
-        ids?: string | string[] | null
-        /** @description Page number, defaults to 1. */
-        page?: number
-        /** @description Size of a page, defaults to 10. Maximum is 100. */
-        limit?: number
-      }
-      header?: never
-      path?: never
-      cookie?: never
-    }
-    requestBody?: never
-    responses: {
-      /** @description Successful Response */
-      200: {
-        headers: {
-          [name: string]: unknown
-        }
-        content: {
-          'application/json': components['schemas']['ListResource_FileRead_']
-        }
-      }
-      /** @description Validation Error */
-      422: {
-        headers: {
-          [name: string]: unknown
-        }
-        content: {
-          'application/json': components['schemas']['HTTPValidationError']
-        }
-      }
-    }
-  }
-  'files:create': {
-    parameters: {
-      query?: never
-      header?: never
-      path?: never
-      cookie?: never
-    }
-    requestBody: {
-      content: {
-        'application/json': components['schemas']['FileCreate']
-      }
-    }
-    responses: {
-      /** @description File created. */
-      201: {
-        headers: {
-          [name: string]: unknown
-        }
-        content: {
-          'application/json': components['schemas']['FileUpload']
-        }
-      }
-      /** @description Validation Error */
-      422: {
-        headers: {
-          [name: string]: unknown
-        }
-        content: {
-          'application/json': components['schemas']['HTTPValidationError']
-        }
-      }
-    }
-  }
-  'files:uploaded': {
-    parameters: {
-      query?: never
-      header?: never
-      path: {
-        /** @description The file ID. */
-        id: string
-      }
-      cookie?: never
-    }
-    requestBody: {
-      content: {
-        'application/json': components['schemas']['FileUploadCompleted']
-      }
-    }
-    responses: {
-      /** @description File upload completed. */
-      200: {
-        headers: {
-          [name: string]: unknown
-        }
-        content: {
-          'application/json':
-            | components['schemas']['DownloadableFileRead']
-            | components['schemas']['ProductMediaFileRead']
-            | components['schemas']['OrganizationAvatarFileRead']
-        }
-      }
-      /** @description You don't have the permission to update this file. */
-      403: {
-        headers: {
-          [name: string]: unknown
-        }
-        content: {
-          'application/json': components['schemas']['NotPermitted']
-        }
-      }
-      /** @description File not found. */
-      404: {
-        headers: {
-          [name: string]: unknown
-        }
-        content: {
-          'application/json': components['schemas']['ResourceNotFound']
-        }
-      }
-      /** @description Validation Error */
-      422: {
-        headers: {
-          [name: string]: unknown
-        }
-        content: {
-          'application/json': components['schemas']['HTTPValidationError']
-        }
-      }
-    }
-  }
-  'files:delete': {
-    parameters: {
-      query?: never
-      header?: never
-      path: {
-        id: string
-      }
-      cookie?: never
-    }
-    requestBody?: never
-    responses: {
-      /** @description File deleted. */
-      204: {
-        headers: {
-          [name: string]: unknown
-        }
-        content?: never
-      }
-      /** @description You don't have the permission to delete this file. */
-      403: {
-        headers: {
-          [name: string]: unknown
-        }
-        content: {
-          'application/json': components['schemas']['NotPermitted']
-        }
-      }
-      /** @description File not found. */
-      404: {
-        headers: {
-          [name: string]: unknown
-        }
-        content: {
-          'application/json': components['schemas']['ResourceNotFound']
-        }
-      }
-      /** @description Validation Error */
-      422: {
-        headers: {
-          [name: string]: unknown
-        }
-        content: {
-          'application/json': components['schemas']['HTTPValidationError']
-        }
-      }
-    }
-  }
-  'files:update': {
-    parameters: {
-      query?: never
-      header?: never
-      path: {
-        /** @description The file ID. */
-        id: string
-      }
-      cookie?: never
-    }
-    requestBody: {
-      content: {
-        'application/json': components['schemas']['FilePatch']
-      }
-    }
-    responses: {
-      /** @description File updated. */
-      200: {
-        headers: {
-          [name: string]: unknown
-        }
-        content: {
-          'application/json':
-            | components['schemas']['DownloadableFileRead']
-            | components['schemas']['ProductMediaFileRead']
-            | components['schemas']['OrganizationAvatarFileRead']
-        }
-      }
-      /** @description You don't have the permission to update this file. */
-      403: {
-        headers: {
-          [name: string]: unknown
-        }
-        content: {
-          'application/json': components['schemas']['NotPermitted']
-        }
-      }
-      /** @description File not found. */
-      404: {
-        headers: {
-          [name: string]: unknown
-        }
-        content: {
-          'application/json': components['schemas']['ResourceNotFound']
         }
       }
       /** @description Validation Error */
@@ -40046,352 +28476,6 @@ export interface operations {
       }
     }
   }
-  'license_keys:list': {
-    parameters: {
-      query?: {
-        /** @description Filter by organization ID. */
-        organization_id?: string | string[] | null
-        /** @description Filter by benefit ID. */
-        benefit_id?: string | string[] | null
-        /** @description Filter by license key status. */
-        status?:
-          | components['schemas']['LicenseKeyStatus']
-          | components['schemas']['LicenseKeyStatus'][]
-          | null
-        /** @description Page number, defaults to 1. */
-        page?: number
-        /** @description Size of a page, defaults to 10. Maximum is 100. */
-        limit?: number
-      }
-      header?: never
-      path?: never
-      cookie?: never
-    }
-    requestBody?: never
-    responses: {
-      /** @description Successful Response */
-      200: {
-        headers: {
-          [name: string]: unknown
-        }
-        content: {
-          'application/json': components['schemas']['ListResource_LicenseKeyRead_']
-        }
-      }
-      /** @description Not authorized to manage license key. */
-      401: {
-        headers: {
-          [name: string]: unknown
-        }
-        content: {
-          'application/json': components['schemas']['Unauthorized']
-        }
-      }
-      /** @description License key not found. */
-      404: {
-        headers: {
-          [name: string]: unknown
-        }
-        content: {
-          'application/json': components['schemas']['ResourceNotFound']
-        }
-      }
-      /** @description Validation Error */
-      422: {
-        headers: {
-          [name: string]: unknown
-        }
-        content: {
-          'application/json': components['schemas']['HTTPValidationError']
-        }
-      }
-    }
-  }
-  'license_keys:get': {
-    parameters: {
-      query?: never
-      header?: never
-      path: {
-        id: string
-      }
-      cookie?: never
-    }
-    requestBody?: never
-    responses: {
-      /** @description Successful Response */
-      200: {
-        headers: {
-          [name: string]: unknown
-        }
-        content: {
-          'application/json': components['schemas']['LicenseKeyWithActivations']
-        }
-      }
-      /** @description Not authorized to manage license key. */
-      401: {
-        headers: {
-          [name: string]: unknown
-        }
-        content: {
-          'application/json': components['schemas']['Unauthorized']
-        }
-      }
-      /** @description License key not found. */
-      404: {
-        headers: {
-          [name: string]: unknown
-        }
-        content: {
-          'application/json': components['schemas']['ResourceNotFound']
-        }
-      }
-      /** @description Validation Error */
-      422: {
-        headers: {
-          [name: string]: unknown
-        }
-        content: {
-          'application/json': components['schemas']['HTTPValidationError']
-        }
-      }
-    }
-  }
-  'license_keys:update': {
-    parameters: {
-      query?: never
-      header?: never
-      path: {
-        id: string
-      }
-      cookie?: never
-    }
-    requestBody: {
-      content: {
-        'application/json': components['schemas']['LicenseKeyUpdate']
-      }
-    }
-    responses: {
-      /** @description Successful Response */
-      200: {
-        headers: {
-          [name: string]: unknown
-        }
-        content: {
-          'application/json': components['schemas']['LicenseKeyRead']
-        }
-      }
-      /** @description Not authorized to manage license key. */
-      401: {
-        headers: {
-          [name: string]: unknown
-        }
-        content: {
-          'application/json': components['schemas']['Unauthorized']
-        }
-      }
-      /** @description License key not found. */
-      404: {
-        headers: {
-          [name: string]: unknown
-        }
-        content: {
-          'application/json': components['schemas']['ResourceNotFound']
-        }
-      }
-      /** @description Validation Error */
-      422: {
-        headers: {
-          [name: string]: unknown
-        }
-        content: {
-          'application/json': components['schemas']['HTTPValidationError']
-        }
-      }
-    }
-  }
-  'license_keys:get_activation': {
-    parameters: {
-      query?: never
-      header?: never
-      path: {
-        id: string
-        activation_id: string
-      }
-      cookie?: never
-    }
-    requestBody?: never
-    responses: {
-      /** @description Successful Response */
-      200: {
-        headers: {
-          [name: string]: unknown
-        }
-        content: {
-          'application/json': components['schemas']['LicenseKeyActivationRead']
-        }
-      }
-      /** @description Not authorized to manage license key. */
-      401: {
-        headers: {
-          [name: string]: unknown
-        }
-        content: {
-          'application/json': components['schemas']['Unauthorized']
-        }
-      }
-      /** @description License key not found. */
-      404: {
-        headers: {
-          [name: string]: unknown
-        }
-        content: {
-          'application/json': components['schemas']['ResourceNotFound']
-        }
-      }
-      /** @description Validation Error */
-      422: {
-        headers: {
-          [name: string]: unknown
-        }
-        content: {
-          'application/json': components['schemas']['HTTPValidationError']
-        }
-      }
-    }
-  }
-  'license_keys:validate': {
-    parameters: {
-      query?: never
-      header?: never
-      path?: never
-      cookie?: never
-    }
-    requestBody: {
-      content: {
-        'application/json': components['schemas']['LicenseKeyValidate']
-      }
-    }
-    responses: {
-      /** @description Successful Response */
-      200: {
-        headers: {
-          [name: string]: unknown
-        }
-        content: {
-          'application/json': components['schemas']['ValidatedLicenseKey']
-        }
-      }
-      /** @description License key not found. */
-      404: {
-        headers: {
-          [name: string]: unknown
-        }
-        content: {
-          'application/json': components['schemas']['ResourceNotFound']
-        }
-      }
-      /** @description Validation Error */
-      422: {
-        headers: {
-          [name: string]: unknown
-        }
-        content: {
-          'application/json': components['schemas']['HTTPValidationError']
-        }
-      }
-    }
-  }
-  'license_keys:activate': {
-    parameters: {
-      query?: never
-      header?: never
-      path?: never
-      cookie?: never
-    }
-    requestBody: {
-      content: {
-        'application/json': components['schemas']['LicenseKeyActivate']
-      }
-    }
-    responses: {
-      /** @description Successful Response */
-      200: {
-        headers: {
-          [name: string]: unknown
-        }
-        content: {
-          'application/json': components['schemas']['LicenseKeyActivationRead']
-        }
-      }
-      /** @description License key activation not supported or limit reached. Use /validate endpoint for licenses without activations. */
-      403: {
-        headers: {
-          [name: string]: unknown
-        }
-        content: {
-          'application/json': components['schemas']['NotPermitted']
-        }
-      }
-      /** @description License key not found. */
-      404: {
-        headers: {
-          [name: string]: unknown
-        }
-        content: {
-          'application/json': components['schemas']['ResourceNotFound']
-        }
-      }
-      /** @description Validation Error */
-      422: {
-        headers: {
-          [name: string]: unknown
-        }
-        content: {
-          'application/json': components['schemas']['HTTPValidationError']
-        }
-      }
-    }
-  }
-  'license_keys:deactivate': {
-    parameters: {
-      query?: never
-      header?: never
-      path?: never
-      cookie?: never
-    }
-    requestBody: {
-      content: {
-        'application/json': components['schemas']['LicenseKeyDeactivate']
-      }
-    }
-    responses: {
-      /** @description License key activation deactivated. */
-      204: {
-        headers: {
-          [name: string]: unknown
-        }
-        content?: never
-      }
-      /** @description License key not found. */
-      404: {
-        headers: {
-          [name: string]: unknown
-        }
-        content: {
-          'application/json': components['schemas']['ResourceNotFound']
-        }
-      }
-      /** @description Validation Error */
-      422: {
-        headers: {
-          [name: string]: unknown
-        }
-        content: {
-          'application/json': components['schemas']['HTTPValidationError']
-        }
-      }
-    }
-  }
   'checkout-links:list': {
     parameters: {
       query?: {
@@ -41147,7 +29231,7 @@ export interface operations {
   'customers:delete': {
     parameters: {
       query?: {
-        /** @description If true, also anonymize the customer's personal data for GDPR compliance. This replaces email with a hashed version, hashes name and billing name (name preserved for businesses with tax_id), clears billing address, and removes OAuth account data. */
+        /** @description If true, also anonymize the customer's personal data for GDPR compliance. This replaces email with a hashed version, hashes name and billing name, clears billing address, and removes OAuth account data. */
         anonymize?: boolean
       }
       header?: never
@@ -41886,156 +29970,6 @@ export interface operations {
       }
     }
   }
-  'customer_portal:benefit-grants:list': {
-    parameters: {
-      query?: {
-        /** @description Filter by benefit description. */
-        query?: string | null
-        /** @description Filter by benefit type. */
-        type?:
-          | components['schemas']['BenefitType']
-          | components['schemas']['BenefitType'][]
-          | null
-        /** @description Filter by benefit ID. */
-        benefit_id?: string | string[] | null
-        /** @description Filter by checkout ID. */
-        checkout_id?: string | string[] | null
-        /** @description Filter by order ID. */
-        order_id?: string | string[] | null
-        /** @description Filter by subscription ID. */
-        subscription_id?: string | string[] | null
-        /** @description Filter by member ID. */
-        member_id?: string | string[] | null
-        /** @description Page number, defaults to 1. */
-        page?: number
-        /** @description Size of a page, defaults to 10. Maximum is 100. */
-        limit?: number
-        /** @description Sorting criterion. Several criteria can be used simultaneously and will be applied in order. Add a minus sign `-` before the criteria name to sort by descending order. */
-        sorting?:
-          | components['schemas']['CustomerBenefitGrantSortProperty'][]
-          | null
-      }
-      header?: never
-      path?: never
-      cookie?: never
-    }
-    requestBody?: never
-    responses: {
-      /** @description Successful Response */
-      200: {
-        headers: {
-          [name: string]: unknown
-        }
-        content: {
-          'application/json': components['schemas']['ListResource_CustomerBenefitGrant_']
-        }
-      }
-      /** @description Validation Error */
-      422: {
-        headers: {
-          [name: string]: unknown
-        }
-        content: {
-          'application/json': components['schemas']['HTTPValidationError']
-        }
-      }
-    }
-  }
-  'customer_portal:benefit-grants:get': {
-    parameters: {
-      query?: never
-      header?: never
-      path: {
-        /** @description The benefit grant ID. */
-        id: string
-      }
-      cookie?: never
-    }
-    requestBody?: never
-    responses: {
-      /** @description Successful Response */
-      200: {
-        headers: {
-          [name: string]: unknown
-        }
-        content: {
-          'application/json': components['schemas']['CustomerBenefitGrant']
-        }
-      }
-      /** @description Benefit grant not found. */
-      404: {
-        headers: {
-          [name: string]: unknown
-        }
-        content: {
-          'application/json': components['schemas']['ResourceNotFound']
-        }
-      }
-      /** @description Validation Error */
-      422: {
-        headers: {
-          [name: string]: unknown
-        }
-        content: {
-          'application/json': components['schemas']['HTTPValidationError']
-        }
-      }
-    }
-  }
-  'customer_portal:benefit-grants:update': {
-    parameters: {
-      query?: never
-      header?: never
-      path: {
-        /** @description The benefit grant ID. */
-        id: string
-      }
-      cookie?: never
-    }
-    requestBody: {
-      content: {
-        'application/json': components['schemas']['CustomerBenefitGrantUpdate']
-      }
-    }
-    responses: {
-      /** @description Benefit grant updated. */
-      200: {
-        headers: {
-          [name: string]: unknown
-        }
-        content: {
-          'application/json': components['schemas']['CustomerBenefitGrant']
-        }
-      }
-      /** @description The benefit grant is revoked and cannot be updated. */
-      403: {
-        headers: {
-          [name: string]: unknown
-        }
-        content: {
-          'application/json': components['schemas']['NotPermitted']
-        }
-      }
-      /** @description Benefit grant not found. */
-      404: {
-        headers: {
-          [name: string]: unknown
-        }
-        content: {
-          'application/json': components['schemas']['ResourceNotFound']
-        }
-      }
-      /** @description Validation Error */
-      422: {
-        headers: {
-          [name: string]: unknown
-        }
-        content: {
-          'application/json': components['schemas']['HTTPValidationError']
-        }
-      }
-    }
-  }
   'customer_portal:customers:get': {
     parameters: {
       query?: never
@@ -42105,171 +30039,6 @@ export interface operations {
         }
         content: {
           'application/json': Record<string, never>
-        }
-      }
-    }
-  }
-  'customer_portal:customers:list_payment_methods': {
-    parameters: {
-      query?: {
-        /** @description Page number, defaults to 1. */
-        page?: number
-        /** @description Size of a page, defaults to 10. Maximum is 100. */
-        limit?: number
-      }
-      header?: never
-      path?: never
-      cookie?: never
-    }
-    requestBody?: never
-    responses: {
-      /** @description Successful Response */
-      200: {
-        headers: {
-          [name: string]: unknown
-        }
-        content: {
-          'application/json': components['schemas']['ListResource_CustomerPaymentMethod_']
-        }
-      }
-      /** @description Validation Error */
-      422: {
-        headers: {
-          [name: string]: unknown
-        }
-        content: {
-          'application/json': components['schemas']['HTTPValidationError']
-        }
-      }
-    }
-  }
-  'customer_portal:customers:add_payment_method': {
-    parameters: {
-      query?: never
-      header?: never
-      path?: never
-      cookie?: never
-    }
-    requestBody: {
-      content: {
-        'application/json': components['schemas']['CustomerPaymentMethodCreate']
-      }
-    }
-    responses: {
-      /** @description Payment method created or setup initiated. */
-      201: {
-        headers: {
-          [name: string]: unknown
-        }
-        content: {
-          'application/json': components['schemas']['CustomerPaymentMethodCreateResponse']
-        }
-      }
-      /** @description The card was declined while setting up the payment method. */
-      400: {
-        headers: {
-          [name: string]: unknown
-        }
-        content: {
-          'application/json': components['schemas']['PaymentMethodSetupFailed']
-        }
-      }
-      /** @description Validation Error */
-      422: {
-        headers: {
-          [name: string]: unknown
-        }
-        content: {
-          'application/json': components['schemas']['HTTPValidationError']
-        }
-      }
-    }
-  }
-  'customer_portal:customers:confirm_payment_method': {
-    parameters: {
-      query?: never
-      header?: never
-      path?: never
-      cookie?: never
-    }
-    requestBody: {
-      content: {
-        'application/json': components['schemas']['CustomerPaymentMethodConfirm']
-      }
-    }
-    responses: {
-      /** @description Payment method created or setup initiated. */
-      201: {
-        headers: {
-          [name: string]: unknown
-        }
-        content: {
-          'application/json': components['schemas']['CustomerPaymentMethodCreateResponse']
-        }
-      }
-      /** @description Customer is not ready to confirm a payment method. */
-      400: {
-        headers: {
-          [name: string]: unknown
-        }
-        content: {
-          'application/json': components['schemas']['CustomerNotReady']
-        }
-      }
-      /** @description Validation Error */
-      422: {
-        headers: {
-          [name: string]: unknown
-        }
-        content: {
-          'application/json': components['schemas']['HTTPValidationError']
-        }
-      }
-    }
-  }
-  'customer_portal:customers:delete_payment_method': {
-    parameters: {
-      query?: never
-      header?: never
-      path: {
-        id: string
-      }
-      cookie?: never
-    }
-    requestBody?: never
-    responses: {
-      /** @description Payment method deleted. */
-      204: {
-        headers: {
-          [name: string]: unknown
-        }
-        content?: never
-      }
-      /** @description Payment method is used by active subscription(s). */
-      400: {
-        headers: {
-          [name: string]: unknown
-        }
-        content: {
-          'application/json': components['schemas']['PaymentMethodInUseByActiveSubscription']
-        }
-      }
-      /** @description Payment method not found. */
-      404: {
-        headers: {
-          [name: string]: unknown
-        }
-        content: {
-          'application/json': components['schemas']['ResourceNotFound']
-        }
-      }
-      /** @description Validation Error */
-      422: {
-        headers: {
-          [name: string]: unknown
-        }
-        content: {
-          'application/json': components['schemas']['HTTPValidationError']
         }
       }
     }
@@ -42378,357 +30147,6 @@ export interface operations {
           [name: string]: unknown
         }
         content?: never
-      }
-    }
-  }
-  'customer_portal:customer_meters:list': {
-    parameters: {
-      query?: {
-        /** @description Filter by meter ID. */
-        meter_id?: string | string[] | null
-        /** @description Filter by meter name. */
-        query?: string | null
-        /** @description Page number, defaults to 1. */
-        page?: number
-        /** @description Size of a page, defaults to 10. Maximum is 100. */
-        limit?: number
-        /** @description Sorting criterion. Several criteria can be used simultaneously and will be applied in order. Add a minus sign `-` before the criteria name to sort by descending order. */
-        sorting?:
-          | components['schemas']['CustomerCustomerMeterSortProperty'][]
-          | null
-      }
-      header?: never
-      path?: never
-      cookie?: never
-    }
-    requestBody?: never
-    responses: {
-      /** @description Successful Response */
-      200: {
-        headers: {
-          [name: string]: unknown
-        }
-        content: {
-          'application/json': components['schemas']['ListResource_CustomerCustomerMeter_']
-        }
-      }
-      /** @description Validation Error */
-      422: {
-        headers: {
-          [name: string]: unknown
-        }
-        content: {
-          'application/json': components['schemas']['HTTPValidationError']
-        }
-      }
-    }
-  }
-  'customer_portal:customer_meters:get': {
-    parameters: {
-      query?: never
-      header?: never
-      path: {
-        /** @description The customer meter ID. */
-        id: string
-      }
-      cookie?: never
-    }
-    requestBody?: never
-    responses: {
-      /** @description Successful Response */
-      200: {
-        headers: {
-          [name: string]: unknown
-        }
-        content: {
-          'application/json': components['schemas']['CustomerCustomerMeter']
-        }
-      }
-      /** @description Customer meter not found. */
-      404: {
-        headers: {
-          [name: string]: unknown
-        }
-        content: {
-          'application/json': components['schemas']['ResourceNotFound']
-        }
-      }
-      /** @description Validation Error */
-      422: {
-        headers: {
-          [name: string]: unknown
-        }
-        content: {
-          'application/json': components['schemas']['HTTPValidationError']
-        }
-      }
-    }
-  }
-  'customer_portal:seats:list_seats': {
-    parameters: {
-      query?: {
-        /** @description Subscription ID */
-        subscription_id?: string | null
-        /** @description Order ID */
-        order_id?: string | null
-      }
-      header?: never
-      path?: never
-      cookie?: never
-    }
-    requestBody?: never
-    responses: {
-      /** @description Successful Response */
-      200: {
-        headers: {
-          [name: string]: unknown
-        }
-        content: {
-          'application/json': components['schemas']['SeatsList']
-        }
-      }
-      /** @description Authentication required */
-      401: {
-        headers: {
-          [name: string]: unknown
-        }
-        content?: never
-      }
-      /** @description Not permitted or seat-based pricing not enabled */
-      403: {
-        headers: {
-          [name: string]: unknown
-        }
-        content?: never
-      }
-      /** @description Subscription or order not found */
-      404: {
-        headers: {
-          [name: string]: unknown
-        }
-        content?: never
-      }
-      /** @description Validation Error */
-      422: {
-        headers: {
-          [name: string]: unknown
-        }
-        content: {
-          'application/json': components['schemas']['HTTPValidationError']
-        }
-      }
-    }
-  }
-  'customer_portal:seats:assign_seat': {
-    parameters: {
-      query?: never
-      header?: never
-      path?: never
-      cookie?: never
-    }
-    requestBody: {
-      content: {
-        'application/json': components['schemas']['CustomerSeatAssign']
-      }
-    }
-    responses: {
-      /** @description Successful Response */
-      200: {
-        headers: {
-          [name: string]: unknown
-        }
-        content: {
-          'application/json': components['schemas']['CustomerSeat']
-        }
-      }
-      /** @description No available seats or customer already has a seat */
-      400: {
-        headers: {
-          [name: string]: unknown
-        }
-        content?: never
-      }
-      /** @description Authentication required */
-      401: {
-        headers: {
-          [name: string]: unknown
-        }
-        content?: never
-      }
-      /** @description Not permitted or seat-based pricing not enabled */
-      403: {
-        headers: {
-          [name: string]: unknown
-        }
-        content?: never
-      }
-      /** @description Subscription, order, or customer not found */
-      404: {
-        headers: {
-          [name: string]: unknown
-        }
-        content?: never
-      }
-      /** @description Validation Error */
-      422: {
-        headers: {
-          [name: string]: unknown
-        }
-        content: {
-          'application/json': components['schemas']['HTTPValidationError']
-        }
-      }
-    }
-  }
-  'customer_portal:seats:revoke_seat': {
-    parameters: {
-      query?: never
-      header?: never
-      path: {
-        seat_id: string
-      }
-      cookie?: never
-    }
-    requestBody?: never
-    responses: {
-      /** @description Successful Response */
-      200: {
-        headers: {
-          [name: string]: unknown
-        }
-        content: {
-          'application/json': components['schemas']['CustomerSeat']
-        }
-      }
-      /** @description Authentication required */
-      401: {
-        headers: {
-          [name: string]: unknown
-        }
-        content?: never
-      }
-      /** @description Not permitted or seat-based pricing not enabled */
-      403: {
-        headers: {
-          [name: string]: unknown
-        }
-        content?: never
-      }
-      /** @description Seat not found */
-      404: {
-        headers: {
-          [name: string]: unknown
-        }
-        content?: never
-      }
-      /** @description Validation Error */
-      422: {
-        headers: {
-          [name: string]: unknown
-        }
-        content: {
-          'application/json': components['schemas']['HTTPValidationError']
-        }
-      }
-    }
-  }
-  'customer_portal:seats:resend_invitation': {
-    parameters: {
-      query?: never
-      header?: never
-      path: {
-        seat_id: string
-      }
-      cookie?: never
-    }
-    requestBody?: never
-    responses: {
-      /** @description Successful Response */
-      200: {
-        headers: {
-          [name: string]: unknown
-        }
-        content: {
-          'application/json': components['schemas']['CustomerSeat']
-        }
-      }
-      /** @description Seat is not pending or already claimed */
-      400: {
-        headers: {
-          [name: string]: unknown
-        }
-        content?: never
-      }
-      /** @description Authentication required */
-      401: {
-        headers: {
-          [name: string]: unknown
-        }
-        content?: never
-      }
-      /** @description Not permitted or seat-based pricing not enabled */
-      403: {
-        headers: {
-          [name: string]: unknown
-        }
-        content?: never
-      }
-      /** @description Seat not found */
-      404: {
-        headers: {
-          [name: string]: unknown
-        }
-        content?: never
-      }
-      /** @description Validation Error */
-      422: {
-        headers: {
-          [name: string]: unknown
-        }
-        content: {
-          'application/json': components['schemas']['HTTPValidationError']
-        }
-      }
-    }
-  }
-  'customer_portal:seats:list_claimed_subscriptions': {
-    parameters: {
-      query?: {
-        /** @description Page number, defaults to 1. */
-        page?: number
-        /** @description Size of a page, defaults to 10. Maximum is 100. */
-        limit?: number
-      }
-      header?: never
-      path?: never
-      cookie?: never
-    }
-    requestBody?: never
-    responses: {
-      /** @description Successful Response */
-      200: {
-        headers: {
-          [name: string]: unknown
-        }
-        content: {
-          'application/json': components['schemas']['ListResource_CustomerSubscription_']
-        }
-      }
-      /** @description Authentication required */
-      401: {
-        headers: {
-          [name: string]: unknown
-        }
-        content?: never
-      }
-      /** @description Validation Error */
-      422: {
-        headers: {
-          [name: string]: unknown
-        }
-        content: {
-          'application/json': components['schemas']['HTTPValidationError']
-        }
       }
     }
   }
@@ -42852,328 +30270,6 @@ export interface operations {
         }
         content: {
           'application/json': components['schemas']['PortalAuthenticatedUser']
-        }
-      }
-    }
-  }
-  'customer_portal:downloadables:list': {
-    parameters: {
-      query?: {
-        /** @description Filter by benefit ID. */
-        benefit_id?: string | string[] | null
-        /** @description Page number, defaults to 1. */
-        page?: number
-        /** @description Size of a page, defaults to 10. Maximum is 100. */
-        limit?: number
-      }
-      header?: never
-      path?: never
-      cookie?: never
-    }
-    requestBody?: never
-    responses: {
-      /** @description Successful Response */
-      200: {
-        headers: {
-          [name: string]: unknown
-        }
-        content: {
-          'application/json': components['schemas']['ListResource_DownloadableRead_']
-        }
-      }
-      /** @description Validation Error */
-      422: {
-        headers: {
-          [name: string]: unknown
-        }
-        content: {
-          'application/json': components['schemas']['HTTPValidationError']
-        }
-      }
-    }
-  }
-  'customer_portal:downloadables:customer_portal.downloadables.get': {
-    parameters: {
-      query?: never
-      header?: never
-      path: {
-        token: string
-      }
-      cookie?: never
-    }
-    requestBody?: never
-    responses: {
-      /** @description Successful Response */
-      200: {
-        headers: {
-          [name: string]: unknown
-        }
-        content: {
-          'application/json': unknown
-        }
-      }
-      /** @description Redirected to download */
-      302: {
-        headers: {
-          [name: string]: unknown
-        }
-        content?: never
-      }
-      /** @description Invalid signature */
-      400: {
-        headers: {
-          [name: string]: unknown
-        }
-        content?: never
-      }
-      /** @description Downloadable not found */
-      404: {
-        headers: {
-          [name: string]: unknown
-        }
-        content?: never
-      }
-      /** @description Expired signature */
-      410: {
-        headers: {
-          [name: string]: unknown
-        }
-        content?: never
-      }
-      /** @description Validation Error */
-      422: {
-        headers: {
-          [name: string]: unknown
-        }
-        content: {
-          'application/json': components['schemas']['HTTPValidationError']
-        }
-      }
-    }
-  }
-  'customer_portal:license_keys:list': {
-    parameters: {
-      query?: {
-        /** @description Filter by a specific benefit */
-        benefit_id?: string | null
-        /** @description Page number, defaults to 1. */
-        page?: number
-        /** @description Size of a page, defaults to 10. Maximum is 100. */
-        limit?: number
-      }
-      header?: never
-      path?: never
-      cookie?: never
-    }
-    requestBody?: never
-    responses: {
-      /** @description Successful Response */
-      200: {
-        headers: {
-          [name: string]: unknown
-        }
-        content: {
-          'application/json': components['schemas']['ListResource_LicenseKeyRead_']
-        }
-      }
-      /** @description Not authorized to manage license key. */
-      401: {
-        headers: {
-          [name: string]: unknown
-        }
-        content: {
-          'application/json': components['schemas']['Unauthorized']
-        }
-      }
-      /** @description License key not found. */
-      404: {
-        headers: {
-          [name: string]: unknown
-        }
-        content: {
-          'application/json': components['schemas']['ResourceNotFound']
-        }
-      }
-      /** @description Validation Error */
-      422: {
-        headers: {
-          [name: string]: unknown
-        }
-        content: {
-          'application/json': components['schemas']['HTTPValidationError']
-        }
-      }
-    }
-  }
-  'customer_portal:license_keys:get': {
-    parameters: {
-      query?: never
-      header?: never
-      path: {
-        id: string
-      }
-      cookie?: never
-    }
-    requestBody?: never
-    responses: {
-      /** @description Successful Response */
-      200: {
-        headers: {
-          [name: string]: unknown
-        }
-        content: {
-          'application/json': components['schemas']['LicenseKeyWithActivations']
-        }
-      }
-      /** @description License key not found. */
-      404: {
-        headers: {
-          [name: string]: unknown
-        }
-        content: {
-          'application/json': components['schemas']['ResourceNotFound']
-        }
-      }
-      /** @description Validation Error */
-      422: {
-        headers: {
-          [name: string]: unknown
-        }
-        content: {
-          'application/json': components['schemas']['HTTPValidationError']
-        }
-      }
-    }
-  }
-  'customer_portal:license_keys:validate': {
-    parameters: {
-      query?: never
-      header?: never
-      path?: never
-      cookie?: never
-    }
-    requestBody: {
-      content: {
-        'application/json': components['schemas']['LicenseKeyValidate']
-      }
-    }
-    responses: {
-      /** @description Successful Response */
-      200: {
-        headers: {
-          [name: string]: unknown
-        }
-        content: {
-          'application/json': components['schemas']['ValidatedLicenseKey']
-        }
-      }
-      /** @description License key not found. */
-      404: {
-        headers: {
-          [name: string]: unknown
-        }
-        content: {
-          'application/json': components['schemas']['ResourceNotFound']
-        }
-      }
-      /** @description Validation Error */
-      422: {
-        headers: {
-          [name: string]: unknown
-        }
-        content: {
-          'application/json': components['schemas']['HTTPValidationError']
-        }
-      }
-    }
-  }
-  'customer_portal:license_keys:activate': {
-    parameters: {
-      query?: never
-      header?: never
-      path?: never
-      cookie?: never
-    }
-    requestBody: {
-      content: {
-        'application/json': components['schemas']['LicenseKeyActivate']
-      }
-    }
-    responses: {
-      /** @description Successful Response */
-      200: {
-        headers: {
-          [name: string]: unknown
-        }
-        content: {
-          'application/json': components['schemas']['LicenseKeyActivationRead']
-        }
-      }
-      /** @description License key activation not supported or limit reached. Use /validate endpoint for licenses without activations. */
-      403: {
-        headers: {
-          [name: string]: unknown
-        }
-        content: {
-          'application/json': components['schemas']['NotPermitted']
-        }
-      }
-      /** @description License key not found. */
-      404: {
-        headers: {
-          [name: string]: unknown
-        }
-        content: {
-          'application/json': components['schemas']['ResourceNotFound']
-        }
-      }
-      /** @description Validation Error */
-      422: {
-        headers: {
-          [name: string]: unknown
-        }
-        content: {
-          'application/json': components['schemas']['HTTPValidationError']
-        }
-      }
-    }
-  }
-  'customer_portal:license_keys:deactivate': {
-    parameters: {
-      query?: never
-      header?: never
-      path?: never
-      cookie?: never
-    }
-    requestBody: {
-      content: {
-        'application/json': components['schemas']['LicenseKeyDeactivate']
-      }
-    }
-    responses: {
-      /** @description License key activation deactivated. */
-      204: {
-        headers: {
-          [name: string]: unknown
-        }
-        content?: never
-      }
-      /** @description License key not found. */
-      404: {
-        headers: {
-          [name: string]: unknown
-        }
-        content: {
-          'application/json': components['schemas']['ResourceNotFound']
-        }
-      }
-      /** @description Validation Error */
-      422: {
-        headers: {
-          [name: string]: unknown
-        }
-        content: {
-          'application/json': components['schemas']['HTTPValidationError']
         }
       }
     }
@@ -43577,129 +30673,6 @@ export interface operations {
         content: {
           'application/json': components['schemas']['CustomerOrder']
         }
-      }
-      /** @description Order not found. */
-      404: {
-        headers: {
-          [name: string]: unknown
-        }
-        content: {
-          'application/json': components['schemas']['ResourceNotFound']
-        }
-      }
-      /** @description Validation Error */
-      422: {
-        headers: {
-          [name: string]: unknown
-        }
-        content: {
-          'application/json': components['schemas']['HTTPValidationError']
-        }
-      }
-    }
-  }
-  'customer_portal:orders:invoice': {
-    parameters: {
-      query?: never
-      header?: never
-      path: {
-        /** @description The order ID. */
-        id: string
-      }
-      cookie?: never
-    }
-    requestBody?: never
-    responses: {
-      /** @description Successful Response */
-      200: {
-        headers: {
-          [name: string]: unknown
-        }
-        content: {
-          'application/json': components['schemas']['CustomerOrderInvoice']
-        }
-      }
-      /** @description Order not found. */
-      404: {
-        headers: {
-          [name: string]: unknown
-        }
-        content: {
-          'application/json': components['schemas']['ResourceNotFound']
-        }
-      }
-      /** @description Validation Error */
-      422: {
-        headers: {
-          [name: string]: unknown
-        }
-        content: {
-          'application/json': components['schemas']['HTTPValidationError']
-        }
-      }
-    }
-  }
-  'customer_portal:orders:generate_invoice': {
-    parameters: {
-      query?: never
-      header?: never
-      path: {
-        /** @description The order ID. */
-        id: string
-      }
-      cookie?: never
-    }
-    requestBody?: never
-    responses: {
-      /** @description Successful Response */
-      202: {
-        headers: {
-          [name: string]: unknown
-        }
-        content: {
-          'application/json': unknown
-        }
-      }
-      /** @description Order is not paid or is missing billing name or address. */
-      422: {
-        headers: {
-          [name: string]: unknown
-        }
-        content: {
-          'application/json':
-            | components['schemas']['MissingInvoiceBillingDetails']
-            | components['schemas']['NotPaidOrder']
-        }
-      }
-    }
-  }
-  'customer_portal:orders:receipt': {
-    parameters: {
-      query?: never
-      header?: never
-      path: {
-        /** @description The order ID. */
-        id: string
-      }
-      cookie?: never
-    }
-    requestBody?: never
-    responses: {
-      /** @description Successful Response */
-      200: {
-        headers: {
-          [name: string]: unknown
-        }
-        content: {
-          'application/json': components['schemas']['CustomerOrderReceipt']
-        }
-      }
-      /** @description Receipt generation in progress. */
-      202: {
-        headers: {
-          [name: string]: unknown
-        }
-        content?: never
       }
       /** @description Order not found. */
       404: {
@@ -44182,330 +31155,6 @@ export interface operations {
       }
     }
   }
-  'customer-seats:list_seats': {
-    parameters: {
-      query?: {
-        subscription_id?: string | null
-        order_id?: string | null
-      }
-      header?: never
-      path?: never
-      cookie?: never
-    }
-    requestBody?: never
-    responses: {
-      /** @description Successful Response */
-      200: {
-        headers: {
-          [name: string]: unknown
-        }
-        content: {
-          'application/json': components['schemas']['SeatsList']
-        }
-      }
-      /** @description Authentication required */
-      401: {
-        headers: {
-          [name: string]: unknown
-        }
-        content?: never
-      }
-      /** @description Not permitted or seat-based pricing not enabled */
-      403: {
-        headers: {
-          [name: string]: unknown
-        }
-        content?: never
-      }
-      /** @description Subscription or order not found */
-      404: {
-        headers: {
-          [name: string]: unknown
-        }
-        content?: never
-      }
-      /** @description Validation Error */
-      422: {
-        headers: {
-          [name: string]: unknown
-        }
-        content: {
-          'application/json': components['schemas']['HTTPValidationError']
-        }
-      }
-    }
-  }
-  'customer-seats:assign_seat': {
-    parameters: {
-      query?: never
-      header?: never
-      path?: never
-      cookie?: never
-    }
-    requestBody: {
-      content: {
-        'application/json': components['schemas']['SeatAssign']
-      }
-    }
-    responses: {
-      /** @description Successful Response */
-      200: {
-        headers: {
-          [name: string]: unknown
-        }
-        content: {
-          'application/json': components['schemas']['CustomerSeat']
-        }
-      }
-      /** @description No available seats or customer already has a seat */
-      400: {
-        headers: {
-          [name: string]: unknown
-        }
-        content?: never
-      }
-      /** @description Authentication required */
-      401: {
-        headers: {
-          [name: string]: unknown
-        }
-        content?: never
-      }
-      /** @description Not permitted or seat-based pricing not enabled */
-      403: {
-        headers: {
-          [name: string]: unknown
-        }
-        content?: never
-      }
-      /** @description Subscription, order, or customer not found */
-      404: {
-        headers: {
-          [name: string]: unknown
-        }
-        content?: never
-      }
-      /** @description Validation Error */
-      422: {
-        headers: {
-          [name: string]: unknown
-        }
-        content: {
-          'application/json': components['schemas']['HTTPValidationError']
-        }
-      }
-    }
-  }
-  'customer-seats:revoke_seat': {
-    parameters: {
-      query?: never
-      header?: never
-      path: {
-        seat_id: string
-      }
-      cookie?: never
-    }
-    requestBody?: never
-    responses: {
-      /** @description Successful Response */
-      200: {
-        headers: {
-          [name: string]: unknown
-        }
-        content: {
-          'application/json': components['schemas']['CustomerSeat']
-        }
-      }
-      /** @description Authentication required */
-      401: {
-        headers: {
-          [name: string]: unknown
-        }
-        content?: never
-      }
-      /** @description Not permitted or seat-based pricing not enabled */
-      403: {
-        headers: {
-          [name: string]: unknown
-        }
-        content?: never
-      }
-      /** @description Seat not found */
-      404: {
-        headers: {
-          [name: string]: unknown
-        }
-        content?: never
-      }
-      /** @description Validation Error */
-      422: {
-        headers: {
-          [name: string]: unknown
-        }
-        content: {
-          'application/json': components['schemas']['HTTPValidationError']
-        }
-      }
-    }
-  }
-  'customer-seats:resend_invitation': {
-    parameters: {
-      query?: never
-      header?: never
-      path: {
-        seat_id: string
-      }
-      cookie?: never
-    }
-    requestBody?: never
-    responses: {
-      /** @description Successful Response */
-      200: {
-        headers: {
-          [name: string]: unknown
-        }
-        content: {
-          'application/json': components['schemas']['CustomerSeat']
-        }
-      }
-      /** @description Seat is not pending or already claimed */
-      400: {
-        headers: {
-          [name: string]: unknown
-        }
-        content?: never
-      }
-      /** @description Authentication required */
-      401: {
-        headers: {
-          [name: string]: unknown
-        }
-        content?: never
-      }
-      /** @description Not permitted or seat-based pricing not enabled */
-      403: {
-        headers: {
-          [name: string]: unknown
-        }
-        content?: never
-      }
-      /** @description Seat not found */
-      404: {
-        headers: {
-          [name: string]: unknown
-        }
-        content?: never
-      }
-      /** @description Validation Error */
-      422: {
-        headers: {
-          [name: string]: unknown
-        }
-        content: {
-          'application/json': components['schemas']['HTTPValidationError']
-        }
-      }
-    }
-  }
-  'customer-seats:get_claim_info': {
-    parameters: {
-      query?: never
-      header?: never
-      path: {
-        invitation_token: string
-      }
-      cookie?: never
-    }
-    requestBody?: never
-    responses: {
-      /** @description Successful Response */
-      200: {
-        headers: {
-          [name: string]: unknown
-        }
-        content: {
-          'application/json': components['schemas']['SeatClaimInfo']
-        }
-      }
-      /** @description Invalid or expired invitation token */
-      400: {
-        headers: {
-          [name: string]: unknown
-        }
-        content?: never
-      }
-      /** @description Seat-based pricing not enabled for organization */
-      403: {
-        headers: {
-          [name: string]: unknown
-        }
-        content?: never
-      }
-      /** @description Seat not found */
-      404: {
-        headers: {
-          [name: string]: unknown
-        }
-        content?: never
-      }
-      /** @description Validation Error */
-      422: {
-        headers: {
-          [name: string]: unknown
-        }
-        content: {
-          'application/json': components['schemas']['HTTPValidationError']
-        }
-      }
-    }
-  }
-  'customer-seats:claim_seat': {
-    parameters: {
-      query?: never
-      header?: never
-      path?: never
-      cookie?: never
-    }
-    requestBody: {
-      content: {
-        'application/json': components['schemas']['SeatClaim']
-      }
-    }
-    responses: {
-      /** @description Successful Response */
-      200: {
-        headers: {
-          [name: string]: unknown
-        }
-        content: {
-          'application/json': components['schemas']['CustomerSeatClaimResponse']
-        }
-      }
-      /** @description Invalid, expired, or already claimed token */
-      400: {
-        headers: {
-          [name: string]: unknown
-        }
-        content?: never
-      }
-      /** @description Seat-based pricing not enabled for organization */
-      403: {
-        headers: {
-          [name: string]: unknown
-        }
-        content?: never
-      }
-      /** @description Validation Error */
-      422: {
-        headers: {
-          [name: string]: unknown
-        }
-        content: {
-          'application/json': components['schemas']['HTTPValidationError']
-        }
-      }
-    }
-  }
   'email-update:request_email_update': {
     parameters: {
       query?: never
@@ -44612,7 +31261,7 @@ export interface operations {
   'events:list': {
     parameters: {
       query?: {
-        /** @description Filter events following filter clauses. JSON string following the same schema a meter filter clause. */
+        /** @description Filter events following filter clauses. JSON string following the event filter clause schema. */
         filter?: string | null
         /** @description Filter events after this timestamp. */
         start_timestamp?: string | null
@@ -44624,8 +31273,6 @@ export interface operations {
         customer_id?: string | string[] | null
         /** @description Filter by external customer ID. */
         external_customer_id?: string | string[] | null
-        /** @description Filter by a meter filter clause. */
-        meter_id?: string | null
         /** @description Filter by event name. */
         name?: string | string[] | null
         /** @description Filter by event source. */
@@ -47226,8 +33873,6 @@ export interface operations {
         customer_id?: string | string[] | null
         /** @description Filter by external customer ID. */
         external_customer_id?: string | string[] | null
-        /** @description Filter by a meter filter clause. */
-        meter_id?: string | null
         /** @description Filter by event name. */
         name?: string | string[] | null
         /** @description Filter by event source. */
@@ -47488,827 +34133,6 @@ export interface operations {
       }
     }
   }
-  'meters:list': {
-    parameters: {
-      query?: {
-        /** @description Filter by organization ID. */
-        organization_id?: string | string[] | null
-        /** @description Filter by name. */
-        query?: string | null
-        /** @description Filter on archived meters. */
-        is_archived?: boolean | null
-        /** @description Page number, defaults to 1. */
-        page?: number
-        /** @description Size of a page, defaults to 10. Maximum is 100. */
-        limit?: number
-        /** @description Sorting criterion. Several criteria can be used simultaneously and will be applied in order. Add a minus sign `-` before the criteria name to sort by descending order. */
-        sorting?: components['schemas']['MeterSortProperty'][] | null
-        /** @description Filter by metadata key-value pairs. It uses the `deepObject` style, e.g. `?metadata[key]=value`. */
-        metadata?: components['schemas']['MetadataQuery']
-      }
-      header?: never
-      path?: never
-      cookie?: never
-    }
-    requestBody?: never
-    responses: {
-      /** @description Successful Response */
-      200: {
-        headers: {
-          [name: string]: unknown
-        }
-        content: {
-          'application/json': components['schemas']['ListResource_Meter_']
-        }
-      }
-      /** @description Validation Error */
-      422: {
-        headers: {
-          [name: string]: unknown
-        }
-        content: {
-          'application/json': components['schemas']['HTTPValidationError']
-        }
-      }
-    }
-  }
-  'meters:create': {
-    parameters: {
-      query?: never
-      header?: never
-      path?: never
-      cookie?: never
-    }
-    requestBody: {
-      content: {
-        'application/json': components['schemas']['MeterCreate']
-      }
-    }
-    responses: {
-      /** @description Meter created. */
-      201: {
-        headers: {
-          [name: string]: unknown
-        }
-        content: {
-          'application/json': components['schemas']['Meter']
-        }
-      }
-      /** @description Validation Error */
-      422: {
-        headers: {
-          [name: string]: unknown
-        }
-        content: {
-          'application/json': components['schemas']['HTTPValidationError']
-        }
-      }
-    }
-  }
-  'meters:get': {
-    parameters: {
-      query?: never
-      header?: never
-      path: {
-        /** @description The meter ID. */
-        id: string
-      }
-      cookie?: never
-    }
-    requestBody?: never
-    responses: {
-      /** @description Successful Response */
-      200: {
-        headers: {
-          [name: string]: unknown
-        }
-        content: {
-          'application/json': components['schemas']['Meter']
-        }
-      }
-      /** @description Meter not found. */
-      404: {
-        headers: {
-          [name: string]: unknown
-        }
-        content: {
-          'application/json': components['schemas']['ResourceNotFound']
-        }
-      }
-      /** @description Validation Error */
-      422: {
-        headers: {
-          [name: string]: unknown
-        }
-        content: {
-          'application/json': components['schemas']['HTTPValidationError']
-        }
-      }
-    }
-  }
-  'meters:update': {
-    parameters: {
-      query?: never
-      header?: never
-      path: {
-        /** @description The meter ID. */
-        id: string
-      }
-      cookie?: never
-    }
-    requestBody: {
-      content: {
-        'application/json': components['schemas']['MeterUpdate']
-      }
-    }
-    responses: {
-      /** @description Meter updated. */
-      200: {
-        headers: {
-          [name: string]: unknown
-        }
-        content: {
-          'application/json': components['schemas']['Meter']
-        }
-      }
-      /** @description Meter not found. */
-      404: {
-        headers: {
-          [name: string]: unknown
-        }
-        content: {
-          'application/json': components['schemas']['ResourceNotFound']
-        }
-      }
-      /** @description Validation Error */
-      422: {
-        headers: {
-          [name: string]: unknown
-        }
-        content: {
-          'application/json': components['schemas']['HTTPValidationError']
-        }
-      }
-    }
-  }
-  'meters:quantities': {
-    parameters: {
-      query: {
-        /** @description Start timestamp. */
-        start_timestamp: string
-        /** @description End timestamp. */
-        end_timestamp: string
-        /** @description Interval between two timestamps. */
-        interval: components['schemas']['TimeInterval']
-        /** @description Timezone to use for the timestamps. Default is UTC. */
-        timezone?:
-          | 'Africa/Abidjan'
-          | 'Africa/Accra'
-          | 'Africa/Addis_Ababa'
-          | 'Africa/Algiers'
-          | 'Africa/Asmara'
-          | 'Africa/Asmera'
-          | 'Africa/Bamako'
-          | 'Africa/Bangui'
-          | 'Africa/Banjul'
-          | 'Africa/Bissau'
-          | 'Africa/Blantyre'
-          | 'Africa/Brazzaville'
-          | 'Africa/Bujumbura'
-          | 'Africa/Cairo'
-          | 'Africa/Casablanca'
-          | 'Africa/Ceuta'
-          | 'Africa/Conakry'
-          | 'Africa/Dakar'
-          | 'Africa/Dar_es_Salaam'
-          | 'Africa/Djibouti'
-          | 'Africa/Douala'
-          | 'Africa/El_Aaiun'
-          | 'Africa/Freetown'
-          | 'Africa/Gaborone'
-          | 'Africa/Harare'
-          | 'Africa/Johannesburg'
-          | 'Africa/Juba'
-          | 'Africa/Kampala'
-          | 'Africa/Khartoum'
-          | 'Africa/Kigali'
-          | 'Africa/Kinshasa'
-          | 'Africa/Lagos'
-          | 'Africa/Libreville'
-          | 'Africa/Lome'
-          | 'Africa/Luanda'
-          | 'Africa/Lubumbashi'
-          | 'Africa/Lusaka'
-          | 'Africa/Malabo'
-          | 'Africa/Maputo'
-          | 'Africa/Maseru'
-          | 'Africa/Mbabane'
-          | 'Africa/Mogadishu'
-          | 'Africa/Monrovia'
-          | 'Africa/Nairobi'
-          | 'Africa/Ndjamena'
-          | 'Africa/Niamey'
-          | 'Africa/Nouakchott'
-          | 'Africa/Ouagadougou'
-          | 'Africa/Porto-Novo'
-          | 'Africa/Sao_Tome'
-          | 'Africa/Timbuktu'
-          | 'Africa/Tripoli'
-          | 'Africa/Tunis'
-          | 'Africa/Windhoek'
-          | 'America/Adak'
-          | 'America/Anchorage'
-          | 'America/Anguilla'
-          | 'America/Antigua'
-          | 'America/Araguaina'
-          | 'America/Argentina/Buenos_Aires'
-          | 'America/Argentina/Catamarca'
-          | 'America/Argentina/ComodRivadavia'
-          | 'America/Argentina/Cordoba'
-          | 'America/Argentina/Jujuy'
-          | 'America/Argentina/La_Rioja'
-          | 'America/Argentina/Mendoza'
-          | 'America/Argentina/Rio_Gallegos'
-          | 'America/Argentina/Salta'
-          | 'America/Argentina/San_Juan'
-          | 'America/Argentina/San_Luis'
-          | 'America/Argentina/Tucuman'
-          | 'America/Argentina/Ushuaia'
-          | 'America/Aruba'
-          | 'America/Asuncion'
-          | 'America/Atikokan'
-          | 'America/Atka'
-          | 'America/Bahia'
-          | 'America/Bahia_Banderas'
-          | 'America/Barbados'
-          | 'America/Belem'
-          | 'America/Belize'
-          | 'America/Blanc-Sablon'
-          | 'America/Boa_Vista'
-          | 'America/Bogota'
-          | 'America/Boise'
-          | 'America/Buenos_Aires'
-          | 'America/Cambridge_Bay'
-          | 'America/Campo_Grande'
-          | 'America/Cancun'
-          | 'America/Caracas'
-          | 'America/Catamarca'
-          | 'America/Cayenne'
-          | 'America/Cayman'
-          | 'America/Chicago'
-          | 'America/Chihuahua'
-          | 'America/Ciudad_Juarez'
-          | 'America/Coral_Harbour'
-          | 'America/Cordoba'
-          | 'America/Costa_Rica'
-          | 'America/Coyhaique'
-          | 'America/Creston'
-          | 'America/Cuiaba'
-          | 'America/Curacao'
-          | 'America/Danmarkshavn'
-          | 'America/Dawson'
-          | 'America/Dawson_Creek'
-          | 'America/Denver'
-          | 'America/Detroit'
-          | 'America/Dominica'
-          | 'America/Edmonton'
-          | 'America/Eirunepe'
-          | 'America/El_Salvador'
-          | 'America/Ensenada'
-          | 'America/Fort_Nelson'
-          | 'America/Fort_Wayne'
-          | 'America/Fortaleza'
-          | 'America/Glace_Bay'
-          | 'America/Godthab'
-          | 'America/Goose_Bay'
-          | 'America/Grand_Turk'
-          | 'America/Grenada'
-          | 'America/Guadeloupe'
-          | 'America/Guatemala'
-          | 'America/Guayaquil'
-          | 'America/Guyana'
-          | 'America/Halifax'
-          | 'America/Havana'
-          | 'America/Hermosillo'
-          | 'America/Indiana/Indianapolis'
-          | 'America/Indiana/Knox'
-          | 'America/Indiana/Marengo'
-          | 'America/Indiana/Petersburg'
-          | 'America/Indiana/Tell_City'
-          | 'America/Indiana/Vevay'
-          | 'America/Indiana/Vincennes'
-          | 'America/Indiana/Winamac'
-          | 'America/Indianapolis'
-          | 'America/Inuvik'
-          | 'America/Iqaluit'
-          | 'America/Jamaica'
-          | 'America/Jujuy'
-          | 'America/Juneau'
-          | 'America/Kentucky/Louisville'
-          | 'America/Kentucky/Monticello'
-          | 'America/Knox_IN'
-          | 'America/Kralendijk'
-          | 'America/La_Paz'
-          | 'America/Lima'
-          | 'America/Los_Angeles'
-          | 'America/Louisville'
-          | 'America/Lower_Princes'
-          | 'America/Maceio'
-          | 'America/Managua'
-          | 'America/Manaus'
-          | 'America/Marigot'
-          | 'America/Martinique'
-          | 'America/Matamoros'
-          | 'America/Mazatlan'
-          | 'America/Mendoza'
-          | 'America/Menominee'
-          | 'America/Merida'
-          | 'America/Metlakatla'
-          | 'America/Mexico_City'
-          | 'America/Miquelon'
-          | 'America/Moncton'
-          | 'America/Monterrey'
-          | 'America/Montevideo'
-          | 'America/Montreal'
-          | 'America/Montserrat'
-          | 'America/Nassau'
-          | 'America/New_York'
-          | 'America/Nipigon'
-          | 'America/Nome'
-          | 'America/Noronha'
-          | 'America/North_Dakota/Beulah'
-          | 'America/North_Dakota/Center'
-          | 'America/North_Dakota/New_Salem'
-          | 'America/Nuuk'
-          | 'America/Ojinaga'
-          | 'America/Panama'
-          | 'America/Pangnirtung'
-          | 'America/Paramaribo'
-          | 'America/Phoenix'
-          | 'America/Port-au-Prince'
-          | 'America/Port_of_Spain'
-          | 'America/Porto_Acre'
-          | 'America/Porto_Velho'
-          | 'America/Puerto_Rico'
-          | 'America/Punta_Arenas'
-          | 'America/Rainy_River'
-          | 'America/Rankin_Inlet'
-          | 'America/Recife'
-          | 'America/Regina'
-          | 'America/Resolute'
-          | 'America/Rio_Branco'
-          | 'America/Rosario'
-          | 'America/Santa_Isabel'
-          | 'America/Santarem'
-          | 'America/Santiago'
-          | 'America/Santo_Domingo'
-          | 'America/Sao_Paulo'
-          | 'America/Scoresbysund'
-          | 'America/Shiprock'
-          | 'America/Sitka'
-          | 'America/St_Barthelemy'
-          | 'America/St_Johns'
-          | 'America/St_Kitts'
-          | 'America/St_Lucia'
-          | 'America/St_Thomas'
-          | 'America/St_Vincent'
-          | 'America/Swift_Current'
-          | 'America/Tegucigalpa'
-          | 'America/Thule'
-          | 'America/Thunder_Bay'
-          | 'America/Tijuana'
-          | 'America/Toronto'
-          | 'America/Tortola'
-          | 'America/Vancouver'
-          | 'America/Virgin'
-          | 'America/Whitehorse'
-          | 'America/Winnipeg'
-          | 'America/Yakutat'
-          | 'America/Yellowknife'
-          | 'Antarctica/Casey'
-          | 'Antarctica/Davis'
-          | 'Antarctica/DumontDUrville'
-          | 'Antarctica/Macquarie'
-          | 'Antarctica/Mawson'
-          | 'Antarctica/McMurdo'
-          | 'Antarctica/Palmer'
-          | 'Antarctica/Rothera'
-          | 'Antarctica/South_Pole'
-          | 'Antarctica/Syowa'
-          | 'Antarctica/Troll'
-          | 'Antarctica/Vostok'
-          | 'Arctic/Longyearbyen'
-          | 'Asia/Aden'
-          | 'Asia/Almaty'
-          | 'Asia/Amman'
-          | 'Asia/Anadyr'
-          | 'Asia/Aqtau'
-          | 'Asia/Aqtobe'
-          | 'Asia/Ashgabat'
-          | 'Asia/Ashkhabad'
-          | 'Asia/Atyrau'
-          | 'Asia/Baghdad'
-          | 'Asia/Bahrain'
-          | 'Asia/Baku'
-          | 'Asia/Bangkok'
-          | 'Asia/Barnaul'
-          | 'Asia/Beirut'
-          | 'Asia/Bishkek'
-          | 'Asia/Brunei'
-          | 'Asia/Calcutta'
-          | 'Asia/Chita'
-          | 'Asia/Choibalsan'
-          | 'Asia/Chongqing'
-          | 'Asia/Chungking'
-          | 'Asia/Colombo'
-          | 'Asia/Dacca'
-          | 'Asia/Damascus'
-          | 'Asia/Dhaka'
-          | 'Asia/Dili'
-          | 'Asia/Dubai'
-          | 'Asia/Dushanbe'
-          | 'Asia/Famagusta'
-          | 'Asia/Gaza'
-          | 'Asia/Harbin'
-          | 'Asia/Hebron'
-          | 'Asia/Ho_Chi_Minh'
-          | 'Asia/Hong_Kong'
-          | 'Asia/Hovd'
-          | 'Asia/Irkutsk'
-          | 'Asia/Istanbul'
-          | 'Asia/Jakarta'
-          | 'Asia/Jayapura'
-          | 'Asia/Jerusalem'
-          | 'Asia/Kabul'
-          | 'Asia/Kamchatka'
-          | 'Asia/Karachi'
-          | 'Asia/Kashgar'
-          | 'Asia/Kathmandu'
-          | 'Asia/Katmandu'
-          | 'Asia/Khandyga'
-          | 'Asia/Kolkata'
-          | 'Asia/Krasnoyarsk'
-          | 'Asia/Kuala_Lumpur'
-          | 'Asia/Kuching'
-          | 'Asia/Kuwait'
-          | 'Asia/Macao'
-          | 'Asia/Macau'
-          | 'Asia/Magadan'
-          | 'Asia/Makassar'
-          | 'Asia/Manila'
-          | 'Asia/Muscat'
-          | 'Asia/Nicosia'
-          | 'Asia/Novokuznetsk'
-          | 'Asia/Novosibirsk'
-          | 'Asia/Omsk'
-          | 'Asia/Oral'
-          | 'Asia/Phnom_Penh'
-          | 'Asia/Pontianak'
-          | 'Asia/Pyongyang'
-          | 'Asia/Qatar'
-          | 'Asia/Qostanay'
-          | 'Asia/Qyzylorda'
-          | 'Asia/Rangoon'
-          | 'Asia/Riyadh'
-          | 'Asia/Saigon'
-          | 'Asia/Sakhalin'
-          | 'Asia/Samarkand'
-          | 'Asia/Seoul'
-          | 'Asia/Shanghai'
-          | 'Asia/Singapore'
-          | 'Asia/Srednekolymsk'
-          | 'Asia/Taipei'
-          | 'Asia/Tashkent'
-          | 'Asia/Tbilisi'
-          | 'Asia/Tehran'
-          | 'Asia/Tel_Aviv'
-          | 'Asia/Thimbu'
-          | 'Asia/Thimphu'
-          | 'Asia/Tokyo'
-          | 'Asia/Tomsk'
-          | 'Asia/Ujung_Pandang'
-          | 'Asia/Ulaanbaatar'
-          | 'Asia/Ulan_Bator'
-          | 'Asia/Urumqi'
-          | 'Asia/Ust-Nera'
-          | 'Asia/Vientiane'
-          | 'Asia/Vladivostok'
-          | 'Asia/Yakutsk'
-          | 'Asia/Yangon'
-          | 'Asia/Yekaterinburg'
-          | 'Asia/Yerevan'
-          | 'Atlantic/Azores'
-          | 'Atlantic/Bermuda'
-          | 'Atlantic/Canary'
-          | 'Atlantic/Cape_Verde'
-          | 'Atlantic/Faeroe'
-          | 'Atlantic/Faroe'
-          | 'Atlantic/Jan_Mayen'
-          | 'Atlantic/Madeira'
-          | 'Atlantic/Reykjavik'
-          | 'Atlantic/South_Georgia'
-          | 'Atlantic/St_Helena'
-          | 'Atlantic/Stanley'
-          | 'Australia/ACT'
-          | 'Australia/Adelaide'
-          | 'Australia/Brisbane'
-          | 'Australia/Broken_Hill'
-          | 'Australia/Canberra'
-          | 'Australia/Currie'
-          | 'Australia/Darwin'
-          | 'Australia/Eucla'
-          | 'Australia/Hobart'
-          | 'Australia/LHI'
-          | 'Australia/Lindeman'
-          | 'Australia/Lord_Howe'
-          | 'Australia/Melbourne'
-          | 'Australia/NSW'
-          | 'Australia/North'
-          | 'Australia/Perth'
-          | 'Australia/Queensland'
-          | 'Australia/South'
-          | 'Australia/Sydney'
-          | 'Australia/Tasmania'
-          | 'Australia/Victoria'
-          | 'Australia/West'
-          | 'Australia/Yancowinna'
-          | 'Brazil/Acre'
-          | 'Brazil/DeNoronha'
-          | 'Brazil/East'
-          | 'Brazil/West'
-          | 'CET'
-          | 'CST6CDT'
-          | 'Canada/Atlantic'
-          | 'Canada/Central'
-          | 'Canada/Eastern'
-          | 'Canada/Mountain'
-          | 'Canada/Newfoundland'
-          | 'Canada/Pacific'
-          | 'Canada/Saskatchewan'
-          | 'Canada/Yukon'
-          | 'Chile/Continental'
-          | 'Chile/EasterIsland'
-          | 'Cuba'
-          | 'EET'
-          | 'EST'
-          | 'EST5EDT'
-          | 'Egypt'
-          | 'Eire'
-          | 'Etc/GMT'
-          | 'Etc/GMT+0'
-          | 'Etc/GMT+1'
-          | 'Etc/GMT+10'
-          | 'Etc/GMT+11'
-          | 'Etc/GMT+12'
-          | 'Etc/GMT+2'
-          | 'Etc/GMT+3'
-          | 'Etc/GMT+4'
-          | 'Etc/GMT+5'
-          | 'Etc/GMT+6'
-          | 'Etc/GMT+7'
-          | 'Etc/GMT+8'
-          | 'Etc/GMT+9'
-          | 'Etc/GMT-0'
-          | 'Etc/GMT-1'
-          | 'Etc/GMT-10'
-          | 'Etc/GMT-11'
-          | 'Etc/GMT-12'
-          | 'Etc/GMT-13'
-          | 'Etc/GMT-14'
-          | 'Etc/GMT-2'
-          | 'Etc/GMT-3'
-          | 'Etc/GMT-4'
-          | 'Etc/GMT-5'
-          | 'Etc/GMT-6'
-          | 'Etc/GMT-7'
-          | 'Etc/GMT-8'
-          | 'Etc/GMT-9'
-          | 'Etc/GMT0'
-          | 'Etc/Greenwich'
-          | 'Etc/UCT'
-          | 'Etc/UTC'
-          | 'Etc/Universal'
-          | 'Etc/Zulu'
-          | 'Europe/Amsterdam'
-          | 'Europe/Andorra'
-          | 'Europe/Astrakhan'
-          | 'Europe/Athens'
-          | 'Europe/Belfast'
-          | 'Europe/Belgrade'
-          | 'Europe/Berlin'
-          | 'Europe/Bratislava'
-          | 'Europe/Brussels'
-          | 'Europe/Bucharest'
-          | 'Europe/Budapest'
-          | 'Europe/Busingen'
-          | 'Europe/Chisinau'
-          | 'Europe/Copenhagen'
-          | 'Europe/Dublin'
-          | 'Europe/Gibraltar'
-          | 'Europe/Guernsey'
-          | 'Europe/Helsinki'
-          | 'Europe/Isle_of_Man'
-          | 'Europe/Istanbul'
-          | 'Europe/Jersey'
-          | 'Europe/Kaliningrad'
-          | 'Europe/Kiev'
-          | 'Europe/Kirov'
-          | 'Europe/Kyiv'
-          | 'Europe/Lisbon'
-          | 'Europe/Ljubljana'
-          | 'Europe/London'
-          | 'Europe/Luxembourg'
-          | 'Europe/Madrid'
-          | 'Europe/Malta'
-          | 'Europe/Mariehamn'
-          | 'Europe/Minsk'
-          | 'Europe/Monaco'
-          | 'Europe/Moscow'
-          | 'Europe/Nicosia'
-          | 'Europe/Oslo'
-          | 'Europe/Paris'
-          | 'Europe/Podgorica'
-          | 'Europe/Prague'
-          | 'Europe/Riga'
-          | 'Europe/Rome'
-          | 'Europe/Samara'
-          | 'Europe/San_Marino'
-          | 'Europe/Sarajevo'
-          | 'Europe/Saratov'
-          | 'Europe/Simferopol'
-          | 'Europe/Skopje'
-          | 'Europe/Sofia'
-          | 'Europe/Stockholm'
-          | 'Europe/Tallinn'
-          | 'Europe/Tirane'
-          | 'Europe/Tiraspol'
-          | 'Europe/Ulyanovsk'
-          | 'Europe/Uzhgorod'
-          | 'Europe/Vaduz'
-          | 'Europe/Vatican'
-          | 'Europe/Vienna'
-          | 'Europe/Vilnius'
-          | 'Europe/Volgograd'
-          | 'Europe/Warsaw'
-          | 'Europe/Zagreb'
-          | 'Europe/Zaporozhye'
-          | 'Europe/Zurich'
-          | 'Factory'
-          | 'GB'
-          | 'GB-Eire'
-          | 'GMT'
-          | 'GMT+0'
-          | 'GMT-0'
-          | 'GMT0'
-          | 'Greenwich'
-          | 'HST'
-          | 'Hongkong'
-          | 'Iceland'
-          | 'Indian/Antananarivo'
-          | 'Indian/Chagos'
-          | 'Indian/Christmas'
-          | 'Indian/Cocos'
-          | 'Indian/Comoro'
-          | 'Indian/Kerguelen'
-          | 'Indian/Mahe'
-          | 'Indian/Maldives'
-          | 'Indian/Mauritius'
-          | 'Indian/Mayotte'
-          | 'Indian/Reunion'
-          | 'Iran'
-          | 'Israel'
-          | 'Jamaica'
-          | 'Japan'
-          | 'Kwajalein'
-          | 'Libya'
-          | 'MET'
-          | 'MST'
-          | 'MST7MDT'
-          | 'Mexico/BajaNorte'
-          | 'Mexico/BajaSur'
-          | 'Mexico/General'
-          | 'NZ'
-          | 'NZ-CHAT'
-          | 'Navajo'
-          | 'PRC'
-          | 'PST8PDT'
-          | 'Pacific/Apia'
-          | 'Pacific/Auckland'
-          | 'Pacific/Bougainville'
-          | 'Pacific/Chatham'
-          | 'Pacific/Chuuk'
-          | 'Pacific/Easter'
-          | 'Pacific/Efate'
-          | 'Pacific/Enderbury'
-          | 'Pacific/Fakaofo'
-          | 'Pacific/Fiji'
-          | 'Pacific/Funafuti'
-          | 'Pacific/Galapagos'
-          | 'Pacific/Gambier'
-          | 'Pacific/Guadalcanal'
-          | 'Pacific/Guam'
-          | 'Pacific/Honolulu'
-          | 'Pacific/Johnston'
-          | 'Pacific/Kanton'
-          | 'Pacific/Kiritimati'
-          | 'Pacific/Kosrae'
-          | 'Pacific/Kwajalein'
-          | 'Pacific/Majuro'
-          | 'Pacific/Marquesas'
-          | 'Pacific/Midway'
-          | 'Pacific/Nauru'
-          | 'Pacific/Niue'
-          | 'Pacific/Norfolk'
-          | 'Pacific/Noumea'
-          | 'Pacific/Pago_Pago'
-          | 'Pacific/Palau'
-          | 'Pacific/Pitcairn'
-          | 'Pacific/Pohnpei'
-          | 'Pacific/Ponape'
-          | 'Pacific/Port_Moresby'
-          | 'Pacific/Rarotonga'
-          | 'Pacific/Saipan'
-          | 'Pacific/Samoa'
-          | 'Pacific/Tahiti'
-          | 'Pacific/Tarawa'
-          | 'Pacific/Tongatapu'
-          | 'Pacific/Truk'
-          | 'Pacific/Wake'
-          | 'Pacific/Wallis'
-          | 'Pacific/Yap'
-          | 'Poland'
-          | 'Portugal'
-          | 'ROC'
-          | 'ROK'
-          | 'Singapore'
-          | 'Turkey'
-          | 'UCT'
-          | 'US/Alaska'
-          | 'US/Aleutian'
-          | 'US/Arizona'
-          | 'US/Central'
-          | 'US/East-Indiana'
-          | 'US/Eastern'
-          | 'US/Hawaii'
-          | 'US/Indiana-Starke'
-          | 'US/Michigan'
-          | 'US/Mountain'
-          | 'US/Pacific'
-          | 'US/Samoa'
-          | 'UTC'
-          | 'Universal'
-          | 'W-SU'
-          | 'WET'
-          | 'Zulu'
-        /** @description Filter by customer ID. */
-        customer_id?: string | string[] | null
-        /** @description Filter by external customer ID. */
-        external_customer_id?: string | string[] | null
-        /** @description If set, will first compute the quantities per customer before aggregating them using the given function. If not set, the quantities will be aggregated across all events. */
-        customer_aggregation_function?:
-          | components['schemas']['AggregationFunction']
-          | null
-        /** @description Filter by metadata key-value pairs. It uses the `deepObject` style, e.g. `?metadata[key]=value`. */
-        metadata?: components['schemas']['MetadataQuery']
-      }
-      header?: never
-      path: {
-        /** @description The meter ID. */
-        id: string
-      }
-      cookie?: never
-    }
-    requestBody?: never
-    responses: {
-      /** @description Successful Response */
-      200: {
-        headers: {
-          [name: string]: unknown
-        }
-        content: {
-          'application/json': components['schemas']['MeterQuantities']
-        }
-      }
-      /** @description Meter not found. */
-      404: {
-        headers: {
-          [name: string]: unknown
-        }
-        content: {
-          'application/json': components['schemas']['ResourceNotFound']
-        }
-      }
-      /** @description Validation Error */
-      422: {
-        headers: {
-          [name: string]: unknown
-        }
-        content: {
-          'application/json': components['schemas']['HTTPValidationError']
-        }
-      }
-    }
-  }
   'organization_access_tokens:list': {
     parameters: {
       query?: {
@@ -48433,91 +34257,6 @@ export interface operations {
         }
         content: {
           'application/json': components['schemas']['OrganizationAccessToken']
-        }
-      }
-      /** @description Validation Error */
-      422: {
-        headers: {
-          [name: string]: unknown
-        }
-        content: {
-          'application/json': components['schemas']['HTTPValidationError']
-        }
-      }
-    }
-  }
-  'customer_meters:list': {
-    parameters: {
-      query?: {
-        /** @description Filter by organization ID. */
-        organization_id?: string | string[] | null
-        /** @description Filter by customer ID. */
-        customer_id?: string | string[] | null
-        /** @description Filter by external customer ID. */
-        external_customer_id?: string | string[] | null
-        /** @description Filter by meter ID. */
-        meter_id?: string | string[] | null
-        /** @description Page number, defaults to 1. */
-        page?: number
-        /** @description Size of a page, defaults to 10. Maximum is 100. */
-        limit?: number
-        /** @description Sorting criterion. Several criteria can be used simultaneously and will be applied in order. Add a minus sign `-` before the criteria name to sort by descending order. */
-        sorting?: components['schemas']['CustomerMeterSortProperty'][] | null
-      }
-      header?: never
-      path?: never
-      cookie?: never
-    }
-    requestBody?: never
-    responses: {
-      /** @description Successful Response */
-      200: {
-        headers: {
-          [name: string]: unknown
-        }
-        content: {
-          'application/json': components['schemas']['ListResource_CustomerMeter_']
-        }
-      }
-      /** @description Validation Error */
-      422: {
-        headers: {
-          [name: string]: unknown
-        }
-        content: {
-          'application/json': components['schemas']['HTTPValidationError']
-        }
-      }
-    }
-  }
-  'customer_meters:get': {
-    parameters: {
-      query?: never
-      header?: never
-      path: {
-        /** @description The customer meter ID. */
-        id: string
-      }
-      cookie?: never
-    }
-    requestBody?: never
-    responses: {
-      /** @description Successful Response */
-      200: {
-        headers: {
-          [name: string]: unknown
-        }
-        content: {
-          'application/json': components['schemas']['CustomerMeter']
-        }
-      }
-      /** @description Customer meter not found. */
-      404: {
-        headers: {
-          [name: string]: unknown
-        }
-        content: {
-          'application/json': components['schemas']['ResourceNotFound']
         }
       }
       /** @description Validation Error */
@@ -48782,72 +34521,6 @@ export interface operations {
       }
     }
   }
-  'payouts:invoice': {
-    parameters: {
-      query?: never
-      header?: never
-      path: {
-        id: string
-      }
-      cookie?: never
-    }
-    requestBody?: never
-    responses: {
-      /** @description Successful Response */
-      200: {
-        headers: {
-          [name: string]: unknown
-        }
-        content: {
-          'application/json': components['schemas']['PayoutInvoice']
-        }
-      }
-      /** @description Validation Error */
-      422: {
-        headers: {
-          [name: string]: unknown
-        }
-        content: {
-          'application/json': components['schemas']['HTTPValidationError']
-        }
-      }
-    }
-  }
-  'payouts:generate_invoice': {
-    parameters: {
-      query?: never
-      header?: never
-      path: {
-        id: string
-      }
-      cookie?: never
-    }
-    requestBody: {
-      content: {
-        'application/json': components['schemas']['PayoutGenerateInvoice']
-      }
-    }
-    responses: {
-      /** @description Successful Response */
-      202: {
-        headers: {
-          [name: string]: unknown
-        }
-        content: {
-          'application/json': unknown
-        }
-      }
-      /** @description Validation Error */
-      422: {
-        headers: {
-          [name: string]: unknown
-        }
-        content: {
-          'application/json': components['schemas']['HTTPValidationError']
-        }
-      }
-    }
-  }
   'wallets:list': {
     parameters: {
       query?: {
@@ -48967,15 +34640,6 @@ export interface operations {
           [name: string]: unknown
         }
         content?: never
-      }
-      /** @description The payment request failed. */
-      400: {
-        headers: {
-          [name: string]: unknown
-        }
-        content: {
-          'application/json': components['schemas']['PaymentIntentFailedError']
-        }
       }
       /** @description No payment method available. */
       402: {
@@ -49170,39 +34834,6 @@ export interface operations {
         }
         content: {
           'application/json': components['schemas']['PayoutAccountLink']
-        }
-      }
-      /** @description Validation Error */
-      422: {
-        headers: {
-          [name: string]: unknown
-        }
-        content: {
-          'application/json': components['schemas']['HTTPValidationError']
-        }
-      }
-    }
-  }
-  'feedbacks:submit': {
-    parameters: {
-      query?: never
-      header?: never
-      path?: never
-      cookie?: never
-    }
-    requestBody: {
-      content: {
-        'application/json': components['schemas']['FeedbackCreate']
-      }
-    }
-    responses: {
-      /** @description Successful Response */
-      201: {
-        headers: {
-          [name: string]: unknown
-        }
-        content: {
-          'application/json': components['schemas']['Feedback']
         }
       }
       /** @description Validation Error */
@@ -49424,105 +35055,6 @@ export interface operations {
     requestBody: {
       content: {
         'application/json': components['schemas']['WebhookCustomerStateChangedPayload']
-      }
-    }
-    responses: {
-      /** @description Successful Response */
-      200: {
-        headers: {
-          [name: string]: unknown
-        }
-        content: {
-          'application/json': unknown
-        }
-      }
-      /** @description Validation Error */
-      422: {
-        headers: {
-          [name: string]: unknown
-        }
-        content: {
-          'application/json': components['schemas']['HTTPValidationError']
-        }
-      }
-    }
-  }
-  _endpointcustomer_seat_assigned_post: {
-    parameters: {
-      query?: never
-      header?: never
-      path?: never
-      cookie?: never
-    }
-    requestBody: {
-      content: {
-        'application/json': components['schemas']['WebhookCustomerSeatAssignedPayload']
-      }
-    }
-    responses: {
-      /** @description Successful Response */
-      200: {
-        headers: {
-          [name: string]: unknown
-        }
-        content: {
-          'application/json': unknown
-        }
-      }
-      /** @description Validation Error */
-      422: {
-        headers: {
-          [name: string]: unknown
-        }
-        content: {
-          'application/json': components['schemas']['HTTPValidationError']
-        }
-      }
-    }
-  }
-  _endpointcustomer_seat_claimed_post: {
-    parameters: {
-      query?: never
-      header?: never
-      path?: never
-      cookie?: never
-    }
-    requestBody: {
-      content: {
-        'application/json': components['schemas']['WebhookCustomerSeatClaimedPayload']
-      }
-    }
-    responses: {
-      /** @description Successful Response */
-      200: {
-        headers: {
-          [name: string]: unknown
-        }
-        content: {
-          'application/json': unknown
-        }
-      }
-      /** @description Validation Error */
-      422: {
-        headers: {
-          [name: string]: unknown
-        }
-        content: {
-          'application/json': components['schemas']['HTTPValidationError']
-        }
-      }
-    }
-  }
-  _endpointcustomer_seat_revoked_post: {
-    parameters: {
-      query?: never
-      header?: never
-      path?: never
-      cookie?: never
-    }
-    requestBody: {
-      content: {
-        'application/json': components['schemas']['WebhookCustomerSeatRevokedPayload']
       }
     }
     responses: {
@@ -50150,204 +35682,6 @@ export interface operations {
     requestBody: {
       content: {
         'application/json': components['schemas']['WebhookOrganizationUpdatedPayload']
-      }
-    }
-    responses: {
-      /** @description Successful Response */
-      200: {
-        headers: {
-          [name: string]: unknown
-        }
-        content: {
-          'application/json': unknown
-        }
-      }
-      /** @description Validation Error */
-      422: {
-        headers: {
-          [name: string]: unknown
-        }
-        content: {
-          'application/json': components['schemas']['HTTPValidationError']
-        }
-      }
-    }
-  }
-  _endpointbenefit_created_post: {
-    parameters: {
-      query?: never
-      header?: never
-      path?: never
-      cookie?: never
-    }
-    requestBody: {
-      content: {
-        'application/json': components['schemas']['WebhookBenefitCreatedPayload']
-      }
-    }
-    responses: {
-      /** @description Successful Response */
-      200: {
-        headers: {
-          [name: string]: unknown
-        }
-        content: {
-          'application/json': unknown
-        }
-      }
-      /** @description Validation Error */
-      422: {
-        headers: {
-          [name: string]: unknown
-        }
-        content: {
-          'application/json': components['schemas']['HTTPValidationError']
-        }
-      }
-    }
-  }
-  _endpointbenefit_updated_post: {
-    parameters: {
-      query?: never
-      header?: never
-      path?: never
-      cookie?: never
-    }
-    requestBody: {
-      content: {
-        'application/json': components['schemas']['WebhookBenefitUpdatedPayload']
-      }
-    }
-    responses: {
-      /** @description Successful Response */
-      200: {
-        headers: {
-          [name: string]: unknown
-        }
-        content: {
-          'application/json': unknown
-        }
-      }
-      /** @description Validation Error */
-      422: {
-        headers: {
-          [name: string]: unknown
-        }
-        content: {
-          'application/json': components['schemas']['HTTPValidationError']
-        }
-      }
-    }
-  }
-  _endpointbenefit_grant_created_post: {
-    parameters: {
-      query?: never
-      header?: never
-      path?: never
-      cookie?: never
-    }
-    requestBody: {
-      content: {
-        'application/json': components['schemas']['WebhookBenefitGrantCreatedPayload']
-      }
-    }
-    responses: {
-      /** @description Successful Response */
-      200: {
-        headers: {
-          [name: string]: unknown
-        }
-        content: {
-          'application/json': unknown
-        }
-      }
-      /** @description Validation Error */
-      422: {
-        headers: {
-          [name: string]: unknown
-        }
-        content: {
-          'application/json': components['schemas']['HTTPValidationError']
-        }
-      }
-    }
-  }
-  _endpointbenefit_grant_updated_post: {
-    parameters: {
-      query?: never
-      header?: never
-      path?: never
-      cookie?: never
-    }
-    requestBody: {
-      content: {
-        'application/json': components['schemas']['WebhookBenefitGrantUpdatedPayload']
-      }
-    }
-    responses: {
-      /** @description Successful Response */
-      200: {
-        headers: {
-          [name: string]: unknown
-        }
-        content: {
-          'application/json': unknown
-        }
-      }
-      /** @description Validation Error */
-      422: {
-        headers: {
-          [name: string]: unknown
-        }
-        content: {
-          'application/json': components['schemas']['HTTPValidationError']
-        }
-      }
-    }
-  }
-  _endpointbenefit_grant_cycled_post: {
-    parameters: {
-      query?: never
-      header?: never
-      path?: never
-      cookie?: never
-    }
-    requestBody: {
-      content: {
-        'application/json': components['schemas']['WebhookBenefitGrantCycledPayload']
-      }
-    }
-    responses: {
-      /** @description Successful Response */
-      200: {
-        headers: {
-          [name: string]: unknown
-        }
-        content: {
-          'application/json': unknown
-        }
-      }
-      /** @description Validation Error */
-      422: {
-        headers: {
-          [name: string]: unknown
-        }
-        content: {
-          'application/json': components['schemas']['HTTPValidationError']
-        }
-      }
-    }
-  }
-  _endpointbenefit_grant_revoked_post: {
-    parameters: {
-      query?: never
-      header?: never
-      path?: never
-      cookie?: never
-    }
-    requestBody: {
-      content: {
-        'application/json': components['schemas']['WebhookBenefitGrantRevokedPayload']
       }
     }
     responses: {
@@ -53997,608 +39331,6 @@ export const pathsV1EventsStatisticsTimeseriesGetParametersQueryTimezoneValues: 
   'WET',
   'Zulu',
 ]
-export const pathsV1MetersIdQuantitiesGetParametersQueryTimezoneValues: ReadonlyArray<
-  FlattenedDeepRequired<paths>['/v1/meters/{id}/quantities']['get']['parameters']['query']['timezone']
-> = [
-  'Africa/Abidjan',
-  'Africa/Accra',
-  'Africa/Addis_Ababa',
-  'Africa/Algiers',
-  'Africa/Asmara',
-  'Africa/Asmera',
-  'Africa/Bamako',
-  'Africa/Bangui',
-  'Africa/Banjul',
-  'Africa/Bissau',
-  'Africa/Blantyre',
-  'Africa/Brazzaville',
-  'Africa/Bujumbura',
-  'Africa/Cairo',
-  'Africa/Casablanca',
-  'Africa/Ceuta',
-  'Africa/Conakry',
-  'Africa/Dakar',
-  'Africa/Dar_es_Salaam',
-  'Africa/Djibouti',
-  'Africa/Douala',
-  'Africa/El_Aaiun',
-  'Africa/Freetown',
-  'Africa/Gaborone',
-  'Africa/Harare',
-  'Africa/Johannesburg',
-  'Africa/Juba',
-  'Africa/Kampala',
-  'Africa/Khartoum',
-  'Africa/Kigali',
-  'Africa/Kinshasa',
-  'Africa/Lagos',
-  'Africa/Libreville',
-  'Africa/Lome',
-  'Africa/Luanda',
-  'Africa/Lubumbashi',
-  'Africa/Lusaka',
-  'Africa/Malabo',
-  'Africa/Maputo',
-  'Africa/Maseru',
-  'Africa/Mbabane',
-  'Africa/Mogadishu',
-  'Africa/Monrovia',
-  'Africa/Nairobi',
-  'Africa/Ndjamena',
-  'Africa/Niamey',
-  'Africa/Nouakchott',
-  'Africa/Ouagadougou',
-  'Africa/Porto-Novo',
-  'Africa/Sao_Tome',
-  'Africa/Timbuktu',
-  'Africa/Tripoli',
-  'Africa/Tunis',
-  'Africa/Windhoek',
-  'America/Adak',
-  'America/Anchorage',
-  'America/Anguilla',
-  'America/Antigua',
-  'America/Araguaina',
-  'America/Argentina/Buenos_Aires',
-  'America/Argentina/Catamarca',
-  'America/Argentina/ComodRivadavia',
-  'America/Argentina/Cordoba',
-  'America/Argentina/Jujuy',
-  'America/Argentina/La_Rioja',
-  'America/Argentina/Mendoza',
-  'America/Argentina/Rio_Gallegos',
-  'America/Argentina/Salta',
-  'America/Argentina/San_Juan',
-  'America/Argentina/San_Luis',
-  'America/Argentina/Tucuman',
-  'America/Argentina/Ushuaia',
-  'America/Aruba',
-  'America/Asuncion',
-  'America/Atikokan',
-  'America/Atka',
-  'America/Bahia',
-  'America/Bahia_Banderas',
-  'America/Barbados',
-  'America/Belem',
-  'America/Belize',
-  'America/Blanc-Sablon',
-  'America/Boa_Vista',
-  'America/Bogota',
-  'America/Boise',
-  'America/Buenos_Aires',
-  'America/Cambridge_Bay',
-  'America/Campo_Grande',
-  'America/Cancun',
-  'America/Caracas',
-  'America/Catamarca',
-  'America/Cayenne',
-  'America/Cayman',
-  'America/Chicago',
-  'America/Chihuahua',
-  'America/Ciudad_Juarez',
-  'America/Coral_Harbour',
-  'America/Cordoba',
-  'America/Costa_Rica',
-  'America/Coyhaique',
-  'America/Creston',
-  'America/Cuiaba',
-  'America/Curacao',
-  'America/Danmarkshavn',
-  'America/Dawson',
-  'America/Dawson_Creek',
-  'America/Denver',
-  'America/Detroit',
-  'America/Dominica',
-  'America/Edmonton',
-  'America/Eirunepe',
-  'America/El_Salvador',
-  'America/Ensenada',
-  'America/Fort_Nelson',
-  'America/Fort_Wayne',
-  'America/Fortaleza',
-  'America/Glace_Bay',
-  'America/Godthab',
-  'America/Goose_Bay',
-  'America/Grand_Turk',
-  'America/Grenada',
-  'America/Guadeloupe',
-  'America/Guatemala',
-  'America/Guayaquil',
-  'America/Guyana',
-  'America/Halifax',
-  'America/Havana',
-  'America/Hermosillo',
-  'America/Indiana/Indianapolis',
-  'America/Indiana/Knox',
-  'America/Indiana/Marengo',
-  'America/Indiana/Petersburg',
-  'America/Indiana/Tell_City',
-  'America/Indiana/Vevay',
-  'America/Indiana/Vincennes',
-  'America/Indiana/Winamac',
-  'America/Indianapolis',
-  'America/Inuvik',
-  'America/Iqaluit',
-  'America/Jamaica',
-  'America/Jujuy',
-  'America/Juneau',
-  'America/Kentucky/Louisville',
-  'America/Kentucky/Monticello',
-  'America/Knox_IN',
-  'America/Kralendijk',
-  'America/La_Paz',
-  'America/Lima',
-  'America/Los_Angeles',
-  'America/Louisville',
-  'America/Lower_Princes',
-  'America/Maceio',
-  'America/Managua',
-  'America/Manaus',
-  'America/Marigot',
-  'America/Martinique',
-  'America/Matamoros',
-  'America/Mazatlan',
-  'America/Mendoza',
-  'America/Menominee',
-  'America/Merida',
-  'America/Metlakatla',
-  'America/Mexico_City',
-  'America/Miquelon',
-  'America/Moncton',
-  'America/Monterrey',
-  'America/Montevideo',
-  'America/Montreal',
-  'America/Montserrat',
-  'America/Nassau',
-  'America/New_York',
-  'America/Nipigon',
-  'America/Nome',
-  'America/Noronha',
-  'America/North_Dakota/Beulah',
-  'America/North_Dakota/Center',
-  'America/North_Dakota/New_Salem',
-  'America/Nuuk',
-  'America/Ojinaga',
-  'America/Panama',
-  'America/Pangnirtung',
-  'America/Paramaribo',
-  'America/Phoenix',
-  'America/Port-au-Prince',
-  'America/Port_of_Spain',
-  'America/Porto_Acre',
-  'America/Porto_Velho',
-  'America/Puerto_Rico',
-  'America/Punta_Arenas',
-  'America/Rainy_River',
-  'America/Rankin_Inlet',
-  'America/Recife',
-  'America/Regina',
-  'America/Resolute',
-  'America/Rio_Branco',
-  'America/Rosario',
-  'America/Santa_Isabel',
-  'America/Santarem',
-  'America/Santiago',
-  'America/Santo_Domingo',
-  'America/Sao_Paulo',
-  'America/Scoresbysund',
-  'America/Shiprock',
-  'America/Sitka',
-  'America/St_Barthelemy',
-  'America/St_Johns',
-  'America/St_Kitts',
-  'America/St_Lucia',
-  'America/St_Thomas',
-  'America/St_Vincent',
-  'America/Swift_Current',
-  'America/Tegucigalpa',
-  'America/Thule',
-  'America/Thunder_Bay',
-  'America/Tijuana',
-  'America/Toronto',
-  'America/Tortola',
-  'America/Vancouver',
-  'America/Virgin',
-  'America/Whitehorse',
-  'America/Winnipeg',
-  'America/Yakutat',
-  'America/Yellowknife',
-  'Antarctica/Casey',
-  'Antarctica/Davis',
-  'Antarctica/DumontDUrville',
-  'Antarctica/Macquarie',
-  'Antarctica/Mawson',
-  'Antarctica/McMurdo',
-  'Antarctica/Palmer',
-  'Antarctica/Rothera',
-  'Antarctica/South_Pole',
-  'Antarctica/Syowa',
-  'Antarctica/Troll',
-  'Antarctica/Vostok',
-  'Arctic/Longyearbyen',
-  'Asia/Aden',
-  'Asia/Almaty',
-  'Asia/Amman',
-  'Asia/Anadyr',
-  'Asia/Aqtau',
-  'Asia/Aqtobe',
-  'Asia/Ashgabat',
-  'Asia/Ashkhabad',
-  'Asia/Atyrau',
-  'Asia/Baghdad',
-  'Asia/Bahrain',
-  'Asia/Baku',
-  'Asia/Bangkok',
-  'Asia/Barnaul',
-  'Asia/Beirut',
-  'Asia/Bishkek',
-  'Asia/Brunei',
-  'Asia/Calcutta',
-  'Asia/Chita',
-  'Asia/Choibalsan',
-  'Asia/Chongqing',
-  'Asia/Chungking',
-  'Asia/Colombo',
-  'Asia/Dacca',
-  'Asia/Damascus',
-  'Asia/Dhaka',
-  'Asia/Dili',
-  'Asia/Dubai',
-  'Asia/Dushanbe',
-  'Asia/Famagusta',
-  'Asia/Gaza',
-  'Asia/Harbin',
-  'Asia/Hebron',
-  'Asia/Ho_Chi_Minh',
-  'Asia/Hong_Kong',
-  'Asia/Hovd',
-  'Asia/Irkutsk',
-  'Asia/Istanbul',
-  'Asia/Jakarta',
-  'Asia/Jayapura',
-  'Asia/Jerusalem',
-  'Asia/Kabul',
-  'Asia/Kamchatka',
-  'Asia/Karachi',
-  'Asia/Kashgar',
-  'Asia/Kathmandu',
-  'Asia/Katmandu',
-  'Asia/Khandyga',
-  'Asia/Kolkata',
-  'Asia/Krasnoyarsk',
-  'Asia/Kuala_Lumpur',
-  'Asia/Kuching',
-  'Asia/Kuwait',
-  'Asia/Macao',
-  'Asia/Macau',
-  'Asia/Magadan',
-  'Asia/Makassar',
-  'Asia/Manila',
-  'Asia/Muscat',
-  'Asia/Nicosia',
-  'Asia/Novokuznetsk',
-  'Asia/Novosibirsk',
-  'Asia/Omsk',
-  'Asia/Oral',
-  'Asia/Phnom_Penh',
-  'Asia/Pontianak',
-  'Asia/Pyongyang',
-  'Asia/Qatar',
-  'Asia/Qostanay',
-  'Asia/Qyzylorda',
-  'Asia/Rangoon',
-  'Asia/Riyadh',
-  'Asia/Saigon',
-  'Asia/Sakhalin',
-  'Asia/Samarkand',
-  'Asia/Seoul',
-  'Asia/Shanghai',
-  'Asia/Singapore',
-  'Asia/Srednekolymsk',
-  'Asia/Taipei',
-  'Asia/Tashkent',
-  'Asia/Tbilisi',
-  'Asia/Tehran',
-  'Asia/Tel_Aviv',
-  'Asia/Thimbu',
-  'Asia/Thimphu',
-  'Asia/Tokyo',
-  'Asia/Tomsk',
-  'Asia/Ujung_Pandang',
-  'Asia/Ulaanbaatar',
-  'Asia/Ulan_Bator',
-  'Asia/Urumqi',
-  'Asia/Ust-Nera',
-  'Asia/Vientiane',
-  'Asia/Vladivostok',
-  'Asia/Yakutsk',
-  'Asia/Yangon',
-  'Asia/Yekaterinburg',
-  'Asia/Yerevan',
-  'Atlantic/Azores',
-  'Atlantic/Bermuda',
-  'Atlantic/Canary',
-  'Atlantic/Cape_Verde',
-  'Atlantic/Faeroe',
-  'Atlantic/Faroe',
-  'Atlantic/Jan_Mayen',
-  'Atlantic/Madeira',
-  'Atlantic/Reykjavik',
-  'Atlantic/South_Georgia',
-  'Atlantic/St_Helena',
-  'Atlantic/Stanley',
-  'Australia/ACT',
-  'Australia/Adelaide',
-  'Australia/Brisbane',
-  'Australia/Broken_Hill',
-  'Australia/Canberra',
-  'Australia/Currie',
-  'Australia/Darwin',
-  'Australia/Eucla',
-  'Australia/Hobart',
-  'Australia/LHI',
-  'Australia/Lindeman',
-  'Australia/Lord_Howe',
-  'Australia/Melbourne',
-  'Australia/NSW',
-  'Australia/North',
-  'Australia/Perth',
-  'Australia/Queensland',
-  'Australia/South',
-  'Australia/Sydney',
-  'Australia/Tasmania',
-  'Australia/Victoria',
-  'Australia/West',
-  'Australia/Yancowinna',
-  'Brazil/Acre',
-  'Brazil/DeNoronha',
-  'Brazil/East',
-  'Brazil/West',
-  'CET',
-  'CST6CDT',
-  'Canada/Atlantic',
-  'Canada/Central',
-  'Canada/Eastern',
-  'Canada/Mountain',
-  'Canada/Newfoundland',
-  'Canada/Pacific',
-  'Canada/Saskatchewan',
-  'Canada/Yukon',
-  'Chile/Continental',
-  'Chile/EasterIsland',
-  'Cuba',
-  'EET',
-  'EST',
-  'EST5EDT',
-  'Egypt',
-  'Eire',
-  'Etc/GMT',
-  'Etc/GMT+0',
-  'Etc/GMT+1',
-  'Etc/GMT+10',
-  'Etc/GMT+11',
-  'Etc/GMT+12',
-  'Etc/GMT+2',
-  'Etc/GMT+3',
-  'Etc/GMT+4',
-  'Etc/GMT+5',
-  'Etc/GMT+6',
-  'Etc/GMT+7',
-  'Etc/GMT+8',
-  'Etc/GMT+9',
-  'Etc/GMT-0',
-  'Etc/GMT-1',
-  'Etc/GMT-10',
-  'Etc/GMT-11',
-  'Etc/GMT-12',
-  'Etc/GMT-13',
-  'Etc/GMT-14',
-  'Etc/GMT-2',
-  'Etc/GMT-3',
-  'Etc/GMT-4',
-  'Etc/GMT-5',
-  'Etc/GMT-6',
-  'Etc/GMT-7',
-  'Etc/GMT-8',
-  'Etc/GMT-9',
-  'Etc/GMT0',
-  'Etc/Greenwich',
-  'Etc/UCT',
-  'Etc/UTC',
-  'Etc/Universal',
-  'Etc/Zulu',
-  'Europe/Amsterdam',
-  'Europe/Andorra',
-  'Europe/Astrakhan',
-  'Europe/Athens',
-  'Europe/Belfast',
-  'Europe/Belgrade',
-  'Europe/Berlin',
-  'Europe/Bratislava',
-  'Europe/Brussels',
-  'Europe/Bucharest',
-  'Europe/Budapest',
-  'Europe/Busingen',
-  'Europe/Chisinau',
-  'Europe/Copenhagen',
-  'Europe/Dublin',
-  'Europe/Gibraltar',
-  'Europe/Guernsey',
-  'Europe/Helsinki',
-  'Europe/Isle_of_Man',
-  'Europe/Istanbul',
-  'Europe/Jersey',
-  'Europe/Kaliningrad',
-  'Europe/Kiev',
-  'Europe/Kirov',
-  'Europe/Kyiv',
-  'Europe/Lisbon',
-  'Europe/Ljubljana',
-  'Europe/London',
-  'Europe/Luxembourg',
-  'Europe/Madrid',
-  'Europe/Malta',
-  'Europe/Mariehamn',
-  'Europe/Minsk',
-  'Europe/Monaco',
-  'Europe/Moscow',
-  'Europe/Nicosia',
-  'Europe/Oslo',
-  'Europe/Paris',
-  'Europe/Podgorica',
-  'Europe/Prague',
-  'Europe/Riga',
-  'Europe/Rome',
-  'Europe/Samara',
-  'Europe/San_Marino',
-  'Europe/Sarajevo',
-  'Europe/Saratov',
-  'Europe/Simferopol',
-  'Europe/Skopje',
-  'Europe/Sofia',
-  'Europe/Stockholm',
-  'Europe/Tallinn',
-  'Europe/Tirane',
-  'Europe/Tiraspol',
-  'Europe/Ulyanovsk',
-  'Europe/Uzhgorod',
-  'Europe/Vaduz',
-  'Europe/Vatican',
-  'Europe/Vienna',
-  'Europe/Vilnius',
-  'Europe/Volgograd',
-  'Europe/Warsaw',
-  'Europe/Zagreb',
-  'Europe/Zaporozhye',
-  'Europe/Zurich',
-  'Factory',
-  'GB',
-  'GB-Eire',
-  'GMT',
-  'GMT+0',
-  'GMT-0',
-  'GMT0',
-  'Greenwich',
-  'HST',
-  'Hongkong',
-  'Iceland',
-  'Indian/Antananarivo',
-  'Indian/Chagos',
-  'Indian/Christmas',
-  'Indian/Cocos',
-  'Indian/Comoro',
-  'Indian/Kerguelen',
-  'Indian/Mahe',
-  'Indian/Maldives',
-  'Indian/Mauritius',
-  'Indian/Mayotte',
-  'Indian/Reunion',
-  'Iran',
-  'Israel',
-  'Jamaica',
-  'Japan',
-  'Kwajalein',
-  'Libya',
-  'MET',
-  'MST',
-  'MST7MDT',
-  'Mexico/BajaNorte',
-  'Mexico/BajaSur',
-  'Mexico/General',
-  'NZ',
-  'NZ-CHAT',
-  'Navajo',
-  'PRC',
-  'PST8PDT',
-  'Pacific/Apia',
-  'Pacific/Auckland',
-  'Pacific/Bougainville',
-  'Pacific/Chatham',
-  'Pacific/Chuuk',
-  'Pacific/Easter',
-  'Pacific/Efate',
-  'Pacific/Enderbury',
-  'Pacific/Fakaofo',
-  'Pacific/Fiji',
-  'Pacific/Funafuti',
-  'Pacific/Galapagos',
-  'Pacific/Gambier',
-  'Pacific/Guadalcanal',
-  'Pacific/Guam',
-  'Pacific/Honolulu',
-  'Pacific/Johnston',
-  'Pacific/Kanton',
-  'Pacific/Kiritimati',
-  'Pacific/Kosrae',
-  'Pacific/Kwajalein',
-  'Pacific/Majuro',
-  'Pacific/Marquesas',
-  'Pacific/Midway',
-  'Pacific/Nauru',
-  'Pacific/Niue',
-  'Pacific/Norfolk',
-  'Pacific/Noumea',
-  'Pacific/Pago_Pago',
-  'Pacific/Palau',
-  'Pacific/Pitcairn',
-  'Pacific/Pohnpei',
-  'Pacific/Ponape',
-  'Pacific/Port_Moresby',
-  'Pacific/Rarotonga',
-  'Pacific/Saipan',
-  'Pacific/Samoa',
-  'Pacific/Tahiti',
-  'Pacific/Tarawa',
-  'Pacific/Tongatapu',
-  'Pacific/Truk',
-  'Pacific/Wake',
-  'Pacific/Wallis',
-  'Pacific/Yap',
-  'Poland',
-  'Portugal',
-  'ROC',
-  'ROK',
-  'Singapore',
-  'Turkey',
-  'UCT',
-  'US/Alaska',
-  'US/Aleutian',
-  'US/Arizona',
-  'US/Central',
-  'US/East-Indiana',
-  'US/Eastern',
-  'US/Hawaii',
-  'US/Indiana-Starke',
-  'US/Michigan',
-  'US/Mountain',
-  'US/Pacific',
-  'US/Samoa',
-  'UTC',
-  'Universal',
-  'W-SU',
-  'WET',
-  'Zulu',
-]
 export const addressCountryValues: ReadonlyArray<
   FlattenedDeepRequired<components>['schemas']['Address']['country']
 > = [
@@ -55100,12 +39832,6 @@ export const addressInputCountryValues: ReadonlyArray<
   'ZM',
   'ZW',
 ]
-export const aggregationFunctionValues: ReadonlyArray<
-  FlattenedDeepRequired<components>['schemas']['AggregationFunction']
-> = ['count', 'sum', 'max', 'min', 'avg', 'unique']
-export const appealDecisionValues: ReadonlyArray<
-  FlattenedDeepRequired<components>['schemas']['AppealDecision']
-> = ['approved', 'rejected']
 export const authorizeResponseOrganizationSub_typeValues: ReadonlyArray<
   FlattenedDeepRequired<components>['schemas']['AuthorizeResponseOrganization']['sub_type']
 > = ['organization']
@@ -55136,12 +39862,8 @@ export const availableScopeValues: ReadonlyArray<
   'payouts:write',
   'products:read',
   'products:write',
-  'benefits:read',
-  'benefits:write',
   'events:read',
   'events:write',
-  'meters:read',
-  'meters:write',
   'files:read',
   'files:write',
   'subscriptions:read',
@@ -55153,11 +39875,8 @@ export const availableScopeValues: ReadonlyArray<
   'wallets:read',
   'wallets:write',
   'disputes:read',
-  'customer_meters:read',
   'customer_sessions:write',
   'member_sessions:write',
-  'customer_seats:read',
-  'customer_seats:write',
   'orders:read',
   'orders:write',
   'refunds:read',
@@ -55167,14 +39886,8 @@ export const availableScopeValues: ReadonlyArray<
   'metrics:write',
   'webhooks:read',
   'webhooks:write',
-  'license_keys:read',
-  'license_keys:write',
   'customer_portal:read',
   'customer_portal:write',
-  'notifications:read',
-  'notifications:write',
-  'notification_recipients:read',
-  'notification_recipients:write',
   'organization_access_tokens:read',
   'organization_access_tokens:write',
 ]
@@ -55196,105 +39909,6 @@ export const balanceRefundEventNameValues: ReadonlyArray<
 export const balanceRefundReversalEventNameValues: ReadonlyArray<
   FlattenedDeepRequired<components>['schemas']['BalanceRefundReversalEvent']['name']
 > = ['balance.refund_reversal']
-export const benefitCustomTypeValues: ReadonlyArray<
-  FlattenedDeepRequired<components>['schemas']['BenefitCustom']['type']
-> = ['custom']
-export const benefitCustomCreateTypeValues: ReadonlyArray<
-  FlattenedDeepRequired<components>['schemas']['BenefitCustomCreate']['type']
-> = ['custom']
-export const benefitCycledEventNameValues: ReadonlyArray<
-  FlattenedDeepRequired<components>['schemas']['BenefitCycledEvent']['name']
-> = ['benefit.cycled']
-export const benefitDiscordTypeValues: ReadonlyArray<
-  FlattenedDeepRequired<components>['schemas']['BenefitDiscord']['type']
-> = ['discord']
-export const benefitDiscordCreateTypeValues: ReadonlyArray<
-  FlattenedDeepRequired<components>['schemas']['BenefitDiscordCreate']['type']
-> = ['discord']
-export const benefitDownloadablesTypeValues: ReadonlyArray<
-  FlattenedDeepRequired<components>['schemas']['BenefitDownloadables']['type']
-> = ['downloadables']
-export const benefitDownloadablesCreateTypeValues: ReadonlyArray<
-  FlattenedDeepRequired<components>['schemas']['BenefitDownloadablesCreate']['type']
-> = ['downloadables']
-export const benefitFeatureFlagTypeValues: ReadonlyArray<
-  FlattenedDeepRequired<components>['schemas']['BenefitFeatureFlag']['type']
-> = ['feature_flag']
-export const benefitFeatureFlagCreateTypeValues: ReadonlyArray<
-  FlattenedDeepRequired<components>['schemas']['BenefitFeatureFlagCreate']['type']
-> = ['feature_flag']
-export const benefitGitHubRepositoryTypeValues: ReadonlyArray<
-  FlattenedDeepRequired<components>['schemas']['BenefitGitHubRepository']['type']
-> = ['github_repository']
-export const benefitGitHubRepositoryCreateTypeValues: ReadonlyArray<
-  FlattenedDeepRequired<components>['schemas']['BenefitGitHubRepositoryCreate']['type']
-> = ['github_repository']
-export const benefitGitHubRepositoryCreatePropertiesPermissionValues: ReadonlyArray<
-  FlattenedDeepRequired<components>['schemas']['BenefitGitHubRepositoryCreateProperties']['permission']
-> = ['pull', 'triage', 'push', 'maintain', 'admin']
-export const benefitGitHubRepositoryPropertiesPermissionValues: ReadonlyArray<
-  FlattenedDeepRequired<components>['schemas']['BenefitGitHubRepositoryProperties']['permission']
-> = ['pull', 'triage', 'push', 'maintain', 'admin']
-export const benefitGrantGitHubRepositoryPropertiesPermissionValues: ReadonlyArray<
-  FlattenedDeepRequired<components>['schemas']['BenefitGrantGitHubRepositoryProperties']['permission']
-> = ['pull', 'triage', 'push', 'maintain', 'admin']
-export const benefitGrantSortPropertyValues: ReadonlyArray<
-  FlattenedDeepRequired<components>['schemas']['BenefitGrantSortProperty']
-> = [
-  'created_at',
-  '-created_at',
-  'granted_at',
-  '-granted_at',
-  'revoked_at',
-  '-revoked_at',
-]
-export const benefitGrantedEventNameValues: ReadonlyArray<
-  FlattenedDeepRequired<components>['schemas']['BenefitGrantedEvent']['name']
-> = ['benefit.granted']
-export const benefitLicenseKeyExpirationPropertiesTimeframeValues: ReadonlyArray<
-  FlattenedDeepRequired<components>['schemas']['BenefitLicenseKeyExpirationProperties']['timeframe']
-> = ['year', 'month', 'day']
-export const benefitLicenseKeysTypeValues: ReadonlyArray<
-  FlattenedDeepRequired<components>['schemas']['BenefitLicenseKeys']['type']
-> = ['license_keys']
-export const benefitLicenseKeysCreateTypeValues: ReadonlyArray<
-  FlattenedDeepRequired<components>['schemas']['BenefitLicenseKeysCreate']['type']
-> = ['license_keys']
-export const benefitMeterCreditTypeValues: ReadonlyArray<
-  FlattenedDeepRequired<components>['schemas']['BenefitMeterCredit']['type']
-> = ['meter_credit']
-export const benefitMeterCreditCreateTypeValues: ReadonlyArray<
-  FlattenedDeepRequired<components>['schemas']['BenefitMeterCreditCreate']['type']
-> = ['meter_credit']
-export const benefitRevokedEventNameValues: ReadonlyArray<
-  FlattenedDeepRequired<components>['schemas']['BenefitRevokedEvent']['name']
-> = ['benefit.revoked']
-export const benefitSortPropertyValues: ReadonlyArray<
-  FlattenedDeepRequired<components>['schemas']['BenefitSortProperty']
-> = [
-  'created_at',
-  '-created_at',
-  'description',
-  '-description',
-  'type',
-  '-type',
-  'user_order',
-  '-user_order',
-]
-export const benefitTypeValues: ReadonlyArray<
-  FlattenedDeepRequired<components>['schemas']['BenefitType']
-> = [
-  'custom',
-  'discord',
-  'github_repository',
-  'downloadables',
-  'license_keys',
-  'meter_credit',
-  'feature_flag',
-]
-export const benefitUpdatedEventNameValues: ReadonlyArray<
-  FlattenedDeepRequired<components>['schemas']['BenefitUpdatedEvent']['name']
-> = ['benefit.updated']
 export const billingAddressFieldModeValues: ReadonlyArray<
   FlattenedDeepRequired<components>['schemas']['BillingAddressFieldMode']
 > = ['required', 'optional', 'disabled']
@@ -55329,9 +39943,6 @@ export const checkoutSortPropertyValues: ReadonlyArray<
 export const checkoutStatusValues: ReadonlyArray<
   FlattenedDeepRequired<components>['schemas']['CheckoutStatus']
 > = ['open', 'expired', 'confirmed', 'succeeded', 'failed']
-export const countAggregationFuncValues: ReadonlyArray<
-  FlattenedDeepRequired<components>['schemas']['CountAggregation']['func']
-> = ['count']
 export const countryAlpha2Values: ReadonlyArray<
   FlattenedDeepRequired<components>['schemas']['CountryAlpha2']
 > = [
@@ -55893,39 +40504,6 @@ export const customFieldUpdateSelectTypeValues: ReadonlyArray<
 export const customFieldUpdateTextTypeValues: ReadonlyArray<
   FlattenedDeepRequired<components>['schemas']['CustomFieldUpdateText']['type']
 > = ['text']
-export const customerBenefitGrantCustomUpdateBenefit_typeValues: ReadonlyArray<
-  FlattenedDeepRequired<components>['schemas']['CustomerBenefitGrantCustomUpdate']['benefit_type']
-> = ['custom']
-export const customerBenefitGrantDiscordUpdateBenefit_typeValues: ReadonlyArray<
-  FlattenedDeepRequired<components>['schemas']['CustomerBenefitGrantDiscordUpdate']['benefit_type']
-> = ['discord']
-export const customerBenefitGrantDownloadablesUpdateBenefit_typeValues: ReadonlyArray<
-  FlattenedDeepRequired<components>['schemas']['CustomerBenefitGrantDownloadablesUpdate']['benefit_type']
-> = ['downloadables']
-export const customerBenefitGrantFeatureFlagUpdateBenefit_typeValues: ReadonlyArray<
-  FlattenedDeepRequired<components>['schemas']['CustomerBenefitGrantFeatureFlagUpdate']['benefit_type']
-> = ['feature_flag']
-export const customerBenefitGrantGitHubRepositoryUpdateBenefit_typeValues: ReadonlyArray<
-  FlattenedDeepRequired<components>['schemas']['CustomerBenefitGrantGitHubRepositoryUpdate']['benefit_type']
-> = ['github_repository']
-export const customerBenefitGrantLicenseKeysUpdateBenefit_typeValues: ReadonlyArray<
-  FlattenedDeepRequired<components>['schemas']['CustomerBenefitGrantLicenseKeysUpdate']['benefit_type']
-> = ['license_keys']
-export const customerBenefitGrantMeterCreditUpdateBenefit_typeValues: ReadonlyArray<
-  FlattenedDeepRequired<components>['schemas']['CustomerBenefitGrantMeterCreditUpdate']['benefit_type']
-> = ['meter_credit']
-export const customerBenefitGrantSortPropertyValues: ReadonlyArray<
-  FlattenedDeepRequired<components>['schemas']['CustomerBenefitGrantSortProperty']
-> = [
-  'granted_at',
-  '-granted_at',
-  'type',
-  '-type',
-  'organization',
-  '-organization',
-  'product_benefit',
-  '-product_benefit',
-]
 export const customerCancellationReasonValues: ReadonlyArray<
   FlattenedDeepRequired<components>['schemas']['CustomerCancellationReason']
 > = [
@@ -55941,55 +40519,15 @@ export const customerCancellationReasonValues: ReadonlyArray<
 export const customerCreatedEventNameValues: ReadonlyArray<
   FlattenedDeepRequired<components>['schemas']['CustomerCreatedEvent']['name']
 > = ['customer.created']
-export const customerCustomerMeterSortPropertyValues: ReadonlyArray<
-  FlattenedDeepRequired<components>['schemas']['CustomerCustomerMeterSortProperty']
-> = [
-  'created_at',
-  '-created_at',
-  'modified_at',
-  '-modified_at',
-  'meter_id',
-  '-meter_id',
-  'meter_name',
-  '-meter_name',
-  'consumed_units',
-  '-consumed_units',
-  'credited_units',
-  '-credited_units',
-  'balance',
-  '-balance',
-]
 export const customerDeletedEventNameValues: ReadonlyArray<
   FlattenedDeepRequired<components>['schemas']['CustomerDeletedEvent']['name']
 > = ['customer.deleted']
 export const customerIndividualTypeValues: ReadonlyArray<
   FlattenedDeepRequired<components>['schemas']['CustomerIndividual']['type']
 > = ['individual']
-export const customerMeterSortPropertyValues: ReadonlyArray<
-  FlattenedDeepRequired<components>['schemas']['CustomerMeterSortProperty']
-> = [
-  'created_at',
-  '-created_at',
-  'modified_at',
-  '-modified_at',
-  'customer_id',
-  '-customer_id',
-  'customer_name',
-  '-customer_name',
-  'meter_id',
-  '-meter_id',
-  'meter_name',
-  '-meter_name',
-  'consumed_units',
-  '-consumed_units',
-  'credited_units',
-  '-credited_units',
-  'balance',
-  '-balance',
-]
 export const customerOAuthPlatformValues: ReadonlyArray<
   FlattenedDeepRequired<components>['schemas']['CustomerOAuthPlatform']
-> = ['github', 'discord']
+> = ['github']
 export const customerOrderSortPropertyValues: ReadonlyArray<
   FlattenedDeepRequired<components>['schemas']['CustomerOrderSortProperty']
 > = [
@@ -56004,12 +40542,6 @@ export const customerOrderSortPropertyValues: ReadonlyArray<
   'subscription',
   '-subscription',
 ]
-export const customerPaymentMethodCreateRequiresActionResponseStatusValues: ReadonlyArray<
-  FlattenedDeepRequired<components>['schemas']['CustomerPaymentMethodCreateRequiresActionResponse']['status']
-> = ['requires_action']
-export const customerPaymentMethodCreateSucceededResponseStatusValues: ReadonlyArray<
-  FlattenedDeepRequired<components>['schemas']['CustomerPaymentMethodCreateSucceededResponse']['status']
-> = ['succeeded']
 export const customerSortPropertyValues: ReadonlyArray<
   FlattenedDeepRequired<components>['schemas']['CustomerSortProperty']
 > = ['created_at', '-created_at', 'email', '-email', 'name', '-name']
@@ -56074,25 +40606,6 @@ export const discountSortPropertyValues: ReadonlyArray<
 export const discountTypeValues: ReadonlyArray<
   FlattenedDeepRequired<components>['schemas']['DiscountType']
 > = ['fixed', 'percentage']
-export const disputeSortPropertyValues: ReadonlyArray<
-  FlattenedDeepRequired<components>['schemas']['DisputeSortProperty']
-> = ['created_at', '-created_at', 'amount', '-amount']
-export const disputeStatusValues: ReadonlyArray<
-  FlattenedDeepRequired<components>['schemas']['DisputeStatus']
-> = [
-  'prevented',
-  'early_warning',
-  'needs_response',
-  'under_review',
-  'lost',
-  'won',
-]
-export const downloadableFileCreateServiceValues: ReadonlyArray<
-  FlattenedDeepRequired<components>['schemas']['DownloadableFileCreate']['service']
-> = ['downloadable']
-export const downloadableFileReadServiceValues: ReadonlyArray<
-  FlattenedDeepRequired<components>['schemas']['DownloadableFileRead']['service']
-> = ['downloadable']
 export const eventNamesSortPropertyValues: ReadonlyArray<
   FlattenedDeepRequired<components>['schemas']['EventNamesSortProperty']
 > = [
@@ -56144,24 +40657,6 @@ export const eventTypesSortPropertyValues: ReadonlyArray<
 export const factorValues: ReadonlyArray<
   FlattenedDeepRequired<components>['schemas']['Factor']
 > = ['email_otp', 'totp', 'backup_codes', 'apple', 'github', 'google']
-export const feedbackStatusValues: ReadonlyArray<
-  FlattenedDeepRequired<components>['schemas']['FeedbackStatus']
-> = ['new', 'triaged']
-export const feedbackTypeValues: ReadonlyArray<
-  FlattenedDeepRequired<components>['schemas']['FeedbackType']
-> = ['bug', 'feedback', 'question']
-export const fileServiceTypesValues: ReadonlyArray<
-  FlattenedDeepRequired<components>['schemas']['FileServiceTypes']
-> = ['downloadable', 'product_media', 'organization_avatar']
-export const filterConjunctionValues: ReadonlyArray<
-  FlattenedDeepRequired<components>['schemas']['FilterConjunction']
-> = ['and', 'or']
-export const filterOperatorValues: ReadonlyArray<
-  FlattenedDeepRequired<components>['schemas']['FilterOperator']
-> = ['eq', 'ne', 'gt', 'gte', 'lt', 'lte', 'like', 'not_like']
-export const identityVerificationStatusValues: ReadonlyArray<
-  FlattenedDeepRequired<components>['schemas']['IdentityVerificationStatus']
-> = ['unverified', 'pending', 'verified', 'failed']
 export const introspectTokenResponseToken_typeValues: ReadonlyArray<
   FlattenedDeepRequired<components>['schemas']['IntrospectTokenResponse']['token_type']
 > = ['access_token', 'refresh_token']
@@ -56177,21 +40672,6 @@ export const legacyRecurringProductPriceFixedAmount_typeValues: ReadonlyArray<
 export const legacyRecurringProductPriceFreeAmount_typeValues: ReadonlyArray<
   FlattenedDeepRequired<components>['schemas']['LegacyRecurringProductPriceFree']['amount_type']
 > = ['free']
-export const licenseKeyStatusValues: ReadonlyArray<
-  FlattenedDeepRequired<components>['schemas']['LicenseKeyStatus']
-> = ['granted', 'revoked', 'disabled']
-export const maintainerAccountCreditsGrantedNotificationTypeValues: ReadonlyArray<
-  FlattenedDeepRequired<components>['schemas']['MaintainerAccountCreditsGrantedNotification']['type']
-> = ['MaintainerAccountCreditsGrantedNotification']
-export const maintainerCreateAccountNotificationTypeValues: ReadonlyArray<
-  FlattenedDeepRequired<components>['schemas']['MaintainerCreateAccountNotification']['type']
-> = ['MaintainerCreateAccountNotification']
-export const maintainerNewPaidSubscriptionNotificationTypeValues: ReadonlyArray<
-  FlattenedDeepRequired<components>['schemas']['MaintainerNewPaidSubscriptionNotification']['type']
-> = ['MaintainerNewPaidSubscriptionNotification']
-export const maintainerNewProductSaleNotificationTypeValues: ReadonlyArray<
-  FlattenedDeepRequired<components>['schemas']['MaintainerNewProductSaleNotification']['type']
-> = ['MaintainerNewProductSaleNotification']
 export const memberCreateRoleValues: ReadonlyArray<
   FlattenedDeepRequired<components>['schemas']['MemberCreate']['role']
 > = ['member', 'billing_manager']
@@ -56201,24 +40681,9 @@ export const memberRoleValues: ReadonlyArray<
 export const memberSortPropertyValues: ReadonlyArray<
   FlattenedDeepRequired<components>['schemas']['MemberSortProperty']
 > = ['created_at', '-created_at']
-export const meterCreditEventNameValues: ReadonlyArray<
-  FlattenedDeepRequired<components>['schemas']['MeterCreditEvent']['name']
-> = ['meter.credited']
-export const meterResetEventNameValues: ReadonlyArray<
-  FlattenedDeepRequired<components>['schemas']['MeterResetEvent']['name']
-> = ['meter.reset']
-export const meterSortPropertyValues: ReadonlyArray<
-  FlattenedDeepRequired<components>['schemas']['MeterSortProperty']
-> = ['created_at', '-created_at', 'name', '-name']
-export const meterUnitValues: ReadonlyArray<
-  FlattenedDeepRequired<components>['schemas']['MeterUnit']
-> = ['scalar', 'token', 'custom']
 export const metricTypeValues: ReadonlyArray<
   FlattenedDeepRequired<components>['schemas']['MetricType']
 > = ['scalar', 'currency', 'currency_sub_cent', 'percentage']
-export const notificationRecipientPlatformValues: ReadonlyArray<
-  FlattenedDeepRequired<components>['schemas']['NotificationRecipientPlatform']
-> = ['ios', 'android']
 export const oAuth2ClientToken_endpoint_auth_methodValues: ReadonlyArray<
   FlattenedDeepRequired<components>['schemas']['OAuth2Client']['token_endpoint_auth_method']
 > = ['client_secret_basic', 'client_secret_post', 'none']
@@ -56271,8 +40736,6 @@ export const orderSortPropertyValues: ReadonlyArray<
   '-created_at',
   'status',
   '-status',
-  'invoice_number',
-  '-invoice_number',
   'amount',
   '-amount',
   'net_amount',
@@ -56557,12 +41020,6 @@ export const organizationAccessTokenSortPropertyValues: ReadonlyArray<
   'organization_id',
   '-organization_id',
 ]
-export const organizationAvatarFileCreateServiceValues: ReadonlyArray<
-  FlattenedDeepRequired<components>['schemas']['OrganizationAvatarFileCreate']['service']
-> = ['organization_avatar']
-export const organizationAvatarFileReadServiceValues: ReadonlyArray<
-  FlattenedDeepRequired<components>['schemas']['OrganizationAvatarFileRead']['service']
-> = ['organization_avatar']
 export const organizationCompanyLegalEntitySchemaTypeValues: ReadonlyArray<
   FlattenedDeepRequired<components>['schemas']['OrganizationCompanyLegalEntitySchema']['type']
 > = ['company']
@@ -57099,49 +41556,6 @@ export const organizationPermissionValues: ReadonlyArray<
   'finance:read',
   'finance:manage',
 ]
-export const organizationReviewCheckKeyValues: ReadonlyArray<
-  FlattenedDeepRequired<components>['schemas']['OrganizationReviewCheckKey']
-> = [
-  'identity.email',
-  'identity.social_links',
-  'identity.stripe_identity_verification',
-  'product_description',
-  'product_url',
-  'payout_account',
-  'product_configuration',
-  'setup_readiness',
-]
-export const organizationReviewCheckReasonValues: ReadonlyArray<
-  FlattenedDeepRequired<components>['schemas']['OrganizationReviewCheckReason']
-> = [
-  'not_started',
-  'in_progress',
-  'external_pending',
-  'identity.rejected',
-  'identity.personal_email',
-  'identity.domain_mismatch',
-  'product_url.unreachable',
-  'payout_account.requirements_due',
-  'payout_account.payouts_disabled',
-  'setup_readiness.webhook_missing',
-  'setup_readiness.checkout_link_not_fulfillable',
-]
-export const organizationReviewCheckStatusValues: ReadonlyArray<
-  FlattenedDeepRequired<components>['schemas']['OrganizationReviewCheckStatus']
-> = ['passed', 'warning', 'failed', 'pending']
-export const organizationReviewStateVerdictAnyOf0Values: ReadonlyArray<
-  FlattenedDeepRequired<components>['schemas']['OrganizationReviewState']['verdict']
-> = ['pass', 'fail']
-export const organizationReviewStatusVerdictAnyOf0Values: ReadonlyArray<
-  FlattenedDeepRequired<components>['schemas']['OrganizationReviewStatus']['verdict']
-> = ['PASS', 'FAIL', 'UNCERTAIN']
-export const organizationReviewSubCheckKeyValues: ReadonlyArray<
-  FlattenedDeepRequired<components>['schemas']['OrganizationReviewSubCheckKey']
-> = [
-  'setup_readiness.checkout_link',
-  'setup_readiness.access_token',
-  'setup_readiness.webhook',
-]
 export const organizationRoleValues: ReadonlyArray<
   FlattenedDeepRequired<components>['schemas']['OrganizationRole']
 > = ['owner', 'admin', 'member']
@@ -57156,7 +41570,6 @@ export const organizationSocialPlatformsValues: ReadonlyArray<
   'tiktok',
   'linkedin',
   'threads',
-  'discord',
   'other',
 ]
 export const organizationSortPropertyValues: ReadonlyArray<
@@ -57168,8 +41581,6 @@ export const organizationSortPropertyValues: ReadonlyArray<
   '-slug',
   'name',
   '-name',
-  'next_review_threshold',
-  '-next_review_threshold',
   'days_in_status',
   '-days_in_status',
 ]
@@ -57184,9 +41595,6 @@ export const organizationStatusValues: ReadonlyArray<
   'blocked',
   'offboarding',
 ]
-export const organizationSubscriptionSettingsProration_behaviorValues: ReadonlyArray<
-  FlattenedDeepRequired<components>['schemas']['OrganizationSubscriptionSettings']['proration_behavior']
-> = ['invoice', 'prorate', 'next_period']
 export const organizationUpdateCountryAnyOf0Values: ReadonlyArray<
   FlattenedDeepRequired<components>['schemas']['OrganizationUpdate']['country']
 > = [
@@ -57690,7 +42098,7 @@ export const organizationWithRoleCountryAnyOf0Values: ReadonlyArray<
 ]
 export const paymentProcessorValues: ReadonlyArray<
   FlattenedDeepRequired<components>['schemas']['PaymentProcessor']
-> = ['stripe']
+> = ['crypto']
 export const paymentSortPropertyValues: ReadonlyArray<
   FlattenedDeepRequired<components>['schemas']['PaymentSortProperty']
 > = [
@@ -57708,7 +42116,7 @@ export const paymentStatusValues: ReadonlyArray<
 > = ['pending', 'succeeded', 'failed']
 export const payoutAccountTypeValues: ReadonlyArray<
   FlattenedDeepRequired<components>['schemas']['PayoutAccountType']
-> = ['stripe', 'manual']
+> = ['manual', 'crypto']
 export const payoutAttemptStatusValues: ReadonlyArray<
   FlattenedDeepRequired<components>['schemas']['PayoutAttemptStatus']
 > = ['pending', 'in_transit', 'succeeded', 'failed']
@@ -57886,16 +42294,10 @@ export const presentmentCurrencyValues: ReadonlyArray<
 ]
 export const processorValues: ReadonlyArray<
   FlattenedDeepRequired<components>['schemas']['Processor']
-> = ['stripe', 'manual']
+> = ['crypto', 'manual']
 export const productBillingTypeValues: ReadonlyArray<
   FlattenedDeepRequired<components>['schemas']['ProductBillingType']
 > = ['one_time', 'recurring']
-export const productMediaFileCreateServiceValues: ReadonlyArray<
-  FlattenedDeepRequired<components>['schemas']['ProductMediaFileCreate']['service']
-> = ['product_media']
-export const productMediaFileReadServiceValues: ReadonlyArray<
-  FlattenedDeepRequired<components>['schemas']['ProductMediaFileRead']['service']
-> = ['product_media']
 export const productPriceCustomAmount_typeValues: ReadonlyArray<
   FlattenedDeepRequired<components>['schemas']['ProductPriceCustom']['amount_type']
 > = ['custom']
@@ -57914,18 +42316,6 @@ export const productPriceFreeAmount_typeValues: ReadonlyArray<
 export const productPriceFreeCreateAmount_typeValues: ReadonlyArray<
   FlattenedDeepRequired<components>['schemas']['ProductPriceFreeCreate']['amount_type']
 > = ['free']
-export const productPriceMeteredUnitAmount_typeValues: ReadonlyArray<
-  FlattenedDeepRequired<components>['schemas']['ProductPriceMeteredUnit']['amount_type']
-> = ['metered_unit']
-export const productPriceMeteredUnitCreateAmount_typeValues: ReadonlyArray<
-  FlattenedDeepRequired<components>['schemas']['ProductPriceMeteredUnitCreate']['amount_type']
-> = ['metered_unit']
-export const productPriceSeatBasedAmount_typeValues: ReadonlyArray<
-  FlattenedDeepRequired<components>['schemas']['ProductPriceSeatBased']['amount_type']
-> = ['seat_based']
-export const productPriceSeatBasedCreateAmount_typeValues: ReadonlyArray<
-  FlattenedDeepRequired<components>['schemas']['ProductPriceSeatBasedCreate']['amount_type']
-> = ['seat_based']
 export const productPriceSourceValues: ReadonlyArray<
   FlattenedDeepRequired<components>['schemas']['ProductPriceSource']
 > = ['catalog', 'ad_hoc']
@@ -57947,9 +42337,6 @@ export const productSortPropertyValues: ReadonlyArray<
 export const productVisibilityValues: ReadonlyArray<
   FlattenedDeepRequired<components>['schemas']['ProductVisibility']
 > = ['draft', 'private', 'public']
-export const propertyAggregationFuncValues: ReadonlyArray<
-  FlattenedDeepRequired<components>['schemas']['PropertyAggregation']['func']
-> = ['avg', 'max', 'min', 'sum']
 export const refundReasonValues: ReadonlyArray<
   FlattenedDeepRequired<components>['schemas']['RefundReason']
 > = [
@@ -57991,12 +42378,8 @@ export const scopeValues: ReadonlyArray<
   'payouts:write',
   'products:read',
   'products:write',
-  'benefits:read',
-  'benefits:write',
   'events:read',
   'events:write',
-  'meters:read',
-  'meters:write',
   'files:read',
   'files:write',
   'subscriptions:read',
@@ -58008,11 +42391,8 @@ export const scopeValues: ReadonlyArray<
   'wallets:read',
   'wallets:write',
   'disputes:read',
-  'customer_meters:read',
   'customer_sessions:write',
   'member_sessions:write',
-  'customer_seats:read',
-  'customer_seats:write',
   'orders:read',
   'orders:write',
   'refunds:read',
@@ -58022,14 +42402,8 @@ export const scopeValues: ReadonlyArray<
   'metrics:write',
   'webhooks:read',
   'webhooks:write',
-  'license_keys:read',
-  'license_keys:write',
   'customer_portal:read',
   'customer_portal:write',
-  'notifications:read',
-  'notifications:write',
-  'notification_recipients:read',
-  'notification_recipients:write',
   'organization_access_tokens:read',
   'organization_access_tokens:write',
 ]
@@ -58045,135 +42419,6 @@ export const searchResultProductTypeValues: ReadonlyArray<
 export const searchResultSubscriptionTypeValues: ReadonlyArray<
   FlattenedDeepRequired<components>['schemas']['SearchResultSubscription']['type']
 > = ['subscription']
-export const seatStatusValues: ReadonlyArray<
-  FlattenedDeepRequired<components>['schemas']['SeatStatus']
-> = ['pending', 'claimed', 'revoked']
-export const seatTierTypeValues: ReadonlyArray<
-  FlattenedDeepRequired<components>['schemas']['SeatTierType']
-> = ['volume', 'graduated']
-export const stripeAccountCountryValues: ReadonlyArray<
-  FlattenedDeepRequired<components>['schemas']['StripeAccountCountry']
-> = [
-  'AL',
-  'AG',
-  'AR',
-  'AM',
-  'AU',
-  'AT',
-  'BH',
-  'BE',
-  'BO',
-  'BA',
-  'BG',
-  'KH',
-  'CA',
-  'CL',
-  'CO',
-  'CR',
-  'HR',
-  'CY',
-  'CZ',
-  'CI',
-  'DK',
-  'DO',
-  'EC',
-  'EG',
-  'SV',
-  'EE',
-  'ET',
-  'FI',
-  'FR',
-  'GM',
-  'DE',
-  'GH',
-  'GR',
-  'GT',
-  'GY',
-  'HK',
-  'HU',
-  'IS',
-  'IN',
-  'ID',
-  'IE',
-  'IL',
-  'IT',
-  'JM',
-  'JP',
-  'JO',
-  'KE',
-  'KW',
-  'LV',
-  'LI',
-  'LT',
-  'LU',
-  'MO',
-  'MG',
-  'MY',
-  'MT',
-  'MU',
-  'MX',
-  'MD',
-  'MN',
-  'MA',
-  'NA',
-  'NL',
-  'NZ',
-  'NG',
-  'MK',
-  'NO',
-  'OM',
-  'PA',
-  'PY',
-  'PE',
-  'PH',
-  'PL',
-  'PT',
-  'QA',
-  'RO',
-  'RW',
-  'SA',
-  'SN',
-  'RS',
-  'SG',
-  'SK',
-  'SI',
-  'ZA',
-  'KR',
-  'ES',
-  'LK',
-  'LC',
-  'SE',
-  'CH',
-  'TZ',
-  'TH',
-  'TT',
-  'TN',
-  'TR',
-  'AE',
-  'GB',
-  'US',
-  'UY',
-  'UZ',
-  'VN',
-  'DZ',
-  'AO',
-  'AZ',
-  'BS',
-  'BD',
-  'BJ',
-  'BT',
-  'BW',
-  'BN',
-  'GA',
-  'KZ',
-  'LA',
-  'MC',
-  'MZ',
-  'NE',
-  'PK',
-  'SM',
-  'TW',
-]
 export const subTypeValues: ReadonlyArray<
   FlattenedDeepRequired<components>['schemas']['SubType']
 > = ['user', 'organization']
@@ -58252,91 +42497,6 @@ export const subscriptionUpdateClearedEventNameValues: ReadonlyArray<
 export const subscriptionUpdatedEventNameValues: ReadonlyArray<
   FlattenedDeepRequired<components>['schemas']['SubscriptionUpdatedEvent']['name']
 > = ['subscription.updated']
-export const taxBehaviorValues: ReadonlyArray<
-  FlattenedDeepRequired<components>['schemas']['TaxBehavior']
-> = ['inclusive', 'exclusive']
-export const taxBehaviorOptionValues: ReadonlyArray<
-  FlattenedDeepRequired<components>['schemas']['TaxBehaviorOption']
-> = ['location', 'inclusive', 'exclusive']
-export const taxIDFormatValues: ReadonlyArray<
-  FlattenedDeepRequired<components>['schemas']['TaxIDFormat']
-> = [
-  'ad_nrt',
-  'ae_trn',
-  'ar_cuit',
-  'au_abn',
-  'au_arn',
-  'bg_uic',
-  'bh_vat',
-  'bo_tin',
-  'br_cnpj',
-  'br_cpf',
-  'ca_bn',
-  'ca_gst_hst',
-  'ca_pst_bc',
-  'ca_pst_mb',
-  'ca_pst_sk',
-  'ca_qst',
-  'ch_uid',
-  'ch_vat',
-  'cl_tin',
-  'cn_tin',
-  'co_nit',
-  'cr_tin',
-  'de_stn',
-  'do_rcn',
-  'ec_ruc',
-  'eg_tin',
-  'es_cif',
-  'eu_oss_vat',
-  'eu_vat',
-  'gb_vat',
-  'ge_vat',
-  'hk_br',
-  'hr_oib',
-  'hu_tin',
-  'id_npwp',
-  'il_vat',
-  'in_gst',
-  'is_vat',
-  'jp_cn',
-  'jp_rn',
-  'jp_trn',
-  'ke_pin',
-  'kr_brn',
-  'kz_bin',
-  'li_uid',
-  'mk_vat',
-  'mx_rfc',
-  'my_frp',
-  'my_itn',
-  'my_sst',
-  'ng_tin',
-  'no_vat',
-  'no_voec',
-  'nz_gst',
-  'om_vat',
-  'pe_ruc',
-  'ph_tin',
-  'ro_tin',
-  'rs_pib',
-  'ru_inn',
-  'ru_kpp',
-  'sa_vat',
-  'sg_gst',
-  'sg_uen',
-  'si_tin',
-  'sv_nit',
-  'th_vat',
-  'tr_tin',
-  'tw_vat',
-  'ua_vat',
-  'us_ein',
-  'uy_ruc',
-  've_rif',
-  'vn_tin',
-  'za_vat',
-]
 export const timeIntervalValues: ReadonlyArray<
   FlattenedDeepRequired<components>['schemas']['TimeInterval']
 > = ['year', 'month', 'week', 'day', 'hour']
@@ -58359,263 +42519,12 @@ export const transactionTypeValues: ReadonlyArray<
 export const trialIntervalValues: ReadonlyArray<
   FlattenedDeepRequired<components>['schemas']['TrialInterval']
 > = ['day', 'week', 'month', 'year']
-export const uniqueAggregationFuncValues: ReadonlyArray<
-  FlattenedDeepRequired<components>['schemas']['UniqueAggregation']['func']
-> = ['unique']
 export const userDeletionBlockedReasonValues: ReadonlyArray<
   FlattenedDeepRequired<components>['schemas']['UserDeletionBlockedReason']
 > = ['has_active_organizations']
 export const userEventSourceValues: ReadonlyArray<
   FlattenedDeepRequired<components>['schemas']['UserEvent']['source']
 > = ['user']
-export const userUpdateCountryAnyOf0Values: ReadonlyArray<
-  FlattenedDeepRequired<components>['schemas']['UserUpdate']['country']
-> = [
-  'AD',
-  'AE',
-  'AF',
-  'AG',
-  'AI',
-  'AL',
-  'AM',
-  'AO',
-  'AQ',
-  'AR',
-  'AS',
-  'AT',
-  'AU',
-  'AW',
-  'AX',
-  'AZ',
-  'BA',
-  'BB',
-  'BD',
-  'BE',
-  'BF',
-  'BG',
-  'BH',
-  'BI',
-  'BJ',
-  'BL',
-  'BM',
-  'BN',
-  'BO',
-  'BQ',
-  'BR',
-  'BS',
-  'BT',
-  'BV',
-  'BW',
-  'BY',
-  'BZ',
-  'CA',
-  'CC',
-  'CD',
-  'CF',
-  'CG',
-  'CH',
-  'CI',
-  'CK',
-  'CL',
-  'CM',
-  'CN',
-  'CO',
-  'CR',
-  'CV',
-  'CW',
-  'CX',
-  'CY',
-  'CZ',
-  'DE',
-  'DJ',
-  'DK',
-  'DM',
-  'DO',
-  'DZ',
-  'EC',
-  'EE',
-  'EG',
-  'EH',
-  'ER',
-  'ES',
-  'ET',
-  'FI',
-  'FJ',
-  'FK',
-  'FM',
-  'FO',
-  'FR',
-  'GA',
-  'GB',
-  'GD',
-  'GE',
-  'GF',
-  'GG',
-  'GH',
-  'GI',
-  'GL',
-  'GM',
-  'GN',
-  'GP',
-  'GQ',
-  'GR',
-  'GS',
-  'GT',
-  'GU',
-  'GW',
-  'GY',
-  'HK',
-  'HM',
-  'HN',
-  'HR',
-  'HT',
-  'HU',
-  'ID',
-  'IE',
-  'IL',
-  'IM',
-  'IN',
-  'IO',
-  'IQ',
-  'IS',
-  'IT',
-  'JE',
-  'JM',
-  'JO',
-  'JP',
-  'KE',
-  'KG',
-  'KH',
-  'KI',
-  'KM',
-  'KN',
-  'KR',
-  'KW',
-  'KY',
-  'KZ',
-  'LA',
-  'LB',
-  'LC',
-  'LI',
-  'LK',
-  'LR',
-  'LS',
-  'LT',
-  'LU',
-  'LV',
-  'LY',
-  'MA',
-  'MC',
-  'MD',
-  'ME',
-  'MF',
-  'MG',
-  'MH',
-  'MK',
-  'ML',
-  'MM',
-  'MN',
-  'MO',
-  'MP',
-  'MQ',
-  'MR',
-  'MS',
-  'MT',
-  'MU',
-  'MV',
-  'MW',
-  'MX',
-  'MY',
-  'MZ',
-  'NA',
-  'NC',
-  'NE',
-  'NF',
-  'NG',
-  'NI',
-  'NL',
-  'NO',
-  'NP',
-  'NR',
-  'NU',
-  'NZ',
-  'OM',
-  'PA',
-  'PE',
-  'PF',
-  'PG',
-  'PH',
-  'PK',
-  'PL',
-  'PM',
-  'PN',
-  'PR',
-  'PS',
-  'PT',
-  'PW',
-  'PY',
-  'QA',
-  'RE',
-  'RO',
-  'RS',
-  'RW',
-  'SA',
-  'SB',
-  'SC',
-  'SD',
-  'SE',
-  'SG',
-  'SH',
-  'SI',
-  'SJ',
-  'SK',
-  'SL',
-  'SM',
-  'SN',
-  'SO',
-  'SR',
-  'SS',
-  'ST',
-  'SV',
-  'SX',
-  'SZ',
-  'TC',
-  'TD',
-  'TF',
-  'TG',
-  'TH',
-  'TJ',
-  'TK',
-  'TL',
-  'TM',
-  'TN',
-  'TO',
-  'TR',
-  'TT',
-  'TV',
-  'TW',
-  'TZ',
-  'UA',
-  'UG',
-  'UM',
-  'US',
-  'UY',
-  'UZ',
-  'VA',
-  'VC',
-  'VE',
-  'VG',
-  'VI',
-  'VN',
-  'VU',
-  'WF',
-  'WS',
-  'YE',
-  'YT',
-  'ZA',
-  'ZM',
-  'ZW',
-]
 export const visibilityValues: ReadonlyArray<
   FlattenedDeepRequired<components>['schemas']['Visibility']
 > = ['draft', 'private', 'public']
@@ -58635,9 +42544,6 @@ export const webhookEventTypeValues: ReadonlyArray<
   'customer.updated',
   'customer.deleted',
   'customer.state_changed',
-  'customer_seat.assigned',
-  'customer_seat.claimed',
-  'customer_seat.revoked',
   'member.created',
   'member.updated',
   'member.deleted',
@@ -58656,17 +42562,11 @@ export const webhookEventTypeValues: ReadonlyArray<
   'refund.updated',
   'product.created',
   'product.updated',
-  'benefit.created',
-  'benefit.updated',
-  'benefit_grant.created',
-  'benefit_grant.cycled',
-  'benefit_grant.updated',
-  'benefit_grant.revoked',
   'organization.updated',
 ]
 export const webhookFormatValues: ReadonlyArray<
   FlattenedDeepRequired<components>['schemas']['WebhookFormat']
-> = ['raw', 'discord', 'slack']
+> = ['raw', 'slack']
 export const webTokenRequestSub_typeValues: ReadonlyArray<
   FlattenedDeepRequired<components>['schemas']['WebTokenRequest']['sub_type']
 > = ['user', 'organization']

@@ -24,20 +24,16 @@ from sqlalchemy.orm import Mapped, Mapper, declared_attr, mapped_column, relatio
 
 from polar.config import settings
 from polar.custom_field.data import CustomFieldDataMixin
-from polar.enums import PaymentProcessor, TaxBehavior, TaxProcessor
+from polar.enums import PaymentProcessor
 from polar.kit.address import Address, AddressType
 from polar.kit.db.models import RecordModel
-from polar.kit.extensions.sqlalchemy.types import StringEnum
 from polar.kit.metadata import MetadataColumn, MetadataMixin
 from polar.kit.trial import TrialConfigurationMixin, TrialInterval
 from polar.kit.utils import utc_now
 from polar.product.guard import (
     is_discount_applicable,
     is_free_price,
-    is_metered_price,
 )
-from polar.tax.calculation import TaxBreakdownItem
-from polar.tax.tax_id import TaxID, TaxIDType
 
 from .customer import Customer
 from .discount import Discount, DiscountDuration, DiscountPercentage
@@ -50,6 +46,7 @@ if TYPE_CHECKING:
     from polar.custom_field.attachment import AttachedCustomFieldMixin
 
     from .checkout_product import CheckoutProduct
+    from .crypto_invoice import CryptoInvoice
 
 
 def get_expires_at() -> datetime:
@@ -103,7 +100,7 @@ class Checkout(
     __tablename__ = "checkouts"
 
     payment_processor: Mapped[PaymentProcessor] = mapped_column(
-        String, nullable=False, default=PaymentProcessor.stripe, index=True
+        String, nullable=False, default=PaymentProcessor.crypto, index=True
     )
     status: Mapped[CheckoutStatus] = mapped_column(
         String, nullable=False, default=CheckoutStatus.open, index=True
@@ -131,32 +128,11 @@ class Checkout(
     allow_discount_codes: Mapped[bool] = mapped_column(
         Boolean, nullable=False, default=True
     )
-    require_billing_address: Mapped[bool] = mapped_column(
-        Boolean, nullable=False, default=False
-    )
 
     amount: Mapped[int] = mapped_column("amount_v2", BigInteger, nullable=False)
     currency: Mapped[str] = mapped_column(String(3), nullable=False)
-    seats: Mapped[int | None] = mapped_column(Integer, nullable=True, default=None)
-    min_seats: Mapped[int | None] = mapped_column(Integer, nullable=True, default=None)
-    max_seats: Mapped[int | None] = mapped_column(Integer, nullable=True, default=None)
 
     net_amount: Mapped[int] = mapped_column("net_amount_v2", BigInteger, nullable=False)
-    tax_amount: Mapped[int | None] = mapped_column(
-        "tax_amount_v2", BigInteger, nullable=True, default=None
-    )
-    tax_processor: Mapped[TaxProcessor | None] = mapped_column(
-        StringEnum(TaxProcessor), default=None, nullable=True
-    )
-    tax_breakdown: Mapped[list[TaxBreakdownItem] | None] = mapped_column(
-        JSONB(none_as_null=True), nullable=True, default=None
-    )
-    tax_behavior: Mapped[TaxBehavior | None] = mapped_column(
-        StringEnum(TaxBehavior), nullable=True, default=None
-    )
-    tax_processor_id: Mapped[str | None] = mapped_column(
-        String, nullable=True, default=None
-    )
 
     # TODO: proper data migration to make it non-nullable
     allow_trial: Mapped[bool | None] = mapped_column(
@@ -242,10 +218,20 @@ class Checkout(
     customer_billing_address: Mapped[Address | None] = mapped_column(
         AddressType, nullable=True, default=None
     )
-    customer_tax_id: Mapped[TaxID | None] = mapped_column(
-        TaxIDType, nullable=True, default=None
-    )
     customer_metadata: Mapped[MetadataColumn]
+
+    crypto_invoice_id: Mapped[UUID | None] = mapped_column(
+        Uuid,
+        ForeignKey("crypto_invoices.id", ondelete="set null"),
+        nullable=True,
+        default=None,
+    )
+
+    @declared_attr
+    def crypto_invoice(cls) -> Mapped["CryptoInvoice | None"]:
+        return relationship(
+            "CryptoInvoice", lazy="raise", foreign_keys="[Checkout.crypto_invoice_id]"
+        )
 
     # Only set when a checkout is attached to an existing subscription (free-to-paid upgrades).
     # For subscriptions created by the checkout itself, see `Subscription.checkout_id`.
@@ -297,10 +283,6 @@ class Checkout(
         self._success_url = str(value) if value is not None else None
 
     @property
-    def customer_tax_id_number(self) -> str | None:
-        return self.customer_tax_id[0] if self.customer_tax_id is not None else None
-
-    @property
     def discount_amount(self) -> int:
         return (
             self.discount.get_discount_amount(self.amount, self.currency)
@@ -310,7 +292,7 @@ class Checkout(
 
     @property
     def total_amount(self) -> int:
-        return self.net_amount + (self.tax_amount or 0)
+        return self.net_amount
 
     @property
     def is_discount_applicable(self) -> bool:
@@ -325,12 +307,6 @@ class Checkout(
         return all(is_free_price(price) for price in self.product_prices)
 
     @property
-    def has_metered_prices(self) -> bool:
-        if self.product_prices is None:
-            return False
-        return any(is_metered_price(price) for price in self.product_prices)
-
-    @property
     def is_payment_required(self) -> bool:
         return self.total_amount > 0 and self.trial_end is None
 
@@ -342,13 +318,11 @@ class Checkout(
         if self.is_free_product_price:
             return False
 
-        # PWYW set to `0`, with an extra guard for metered prices
-        # (those will still require a payment on next cycle)
-        if self.amount == 0 and not self.has_metered_prices:
+        if self.amount == 0:
             return False
 
         # A 100% forever percentage discount makes the subscription entirely free
-        # (including metered usage), so no payment setup is needed.
+        # so no payment setup is needed.
         if (
             self.discount is not None
             and self.discount.duration == DiscountDuration.forever
@@ -388,9 +362,7 @@ class Checkout(
         address = self.customer_billing_address
         country = address.country if address else None
         is_us = country == "US"
-        require_billing_address = (
-            self.require_billing_address or self.is_business_customer or is_us
-        )
+        require_billing_address = self.is_business_customer or is_us
         return {
             "country": True,
             "state": country in {"US", "CA"},
@@ -405,9 +377,7 @@ class Checkout(
         address = self.customer_billing_address
         country = address.country if address else None
         is_us = country == "US"
-        require_billing_address = (
-            self.require_billing_address or self.is_business_customer or is_us
-        )
+        require_billing_address = self.is_business_customer or is_us
         return {
             "country": BillingAddressFieldMode.required,
             "state": BillingAddressFieldMode.required

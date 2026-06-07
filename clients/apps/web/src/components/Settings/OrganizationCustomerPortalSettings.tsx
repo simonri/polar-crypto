@@ -100,28 +100,6 @@ const OrganizationCustomerPortalSettings: React.FC<
           </SettingsGroupItem>
 
           <SettingsGroupItem
-            title="Enable subscription seat management"
-            description="Allow customers to assign and manage seats for their subscriptions."
-          >
-            <FormField
-              control={control}
-              name="subscription.update_seats"
-              render={({ field }) => (
-                <FormItem>
-                  <FormControl>
-                    <Switch
-                      checked={field.value}
-                      onCheckedChange={field.onChange}
-                      disabled={readOnly}
-                    />
-                  </FormControl>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
-          </SettingsGroupItem>
-
-          <SettingsGroupItem
             title="Allow email address changes"
             description="Allow customers to change the email address associated with their account."
           >

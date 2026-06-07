@@ -1,130 +1,100 @@
-import { usePolarClient } from '@/providers/PolarClientProvider'
 import { useSession } from '@/providers/SessionProvider'
 import { queryClient } from '@/utils/query'
-import { schemas, unwrap } from '@polar-sh/client'
 import { useMutation, useQuery, UseQueryResult } from '@tanstack/react-query'
-import { Platform } from 'react-native'
 
 export const useCreateNotificationRecipient = () => {
-  const { polar } = usePolarClient()
-
   return useMutation({
-    mutationFn: async (expoPushToken: string) => {
-      return unwrap(
-        polar.POST('/v1/notifications/recipients', {
-          body: {
-            expo_push_token: expoPushToken,
-            platform: Platform.OS as 'ios' | 'android',
-          },
-        }),
-      )
-    },
-    onSuccess: (result, variables, context) => {
-      queryClient.invalidateQueries({ queryKey: ['notification_recipient'] })
-      queryClient.invalidateQueries({ queryKey: ['notification_recipients'] })
-    },
+    mutationFn: async (_expoPushToken: string) => null,
   })
 }
 
 export const useListNotificationRecipients = () => {
-  const { polar } = usePolarClient()
-
   return useQuery({
     queryKey: ['notification_recipients'],
-    queryFn: async () => {
-      return unwrap(polar.GET('/v1/notifications/recipients'))
-    },
+    queryFn: async () => ({ items: [] }),
   })
 }
 
 export const useGetNotificationRecipient = (
-  expoPushToken: string | undefined,
+  _expoPushToken: string | undefined,
 ) => {
   const { session } = useSession()
-  const { polar } = usePolarClient()
 
   return useQuery({
-    queryKey: ['notification_recipient', expoPushToken],
-    queryFn: async () => {
-      const response = await unwrap(
-        polar.GET('/v1/notifications/recipients', {
-          params: {
-            query: {
-              expo_push_token: expoPushToken,
-            },
-          },
-        }),
-      )
-
-      return response.items?.[0] ?? null
-    },
-    enabled: !!expoPushToken && !!session,
+    queryKey: ['notification_recipient', _expoPushToken],
+    queryFn: async (): Promise<{ id: string } | null> => null,
+    enabled: !!_expoPushToken && !!session,
     throwOnError: false,
   })
 }
 
 export const useDeleteNotificationRecipient = () => {
-  const { polar } = usePolarClient()
-
   return useMutation({
-    mutationFn: async (id: string) => {
-      return polar
-        .DELETE('/v1/notifications/recipients/{id}', {
-          params: {
-            path: {
-              id,
-            },
-          },
-        })
-        .finally(() => {
-          queryClient.invalidateQueries({
-            queryKey: ['notification_recipients'],
-          })
-          queryClient.invalidateQueries({
-            queryKey: ['notification_recipient'],
-          })
-        })
+    mutationFn: async (_id: string) => {
+      queryClient.invalidateQueries({ queryKey: ['notification_recipients'] })
+      queryClient.invalidateQueries({ queryKey: ['notification_recipient'] })
+      return null
     },
   })
 }
 
-export type Notification = schemas['NotificationsList']['notifications'][number]
+export type MaintainerCreateAccountNotificationPayload = Record<string, never>
 
-export type MaintainerCreateAccountNotificationPayload =
-  schemas['MaintainerCreateAccountNotificationPayload']
-export type MaintainerNewPaidSubscriptionNotificationPayload =
-  schemas['MaintainerNewPaidSubscriptionNotificationPayload']
-export type MaintainerNewProductSaleNotificationPayload =
-  schemas['MaintainerNewProductSaleNotificationPayload']
-export type MaintainerAccountCreditsGrantedNotificationPayload =
-  schemas['MaintainerAccountCreditsGrantedNotificationPayload']
+export type MaintainerNewPaidSubscriptionNotificationPayload = {
+  subscriber_name?: string
+  tier_name?: string
+  subscription_id?: string
+}
+
+export type MaintainerNewProductSaleNotificationPayload = {
+  customer_name?: string
+  product_name?: string
+  product_price_amount?: number
+  currency?: string
+  order_id?: string
+}
+
+export type MaintainerAccountCreditsGrantedNotificationPayload = {
+  organization_name?: string
+  amount?: number
+  currency?: string
+}
+
+export type NotificationPayload = MaintainerCreateAccountNotificationPayload &
+  MaintainerNewPaidSubscriptionNotificationPayload &
+  MaintainerNewProductSaleNotificationPayload &
+  MaintainerAccountCreditsGrantedNotificationPayload
+
+export type Notification = {
+  id: string
+  type: string
+  payload: NotificationPayload
+  created_at: string
+}
+
+type NotificationsList = {
+  notifications: Notification[]
+  last_read_notification_id: string | null
+}
 
 export const useListNotifications = (): UseQueryResult<
-  schemas['NotificationsList'],
+  NotificationsList,
   Error
 > => {
-  const { polar } = usePolarClient()
   const { session } = useSession()
 
   return useQuery({
     queryKey: ['notifications'],
-    queryFn: () => unwrap(polar.GET('/v1/notifications')),
+    queryFn: async (): Promise<NotificationsList> => ({
+      notifications: [],
+      last_read_notification_id: null,
+    }),
     enabled: !!session,
   })
 }
 
 export const useNotificationsMarkRead = () => {
-  const { polar } = usePolarClient()
-
   return useMutation({
-    mutationFn: (variables: { notificationId: string }) =>
-      unwrap(
-        polar.POST('/v1/notifications/read', {
-          body: { notification_id: variables.notificationId },
-        }),
-      ),
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['notifications'] })
-    },
+    mutationFn: async (_variables: { notificationId: string }) => null,
   })
 }

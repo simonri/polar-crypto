@@ -1,9 +1,8 @@
 import datetime
 from enum import StrEnum
-from typing import Any, Self
+from typing import Any
 from uuid import UUID
 
-import stripe as stripe_lib
 from sqlalchemy import TIMESTAMP, BigInteger, String, Text, Uuid
 from sqlalchemy.dialects.postgresql import JSONB
 from sqlalchemy.orm import Mapped, mapped_column
@@ -14,11 +13,9 @@ from polar.kit.utils import generate_uuid, utc_now
 
 
 class Processor(StrEnum):
-    """
-    Supported payment or payout processors, i.e rails for transactions.
-    """
+    """Supported payment or payout processors."""
 
-    stripe = "stripe"
+    crypto = "crypto"
 
 
 class ProcessorTransaction(Model):
@@ -40,17 +37,3 @@ class ProcessorTransaction(Model):
     fee: Mapped[int] = mapped_column(BigInteger, nullable=False)
     description: Mapped[str | None] = mapped_column(Text, nullable=True)
     raw: Mapped[dict[str, Any]] = mapped_column(JSONB, nullable=False, default=dict)
-
-    @classmethod
-    def from_stripe(cls, bt: stripe_lib.BalanceTransaction) -> Self:
-        return cls(
-            timestamp=datetime.datetime.fromtimestamp(bt.created, tz=datetime.UTC),
-            processor=Processor.stripe,
-            processor_id=bt.id,
-            type=bt.type,
-            currency=bt.currency,
-            amount=bt.amount,
-            fee=bt.fee,
-            description=bt.description,
-            raw=bt,
-        )

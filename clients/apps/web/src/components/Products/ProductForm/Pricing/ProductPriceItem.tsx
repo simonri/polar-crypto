@@ -22,8 +22,6 @@ import { useFormContext } from 'react-hook-form'
 import { ProductFormType } from '../ProductForm'
 import { ProductPriceCustomItem } from './ProductPriceCustomItem'
 import { ProductPriceFixedItem } from './ProductPriceFixedItem'
-import { ProductPriceMeteredUnitItem } from './ProductPriceMeteredUnitItem'
-import { ProductPriceSeatBasedItem } from './ProductPriceSeatBasedItem'
 import { hasPriceCurrency, ProductPrice, ProductPriceCreate } from './utils'
 
 interface ProductPriceItemProps {
@@ -48,8 +46,6 @@ export const ProductPriceItem: React.FC<ProductPriceItemProps> = ({
 }) => {
   const { register, control, watch } = useFormContext<ProductFormType>()
   const amountType = watch(`prices.${index}.amount_type`)
-  const recurringInterval = watch('recurring_interval')
-
   const prices = watch('prices')
   const pricesForCurrency = (prices || []).filter(
     (p) => hasPriceCurrency(p) && p.price_currency === currency,
@@ -65,22 +61,7 @@ export const ProductPriceItem: React.FC<ProductPriceItemProps> = ({
   return (
     <div className="flex flex-col gap-y-6">
       <input type="hidden" {...register(`prices.${index}.id`)} />
-      {hasOtherStaticPrice ? (
-        <div className="flex flex-row items-center justify-between">
-          <h4 className="text-sm font-medium">Metered price</h4>
-          {canRemove && (
-            <Button
-              variant="secondary"
-              size="sm"
-              onClick={() => {
-                onRemove(index)
-              }}
-            >
-              Remove
-            </Button>
-          )}
-        </div>
-      ) : (
+      {!hasOtherStaticPrice && (
         <FormField
           control={control}
           name={`prices.${index}.amount_type`}
@@ -111,15 +92,6 @@ export const ProductPriceItem: React.FC<ProductPriceItemProps> = ({
                           Pay what you want
                         </SelectItem>
                         <SelectItem value="free">Free</SelectItem>
-                        {organization.feature_settings
-                          ?.seat_based_pricing_enabled && (
-                          <SelectItem value="seat_based">Seats</SelectItem>
-                        )}
-                        {recurringInterval !== null && (
-                          <SelectItem value="metered_unit">
-                            Metered price
-                          </SelectItem>
-                        )}
                       </SelectContent>
                     </Select>
                   </FormControl>
@@ -149,16 +121,6 @@ export const ProductPriceItem: React.FC<ProductPriceItemProps> = ({
           )}
           {amountType === 'custom' && (
             <ProductPriceCustomItem index={index} currency={currency} />
-          )}
-          {amountType === 'seat_based' && (
-            <ProductPriceSeatBasedItem index={index} currency={currency} />
-          )}
-          {amountType === 'metered_unit' && (
-            <ProductPriceMeteredUnitItem
-              organization={organization}
-              index={index}
-              currency={currency}
-            />
           )}
         </div>
       )}

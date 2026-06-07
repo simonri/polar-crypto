@@ -11,6 +11,7 @@ from pydantic import UUID4, AwareDatetime, ValidationError
 from pydantic_extra_types.timezone_name import TimeZoneName
 
 from polar.customer.schemas.customer import CustomerID
+from polar.event.filter import Filter
 from polar.exceptions import PolarRequestValidationError, ResourceNotFound
 from polar.kit.metadata import MetadataQuery, get_metadata_query_openapi_schema
 from polar.kit.pagination import (
@@ -20,8 +21,6 @@ from polar.kit.pagination import (
 )
 from polar.kit.schemas import MultipleQueryFilter
 from polar.kit.time_queries import TimeInterval, is_under_limits
-from polar.meter.filter import Filter
-from polar.meter.schemas import MeterID
 from polar.models import Event
 from polar.models.event import EventSource
 from polar.openapi import APITag
@@ -77,7 +76,7 @@ async def list(
         None,
         description=(
             "Filter events following filter clauses. "
-            "JSON string following the same schema a meter filter clause. "
+            "JSON string following the event filter clause schema. "
         ),
     ),
     start_timestamp: AwareDatetime | None = Query(
@@ -96,9 +95,6 @@ async def list(
         None,
         title="ExternalCustomerID Filter",
         description="Filter by external customer ID.",
-    ),
-    meter_id: MeterID | None = Query(
-        None, title="MeterID Filter", description="Filter by a meter filter clause."
     ),
     name: MultipleQueryFilter[str] | None = Query(
         None, title="Name Filter", description="Filter by event name."
@@ -180,7 +176,6 @@ async def list(
         organization_id=organization_id,
         customer_id=customer_id,
         external_customer_id=external_customer_id,
-        meter_id=meter_id,
         name=name,
         source=source,
         event_type_id=event_type_id,
@@ -412,9 +407,6 @@ async def list_statistics_timeseries(
         title="ExternalCustomerID Filter",
         description="Filter by external customer ID.",
     ),
-    meter_id: MeterID | None = Query(
-        None, title="MeterID Filter", description="Filter by a meter filter clause."
-    ),
     name: MultipleQueryFilter[str] | None = Query(
         None, title="Name Filter", description="Filter by event name."
     ),
@@ -499,7 +491,6 @@ async def list_statistics_timeseries(
         organization_id=organization_id,
         customer_id=customer_id,
         external_customer_id=external_customer_id,
-        meter_id=meter_id,
         name=name,
         source=source,
         event_type_id=event_type_id,

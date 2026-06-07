@@ -49,7 +49,7 @@ dev seed --new-org <org-name>  # Optional, seeds a new organization with basic d
 The `dev up` command will:
 
 - Install missing prerequisites (Homebrew, Docker, uv, pnpm, Node.js)
-- Generate environment files and starts infrastructure (PostgreSQL, Redis, MinIO)
+- Generate environment files and starts infrastructure (PostgreSQL, Redis)
 - Install Python and JS dependencies, builds packages
 - Walk you through GitHub App and Stripe setup interactively
 - Run database migrations and builds email templates and backoffice
@@ -143,7 +143,7 @@ Setting up the backend consists of basically three things:
 
 **1. Start the development containers**
 
-This will start PostgreSQL, Redis and Minio (S3 storage) containers. You'll need to have [Docker](https://docs.docker.com/get-started/) installed.
+This will start PostgreSQL and Redis containers. You'll need to have [Docker](https://docs.docker.com/get-started/) installed.
 
 ```sh
 cd server
@@ -255,7 +255,7 @@ dev docker up
 This single command will:
 
 1. Build the necessary Docker images
-2. Start PostgreSQL, Redis, and MinIO
+2. Start PostgreSQL and Redis
 3. Install Python and Node.js dependencies
 4. Run database migrations
 5. Start the API server, worker, and web frontend with hot-reloading
@@ -266,7 +266,6 @@ This single command will:
 | ------------- | --------------------- |
 | Web Frontend  | http://localhost:3000 |
 | API Server    | http://localhost:8000 |
-| MinIO Console | http://localhost:9001 |
 
 ### Common Commands
 
@@ -313,18 +312,15 @@ Each instance has its own:
 - Docker containers and networks
 - PostgreSQL database
 - Redis instance
-- MinIO storage
 
 ### Port Mapping
 
-| Service       | Instance 0 | Instance 1 | Instance 2 |
-| ------------- | ---------- | ---------- | ---------- |
-| API           | 8000       | 8100       | 8200       |
-| Web           | 3000       | 3100       | 3200       |
-| PostgreSQL    | 5432       | 5532       | 5632       |
-| Redis         | 6379       | 6479       | 6579       |
-| MinIO API     | 9000       | 9100       | 9200       |
-| MinIO Console | 9001       | 9101       | 9201       |
+| Service    | Instance 0 | Instance 1 | Instance 2 |
+| ---------- | ---------- | ---------- | ---------- |
+| API        | 8000       | 8100       | 8200       |
+| Web        | 3000       | 3100       | 3200       |
+| PostgreSQL | 5432       | 5532       | 5632       |
+| Redis      | 6379       | 6479       | 6579       |
 
 ### Hot-Reloading
 

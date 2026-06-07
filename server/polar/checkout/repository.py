@@ -85,13 +85,10 @@ class CheckoutRepository(
             joinedload(Checkout.organization).joinedload(Organization.account),
             joinedload(Checkout.customer),
             joinedload(Checkout.product).options(
-                selectinload(Product.product_medias),
                 selectinload(Product.attached_custom_fields),
             ),
             selectinload(Checkout.checkout_products).options(
-                joinedload(CheckoutProduct.product).options(
-                    selectinload(Product.product_medias),
-                )
+                joinedload(CheckoutProduct.product)
             ),
             joinedload(Checkout.subscription),
             joinedload(Checkout.discount),

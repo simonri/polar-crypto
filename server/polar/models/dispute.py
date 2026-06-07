@@ -1,5 +1,5 @@
 from enum import StrEnum
-from typing import TYPE_CHECKING, Literal
+from typing import TYPE_CHECKING
 from uuid import UUID
 
 from sqlalchemy import (
@@ -37,61 +37,21 @@ class DisputeStatus(StrEnum):
     def closed_statuses(cls) -> set["DisputeStatus"]:
         return {cls.prevented, cls.lost, cls.won}
 
-    @classmethod
-    def from_stripe(
-        cls,
-        status: Literal[
-            "lost",
-            "needs_response",
-            "prevented",
-            "under_review",
-            "warning_closed",
-            "warning_needs_response",
-            "warning_under_review",
-            "won",
-        ],
-    ) -> "DisputeStatus":
-        match status:
-            case "lost":
-                return DisputeStatus.lost
-            case "needs_response" | "warning_needs_response":
-                return DisputeStatus.needs_response
-            case "under_review" | "warning_under_review":
-                return DisputeStatus.under_review
-            case "won":
-                return DisputeStatus.won
-            case "warning_closed" | "prevented":
-                return DisputeStatus.prevented
-
-
-class DisputeAlertProcessor(StrEnum):
-    chargeback_stop = "chargeback_stop"
-
 
 class Dispute(RecordModel):
     __tablename__ = "disputes"
-    __table_args__ = (
-        UniqueConstraint("payment_processor", "payment_processor_id"),
-        UniqueConstraint("dispute_alert_processor", "dispute_alert_processor_id"),
-    )
+    __table_args__ = (UniqueConstraint("payment_processor", "payment_processor_id"),)
 
     status: Mapped[DisputeStatus] = mapped_column(
         StringEnum(DisputeStatus), nullable=False
     )
     amount: Mapped[int] = mapped_column(BigInteger, nullable=False)
-    tax_amount: Mapped[int] = mapped_column(BigInteger, nullable=False)
     currency: Mapped[str] = mapped_column(String(3), nullable=False)
 
     payment_processor: Mapped[PaymentProcessor | None] = mapped_column(
         StringEnum(PaymentProcessor), nullable=True
     )
     payment_processor_id: Mapped[str | None] = mapped_column(String, nullable=True)
-    dispute_alert_processor: Mapped[DisputeAlertProcessor | None] = mapped_column(
-        StringEnum(DisputeAlertProcessor), nullable=True
-    )
-    dispute_alert_processor_id: Mapped[str | None] = mapped_column(
-        String, nullable=True
-    )
 
     order_id: Mapped[UUID] = mapped_column(
         Uuid, ForeignKey("orders.id"), nullable=False, index=True

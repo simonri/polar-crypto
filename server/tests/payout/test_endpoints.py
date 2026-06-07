@@ -118,49 +118,6 @@ class TestGetCSV:
 
 
 @pytest.mark.asyncio
-class TestGenerateInvoice:
-    async def test_anonymous(self, client: AsyncClient) -> None:
-        response = await client.post(f"/v1/payouts/{uuid.uuid4()}/invoice", json={})
-
-        assert response.status_code == 401
-
-    @pytest.mark.auth
-    async def test_user_cannot_access_other_organization_payout(
-        self,
-        client: AsyncClient,
-        user_organization: UserOrganization,
-        payout_organization_second: Payout,
-    ) -> None:
-        response = await client.post(
-            f"/v1/payouts/{payout_organization_second.id}/invoice",
-            json={"invoice_number": "INV-001"},
-        )
-
-        assert response.status_code == 404
-
-
-@pytest.mark.asyncio
-class TestGetInvoice:
-    async def test_anonymous(self, client: AsyncClient) -> None:
-        response = await client.get(f"/v1/payouts/{uuid.uuid4()}/invoice")
-
-        assert response.status_code == 401
-
-    @pytest.mark.auth
-    async def test_user_cannot_access_other_organization_payout(
-        self,
-        client: AsyncClient,
-        user_organization: UserOrganization,
-        payout_organization_second: Payout,
-    ) -> None:
-        response = await client.get(
-            f"/v1/payouts/{payout_organization_second.id}/invoice"
-        )
-
-        assert response.status_code == 404
-
-
-@pytest.mark.asyncio
 class TestCreate:
     async def test_anonymous(self, client: AsyncClient) -> None:
         response = await client.post("/v1/payouts/", json={})

@@ -81,7 +81,7 @@ class TestCreate:
         organization.account = account
         await save_fixture(organization)
         payout_account = await create_payout_account(
-            save_fixture, organization, user, type=PayoutAccountType.stripe
+            save_fixture, organization, user, type=PayoutAccountType.manual
         )
 
         # Transactions available for payouts
@@ -113,7 +113,7 @@ class TestCreate:
         transaction = await payout_transaction_service.create(session, payout, fees)
 
         assert transaction.account == account
-        assert transaction.processor == Processor.stripe
+        assert transaction.processor == Processor.crypto
         assert transaction.payout == payout
         assert transaction.currency == "usd"
         assert transaction.amount < 0
@@ -148,7 +148,7 @@ class TestReverse:
         organization.account = account
         await save_fixture(organization)
         payout_account = await create_payout_account(
-            save_fixture, organization, user, type=PayoutAccountType.stripe
+            save_fixture, organization, user, type=PayoutAccountType.manual
         )
 
         payment_transaction_1 = await create_payment_transaction(save_fixture)
@@ -167,12 +167,11 @@ class TestReverse:
         payout_transaction = Transaction(
             type=TransactionType.payout,
             account=account,
-            processor=Processor.stripe,
+            processor=Processor.crypto,
             currency=payout.currency,
             amount=payout.amount,
             account_currency=payout.account_currency,
             account_amount=payout.account_amount,
-            tax_amount=0,
             pledge=None,
             issue_reward=None,
             order=None,
@@ -194,7 +193,7 @@ class TestReverse:
 
         assert transaction.type == TransactionType.payout_reversal
         assert transaction.account == account
-        assert transaction.processor == Processor.stripe
+        assert transaction.processor == Processor.crypto
         assert transaction.payout == payout
         assert transaction.currency == payout.currency
         assert transaction.amount == -payout.amount

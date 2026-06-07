@@ -2,7 +2,6 @@ import functools
 import operator
 from collections.abc import Sequence
 from datetime import datetime, timedelta
-from decimal import Decimal
 from enum import StrEnum
 from typing import TYPE_CHECKING, Self, TypeVar
 from uuid import UUID
@@ -30,22 +29,16 @@ from sqlalchemy.orm.attributes import OP_BULK_REPLACE, Event
 
 from polar.config import settings
 from polar.custom_field.data import CustomFieldDataMixin
-from polar.enums import SubscriptionRecurringInterval, TaxBehavior
+from polar.enums import SubscriptionRecurringInterval
 from polar.kit.db.models import RecordModel
 from polar.kit.extensions.sqlalchemy.types import StringEnum
 from polar.kit.metadata import MetadataMixin
-from polar.product.guard import is_metered_price
-
-from .subscription_meter import SubscriptionMeter
 
 if TYPE_CHECKING:
     from . import (
-        BenefitGrant,
         Checkout,
         Customer,
-        CustomerSeat,
         Discount,
-        Meter,
         Organization,
         PaymentMethod,
         Product,
@@ -132,22 +125,6 @@ class Subscription(CustomFieldDataMixin, MetadataMixin, RecordModel):
 
     If set, indicates that the subscription was originally managed by Stripe Billing,
     but has been migrated to be managed by Polar.
-    """
-
-    tax_behavior: Mapped[TaxBehavior | None] = mapped_column(
-        StringEnum(TaxBehavior), nullable=True, default=None
-    )
-    """
-    Store the tax behavior of the subscription so we remain consistent in case of
-    product or organization default changes.
-    """
-    tax_exempted: Mapped[bool] = mapped_column(Boolean, nullable=False, default=False)
-    """
-    Whether the subscription is tax exempted.
-
-    We use this to disable tax on subscriptions created before we were
-    registered in a given country, so we don't surprise customers with
-    tax charges.
     """
 
     status: Mapped[SubscriptionStatus] = mapped_column(
@@ -255,13 +232,8 @@ class Subscription(CustomFieldDataMixin, MetadataMixin, RecordModel):
     def discount(cls) -> Mapped["Discount | None"]:
         return relationship("Discount", lazy="joined")
 
-    meters: Mapped[list[SubscriptionMeter]] = relationship(
-        SubscriptionMeter,
-        order_by="SubscriptionMeter.created_at",
-        back_populates="subscription",
-        cascade="all, delete-orphan",
-        # Eager load
-        lazy="selectin",
+    organization: AssociationProxy["Organization"] = association_proxy(
+        "product", "organization"
     )
 
     checkout_id: Mapped[UUID | None] = mapped_column(
@@ -275,32 +247,12 @@ class Subscription(CustomFieldDataMixin, MetadataMixin, RecordModel):
         Text, nullable=True
     )
 
-    seats: Mapped[int | None] = mapped_column(Integer, nullable=True, default=None)
-
     @declared_attr
     def checkout(cls) -> Mapped["Checkout | None"]:
         return relationship(
             "Checkout",
             lazy="raise",
             foreign_keys=[cls.checkout_id],  # type: ignore
-        )
-
-    @declared_attr
-    def grants(cls) -> Mapped[list["BenefitGrant"]]:
-        return relationship(
-            "BenefitGrant",
-            lazy="raise",
-            order_by="BenefitGrant.benefit_id",
-            back_populates="subscription",
-        )
-
-    @declared_attr
-    def customer_seats(cls) -> Mapped[list["CustomerSeat"]]:
-        return relationship(
-            "CustomerSeat",
-            lazy="raise",
-            back_populates="subscription",
-            cascade="all, delete-orphan",
         )
 
     @declared_attr
@@ -417,43 +369,6 @@ class Subscription(CustomFieldDataMixin, MetadataMixin, RecordModel):
         self.amount = amount
         self.net_amount = amount  # Same as amount while tax-exclusive
 
-    def update_meters(self, prices: Sequence["SubscriptionProductPrice"]) -> None:
-        subscription_meters = self.meters or []
-
-        # Add new ones
-        price_meters = [
-            price.product_price.meter
-            for price in prices
-            if is_metered_price(price.product_price)
-        ]
-        for price_meter in price_meters:
-            try:
-                # Check if the meter already exists in the subscription
-                next(sm for sm in subscription_meters if sm.meter == price_meter)
-            except StopIteration:
-                # If it doesn't, create a new SubscriptionMeter
-                subscription_meters.append(
-                    SubscriptionMeter(
-                        meter=price_meter,
-                        amount=0,
-                        consumed_units=Decimal(0),
-                        credited_units=0,
-                    )
-                )
-
-        # Remove old ones
-        for subscription_meter in subscription_meters:
-            if subscription_meter.meter not in price_meters:
-                subscription_meters.remove(subscription_meter)
-
-        self.meters = subscription_meters
-
-    def get_meter(self, meter: "Meter") -> SubscriptionMeter | None:
-        for subscription_meter in self.meters:
-            if subscription_meter.meter_id == meter.id:
-                return subscription_meter
-        return None
-
     def get_price_by_type(self, price_type: type[PP]) -> PP | None:
         for price in self.prices:
             if isinstance(price, price_type):
@@ -466,7 +381,6 @@ def _prices_replaced(
     target: Subscription, values: list["SubscriptionProductPrice"], initiator: Event
 ) -> None:
     target.update_amount_and_currency(values, target.discount)
-    target.update_meters(values)
 
 
 @event.listens_for(Subscription.subscription_product_prices, "append")
@@ -475,7 +389,7 @@ def _price_appended(
 ) -> None:
     # In case of a bulk replace, do nothing.
     # The bulk replace event will handle the update as a whole, preventing errors
-    # where the append handler deletes a meter on first append which is still needed
+    # where the append handler deletes an entry on first append which is still needed
     # in subsequent appends.
     if initiator is not None and initiator.op is OP_BULK_REPLACE:
         return
@@ -483,7 +397,6 @@ def _price_appended(
     target.update_amount_and_currency(
         [*target.subscription_product_prices, value], target.discount
     )
-    target.update_meters([*target.subscription_product_prices, value])
 
 
 @event.listens_for(Subscription.discount, "set")

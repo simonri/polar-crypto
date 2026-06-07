@@ -1,30 +1,21 @@
 import { SettingsItem } from '@/components/Settings/SettingsList'
-import { Box } from '@/components/Shared/Box'
-import { Text } from '@/components/Shared/Text'
-import { useTheme } from '@/design-system/useTheme'
 import {
   useCreateNotificationRecipient,
   useDeleteNotificationRecipient,
   useGetNotificationRecipient,
 } from '@/hooks/polar/notifications'
-import {
-  useUpdateUserOrganizationNotificationSettings,
-  useUserOrganizationNotificationSettings,
-} from '@/hooks/polar/userOrganizations'
+import { useOrganization } from '@/hooks/polar/organizations'
 import { useNotifications } from '@/providers/NotificationsProvider'
-import { OrganizationContext } from '@/providers/OrganizationProvider'
 import { useToast } from '@/providers/ToastProvider'
-import { schemas } from '@polar-sh/client'
 import * as Notifications from 'expo-notifications'
 import { getPermissionsAsync } from 'expo-notifications'
 import { Stack } from 'expo-router'
-import { useCallback, useContext, useEffect, useState } from 'react'
+import { useCallback, useEffect, useState } from 'react'
 import { RefreshControl, ScrollView, Switch } from 'react-native'
+import { useTheme } from '@/design-system/useTheme'
 
 export default function NotificationsPage() {
   const theme = useTheme()
-
-  const { organization } = useContext(OrganizationContext)
 
   const {
     data: userNotificationSettings,
@@ -37,33 +28,6 @@ export default function NotificationsPage() {
     disablePushNotifications,
     pushNotificationsEnabled,
   } = usePushNotifications()
-
-  const { mutateAsync: updateNotificationSettings } =
-    useUpdateUserOrganizationNotificationSettings()
-
-  // TODO (maxime): default to organization settings is temporary while user level is Nullable.
-  // once backfill script ran and user level is non-nullable, we can remove the fallback to organization settings.
-  const notificationSettings =
-    userNotificationSettings?.notification_settings ??
-    organization?.notification_settings
-
-  const createNotificationSettingHandler = useCallback(
-    (key: keyof schemas['OrganizationNotificationSettings']) =>
-      async (value: boolean) => {
-        if (!organization?.id || !notificationSettings) {
-          return
-        }
-
-        await updateNotificationSettings({
-          organizationId: organization.id,
-          notification_settings: {
-            ...notificationSettings,
-            [key]: value,
-          },
-        })
-      },
-    [organization?.id, notificationSettings, updateNotificationSettings],
-  )
 
   return (
     <>
@@ -91,40 +55,6 @@ export default function NotificationsPage() {
             }}
           />
         </SettingsItem>
-        <Box height={1} backgroundColor="border" marginVertical="spacing-8" />
-        <SettingsItem
-          title="New Orders"
-          description="Send a notification when new orders are created"
-          variant="static"
-        >
-          <Switch
-            value={notificationSettings?.new_order ?? false}
-            onValueChange={createNotificationSettingHandler('new_order')}
-          />
-        </SettingsItem>
-        <SettingsItem
-          title="New Subscriptions"
-          description="Send a notification when new subscriptions are created"
-          variant="static"
-        >
-          <Switch
-            value={notificationSettings?.new_subscription ?? false}
-            onValueChange={createNotificationSettingHandler('new_subscription')}
-          />
-        </SettingsItem>
-        <Box
-          flexDirection="column"
-          gap="spacing-4"
-          marginVertical="spacing-12"
-          padding="spacing-16"
-          backgroundColor="card"
-          borderRadius="border-radius-12"
-        >
-          <Text variant="bodySmall" color="subtext">
-            These settings will affect both email & push notifications on all
-            your devices.
-          </Text>
-        </Box>
       </ScrollView>
     </>
   )

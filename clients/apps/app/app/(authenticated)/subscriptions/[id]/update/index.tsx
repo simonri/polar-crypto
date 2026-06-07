@@ -85,11 +85,11 @@ export default function Index() {
     [updateSubscription, subscription, router],
   )
 
-  // Set default proration behavior from organization settings
+  // Set default proration behavior
   useEffect(() => {
     if (organization) {
       resetField('proration_behavior', {
-        defaultValue: organization.subscription_settings.proration_behavior,
+        defaultValue: 'prorate',
       })
     }
   }, [organization, resetField])

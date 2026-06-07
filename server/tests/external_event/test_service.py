@@ -21,10 +21,10 @@ class TestEnqueue:
         self, session: AsyncSession, enqueue_job_mock: AsyncMock
     ) -> None:
         event = await external_event_service.enqueue(
-            session, ExternalEventSource.stripe, "task_name", "EXTERNAL_EVENT_ID", {}
+            session, ExternalEventSource.polar, "task_name", "EXTERNAL_EVENT_ID", {}
         )
 
-        assert event.source == ExternalEventSource.stripe
+        assert event.source == ExternalEventSource.polar
         assert event.task_name == "task_name"
         assert event.external_id == "EXTERNAL_EVENT_ID"
 
@@ -37,7 +37,7 @@ class TestEnqueue:
         enqueue_job_mock: AsyncMock,
     ) -> None:
         existing_event = ExternalEvent(
-            source=ExternalEventSource.stripe,
+            source=ExternalEventSource.polar,
             task_name="task_name",
             external_id="EXTERNAL_EVENT_ID",
             data={},
@@ -45,7 +45,7 @@ class TestEnqueue:
         await save_fixture(existing_event)
 
         event = await external_event_service.enqueue(
-            session, ExternalEventSource.stripe, "task_name", "EXTERNAL_EVENT_ID", {}
+            session, ExternalEventSource.polar, "task_name", "EXTERNAL_EVENT_ID", {}
         )
 
         assert event == existing_event

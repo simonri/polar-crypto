@@ -10,6 +10,8 @@ import type { Metadata } from 'next'
 import { EmbedError } from './EmbedError'
 import { PaymentMethodEmbed } from './PaymentMethodEmbed'
 
+export const dynamic = 'force-dynamic'
+
 export const metadata: Metadata = {
   title: 'Add payment method | Polar',
   robots: { index: false, follow: false },
@@ -110,6 +112,8 @@ export default async function Page(props: {
     )
   }
 
+  void customer
+
   return (
     <PaymentMethodEmbed
       sessionToken={sessionToken}
@@ -120,11 +124,6 @@ export default async function Page(props: {
       setAsDefault={set_default !== 'false'}
       locale={locale}
       serverURL={getPublicServerURL()}
-      customerBillingDetails={{
-        name: customer.name ?? null,
-        email: customer.email ?? null,
-        address: customer.billing_address ?? null,
-      }}
       redirectStatus={redirect_status}
       setupIntentId={polar_setup_intent}
     />

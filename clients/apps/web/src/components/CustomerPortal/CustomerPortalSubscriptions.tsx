@@ -1,18 +1,13 @@
 import revalidate from '@/app/actions'
-import { useCustomerOrders } from '@/hooks/queries/customerPortal'
 import { Client, schemas } from '@polar-sh/client'
 import { Button } from '@polar-sh/orbit'
 import { DataTable } from '@polar-sh/orbit'
 import FormattedDateTime from '@polar-sh/ui/components/atoms/FormattedDateTime'
-import { getThemePreset } from '@polar-sh/ui/hooks/theming'
-import { useTheme } from 'next-themes'
-import { useRouter } from 'next/navigation'
-import { useCallback, useMemo, useState } from 'react'
+import { useCallback, useState } from 'react'
 import { InlineModal } from '../Modal/InlineModal'
 import { useModal } from '../Modal/useModal'
 import CustomerSubscriptionDetails from './CustomerSubscriptionDetails'
 import CustomerPortalSubscription from './CustomerPortalSubscription'
-import { OrderPaymentRetryModal } from './OrderPaymentRetryModal'
 
 interface SubscriptionsOverviewProps {
   organization: schemas['CustomerOrganization']
@@ -57,10 +52,12 @@ export const ActiveSubscriptionsOverview = ({
   )
 }
 
-interface SubscriptionsOverviewProps {
+interface InactiveSubscriptionsOverviewProps {
   organization: schemas['CustomerOrganization']
   subscriptions: schemas['CustomerSubscription'][]
   products: schemas['CustomerProduct'][]
+  api: Client
+  customerSessionToken: string
 }
 
 export const InactiveSubscriptionsOverview = ({
@@ -68,15 +65,8 @@ export const InactiveSubscriptionsOverview = ({
   products,
   api,
   customerSessionToken,
-}: SubscriptionsOverviewProps) => {
-  const router = useRouter()
-  const theme = useTheme()
-  const themingPreset = getThemePreset(theme.resolvedTheme as 'light' | 'dark')
-
+}: InactiveSubscriptionsOverviewProps) => {
   const [selectedSubscription, setSelectedSubscription] = useState<
-    schemas['CustomerSubscription'] | null
-  >(null)
-  const [retryPaymentSubscription, setRetryPaymentSubscription] = useState<
     schemas['CustomerSubscription'] | null
   >(null)
 
@@ -84,12 +74,6 @@ export const InactiveSubscriptionsOverview = ({
     isShown: isSubscriptionModalOpen,
     hide: _hideSubscriptionModal,
     show: showSubscriptionModal,
-  } = useModal()
-
-  const {
-    isShown: isRetryPaymentModalOpen,
-    hide: _hideRetryPaymentModal,
-    show: showRetryPaymentModal,
   } = useModal()
 
   const openSubscriptionModal = useCallback(
@@ -104,37 +88,6 @@ export const InactiveSubscriptionsOverview = ({
     setSelectedSubscription(null)
     _hideSubscriptionModal()
   }, [_hideSubscriptionModal])
-
-  const openRetryPaymentModal = useCallback(
-    (subscription: schemas['CustomerSubscription']) => {
-      setRetryPaymentSubscription(subscription)
-      showRetryPaymentModal()
-    },
-    [showRetryPaymentModal],
-  )
-
-  const hideRetryPaymentModal = useCallback(() => {
-    setRetryPaymentSubscription(null)
-    _hideRetryPaymentModal()
-  }, [_hideRetryPaymentModal])
-
-  const { data: orders } = useCustomerOrders(api, {
-    subscription_id: retryPaymentSubscription?.id,
-    limit: 10,
-    sorting: ['-created_at'],
-  })
-
-  const orderItems = orders?.items
-  const pastDueOrder = useMemo(() => {
-    if (
-      !retryPaymentSubscription ||
-      retryPaymentSubscription.status !== 'past_due' ||
-      !orderItems
-    ) {
-      return null
-    }
-    return orderItems.find((order) => order.status === 'pending')
-  }, [retryPaymentSubscription, orderItems])
 
   return (
     <div className="flex flex-col gap-y-4">
@@ -178,15 +131,6 @@ export const InactiveSubscriptionsOverview = ({
             header: '',
             cell: ({ row }) => (
               <span className="flex justify-end gap-2">
-                {row.original.status === 'past_due' && (
-                  <Button
-                    variant="default"
-                    size="sm"
-                    onClick={() => openRetryPaymentModal(row.original)}
-                  >
-                    Retry payment
-                  </Button>
-                )}
                 <Button
                   variant="secondary"
                   size="sm"
@@ -217,20 +161,6 @@ export const InactiveSubscriptionsOverview = ({
         }
       />
 
-      {pastDueOrder && retryPaymentSubscription && (
-        <OrderPaymentRetryModal
-          order={pastDueOrder}
-          api={api}
-          isOpen={isRetryPaymentModalOpen}
-          onClose={hideRetryPaymentModal}
-          onSuccess={async () => {
-            hideRetryPaymentModal()
-            await revalidate(`customer_portal`)
-            router.refresh()
-          }}
-          themingPreset={themingPreset}
-        />
-      )}
     </div>
   )
 }

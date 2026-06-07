@@ -2,13 +2,7 @@ import { useInfiniteEvents } from '@/hooks/queries/events'
 import KeyboardArrowDownOutlined from '@mui/icons-material/KeyboardArrowDownOutlined'
 import KeyboardArrowRightOutlined from '@mui/icons-material/KeyboardArrowRightOutlined'
 import { schemas } from '@polar-sh/client'
-import { Avatar } from '@polar-sh/orbit'
 import { Button } from '@polar-sh/orbit'
-import {
-  Tooltip,
-  TooltipContent,
-  TooltipTrigger,
-} from '@polar-sh/ui/components/ui/tooltip'
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
 import type { ReactNode } from 'react'
@@ -179,65 +173,19 @@ export const EventRow = ({
                 </Link>
               ) : null
             ) : event.customer ? (
-              <Tooltip>
-                <TooltipTrigger>
-                  <Link
-                    href={`/dashboard/${organization.slug}/customers/${event.customer?.id}?query=${event.customer?.email}`}
-                    className="flex items-center gap-x-3"
-                    onClick={(e) => {
-                      e.stopPropagation()
-                    }}
-                  >
-                    <Avatar
-                      className="text-xxs size-6"
-                      name={
-                        event.customer?.name ?? event.customer?.email ?? '—'
-                      }
-                      avatar_url={event.customer?.avatar_url ?? null}
-                    />
-                  </Link>
-                </TooltipTrigger>
-                <TooltipContent side="top" align="end">
-                  <div className="flex flex-row items-center gap-x-2 font-sans">
-                    <Avatar
-                      className="text-xxs size-8"
-                      name={
-                        event.customer?.name ?? event.customer?.email ?? '—'
-                      }
-                      avatar_url={event.customer?.avatar_url ?? null}
-                    />
-                    <div className="flex flex-col">
-                      <span className="text-xs">
-                        {event.customer?.name ?? '—'}
-                      </span>
-                      <span className="dark:text-polar-500 text-xxs font-mono text-gray-500">
-                        {event.customer?.email}
-                      </span>
-                    </div>
-                  </div>
-                </TooltipContent>
-              </Tooltip>
+              <Link
+                href={`/dashboard/${organization.slug}/customers/${event.customer?.id}?query=${event.customer?.email}`}
+                className="dark:text-polar-400 text-xxs truncate text-gray-500"
+                onClick={(e) => {
+                  e.stopPropagation()
+                }}
+              >
+                {event.customer?.name ?? event.customer?.email ?? '—'}
+              </Link>
             ) : event.external_customer_id ? (
-              <Tooltip>
-                <TooltipTrigger>
-                  <Avatar name={event.external_customer_id} avatar_url={null} />
-                </TooltipTrigger>
-                <TooltipContent side="top" align="end">
-                  <div className="flex flex-row items-center gap-x-2 font-sans">
-                    <Avatar
-                      className="text-xxs size-8"
-                      name={event.external_customer_id}
-                      avatar_url={null}
-                    />
-                    <div className="flex flex-col">
-                      <span className="text-xs">Anonymous</span>
-                      <span className="dark:text-polar-500 text-xxs font-mono text-gray-500">
-                        {event.external_customer_id}
-                      </span>
-                    </div>
-                  </div>
-                </TooltipContent>
-              </Tooltip>
+              <span className="dark:text-polar-400 text-xxs font-mono text-gray-500">
+                {event.external_customer_id}
+              </span>
             ) : null}
           </div>
         </div>

@@ -2,15 +2,12 @@ import uuid
 from collections.abc import Generator
 from typing import Annotated, Any
 
-import pycountry
-from babel.numbers import format_percent
 from fastapi import APIRouter, Depends, HTTPException, Query, Request
 from pydantic import UUID4, BeforeValidator, ValidationError
 from sqlalchemy import or_
 from sqlalchemy.orm import contains_eager, joinedload
 from tagflow import attr, tag, text
 
-from polar.invoice.service import invoice as invoice_service
 from polar.kit.currency import format_currency
 from polar.kit.pagination import PaginationParamsQuery
 from polar.kit.schemas import empty_str_to_none
@@ -24,7 +21,6 @@ from polar.payment.repository import PaymentRepository
 from polar.postgres import AsyncSession, get_db_read_session, get_db_session
 from polar.refund.schemas import RefundCreate
 from polar.refund.service import refund as refund_service
-from polar.tax.calculation.base import TaxabilityReason
 from polar.worker import enqueue_job
 
 from .. import formatters
@@ -56,57 +52,6 @@ class TaxRateItem(description_list.DescriptionListItem[Order]):
 
     def render(self, request: Request, item: Order) -> Generator[None] | None:
         text(f"{self.rate:.2f}%")
-        return None
-
-
-class TaxIDItem(description_list.DescriptionListAttrItem[Order]):
-    def get_value(self, item: Order) -> Any:
-        value = self.get_raw_value(item)
-        if value is None:
-            return None
-        return formatters.tax_id(value)
-
-
-class InvoicePDFItem(description_list.DescriptionListItem[Order]):
-    def __init__(self, url: str | None):
-        super().__init__("Invoice PDF")
-        self.url = url
-
-    def render(self, request: Request, item: Order) -> Generator[None] | None:
-        with tag.div(classes="flex items-center gap-1"):
-            if self.url is not None:
-                with tag.a(href=self.url, classes="link flex flex-row gap-1"):
-                    attr("target", "_blank")
-                    attr("rel", "noopener noreferrer")
-                    text("Download PDF")
-                    with tag.div(classes="icon-external-link"):
-                        pass
-            else:
-                with tag.span(classes="text-gray-500"):
-                    text("Not generated")
-        return None
-
-
-class ReceiptPDFItem(description_list.DescriptionListItem[Order]):
-    def __init__(self, url: str | None):
-        super().__init__("Receipt PDF")
-        self.url = url
-
-    def render(self, request: Request, item: Order) -> Generator[None] | None:
-        with tag.div(classes="flex items-center gap-1"):
-            if self.url is not None:
-                with tag.a(href=self.url, classes="link flex flex-row gap-1"):
-                    attr("target", "_blank")
-                    attr("rel", "noopener noreferrer")
-                    text("Download PDF")
-                    with tag.div(classes="icon-external-link"):
-                        pass
-            elif item.receipt_number is not None:
-                with tag.span(classes="text-gray-500"):
-                    text("Pending render")
-            else:
-                with tag.span(classes="text-gray-500"):
-                    text("Not generated")
         return None
 
 
@@ -153,7 +98,6 @@ async def list(
                     Customer.email.ilike(f"%{query}%"),
                     Customer.name.ilike(f"%{query}%"),
                     Product.name.ilike(f"%{query}%"),
-                    Order.invoice_number.ilike(f"%{query}%"),
                 )
             )
 
@@ -195,7 +139,7 @@ async def list(
                 with input.search(
                     "query",
                     query,
-                    placeholder="Search by order/customer ID, email, product, invoice...",
+                    placeholder="Search by order/customer ID, email, or product...",
                 ):
                     pass
                 with input.search(
@@ -272,24 +216,6 @@ async def get(
     if order is None:
         raise HTTPException(status_code=404)
 
-    # Get invoice URL if it exists
-    invoice_url: str | None = None
-    if order.invoice_path is not None:
-        try:
-            invoice_url, _ = await invoice_service.get_order_invoice_url(order)
-        except Exception:
-            # If there's an error getting the URL, we'll show "Not generated"
-            pass
-
-    receipt_url: str | None = None
-    if order.receipt_number is not None:
-        try:
-            receipt = await order_service.get_order_receipt(order)
-            if receipt is not None:
-                receipt_url = receipt.url
-        except Exception:
-            pass
-
     # Get all payments for this order
     payment_repository = PaymentRepository.from_session(session)
     payments = await payment_repository.get_all_by_order(order.id)
@@ -306,7 +232,7 @@ async def get(
             with tag.div(classes="flex justify-between items-center"):
                 with tag.div(classes="flex items-center gap-2"):
                     with tag.h1(classes="text-4xl"):
-                        text(f"Order {order.invoice_number or order.id}")
+                        text(f"Order {order.id}")
                     if order.refunds_blocked:
                         with tag.div(classes="badge badge-warning"):
                             text("Refunds Blocked")
@@ -369,9 +295,6 @@ async def get(
                             description_list.DescriptionListDateTimeItem(
                                 "created_at", "Created"
                             ),
-                            description_list.DescriptionListAttrItem(
-                                "invoice_number", "Invoice Number"
-                            ),
                             StatusDescriptionListItem("Status"),
                             description_list.DescriptionListAttrItem(
                                 "billing_reason", "Billing Reason"
@@ -383,19 +306,6 @@ async def get(
                                     r.url_for("subscriptions:get", id=i.subscription_id)
                                 ),
                             ),
-                            description_list.DescriptionListLinkItem[Order](
-                                "stripe_invoice_id",
-                                "Stripe Invoice",
-                                href_getter=lambda _, i: (
-                                    f"https://dashboard.stripe.com/invoices/{i.stripe_invoice_id}"
-                                ),
-                                external=True,
-                            ),
-                            InvoicePDFItem(invoice_url),
-                            description_list.DescriptionListAttrItem(
-                                "receipt_number", "Receipt Number"
-                            ),
-                            ReceiptPDFItem(receipt_url),
                         ).render(request, order):
                             pass
 
@@ -560,108 +470,6 @@ async def get(
                                                             )
                                                         }"
                                                     )
-
-                                        if order.tax_amount > 0:
-                                            for tax_item in order.tax_breakdown or []:
-                                                with tag.tr():
-                                                    with tag.td(
-                                                        colspan="3",
-                                                        classes="text-right",
-                                                    ):
-                                                        label = tax_item["display_name"]
-
-                                                        if (
-                                                            tax_item[
-                                                                "taxability_reason"
-                                                            ]
-                                                            == TaxabilityReason.reverse_charge
-                                                        ):
-                                                            label += (
-                                                                " (0% Reverse Charge)"
-                                                            )
-                                                        else:
-                                                            if tax_item["country"]:
-                                                                country = pycountry.countries.get(
-                                                                    alpha_2=tax_item[
-                                                                        "country"
-                                                                    ]
-                                                                )
-                                                                if country is not None:
-                                                                    parts = [
-                                                                        country.name
-                                                                    ]
-
-                                                                    if tax_item[
-                                                                        "state"
-                                                                    ]:
-                                                                        state: Any = pycountry.subdivisions.get(
-                                                                            code=f"{tax_item['country']}-{tax_item['state']}"
-                                                                        )
-                                                                        if (
-                                                                            state
-                                                                            is not None
-                                                                        ):
-                                                                            parts = [
-                                                                                state.name
-                                                                            ] + parts
-
-                                                                    if (
-                                                                        tax_item[
-                                                                            "subdivision"
-                                                                        ]
-                                                                        is not None
-                                                                    ):
-                                                                        parts = [
-                                                                            tax_item[
-                                                                                "subdivision"
-                                                                            ]
-                                                                        ] + parts
-
-                                                                    label += f" — {', '.join(parts)}"
-
-                                                            rate = tax_item.get("rate")
-                                                            if rate is not None:
-                                                                label += f" ({format_percent(rate, decimal_quantization=False)})"
-
-                                                        text(label)
-                                                    with tag.td(classes="text-right"):
-                                                        text(
-                                                            formatters.currency(
-                                                                tax_item.get(
-                                                                    "amount", 0
-                                                                ),
-                                                                order.currency,
-                                                            )
-                                                        )
-
-                                            # Show total tax row if multiple items
-                                            if (
-                                                order.tax_breakdown
-                                                and len(order.tax_breakdown) > 1
-                                            ):
-                                                with tag.tr():
-                                                    with tag.td(
-                                                        colspan="3",
-                                                        classes="text-right",
-                                                    ):
-                                                        label = "Total tax"
-                                                        if order.tax_id:
-                                                            formatted_tax_id = (
-                                                                formatters.tax_id(
-                                                                    order.tax_id
-                                                                )
-                                                            )
-                                                            label += (
-                                                                f" • {formatted_tax_id}"
-                                                            )
-                                                        text(label)
-                                                    with tag.td(classes="text-right"):
-                                                        text(
-                                                            formatters.currency(
-                                                                order.tax_amount,
-                                                                order.currency,
-                                                            )
-                                                        )
 
                                         with tag.tr(classes="border-t-2"):
                                             with tag.td(

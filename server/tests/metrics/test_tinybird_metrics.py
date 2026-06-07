@@ -1141,7 +1141,6 @@ async def _create_paid_order_events(
         save_fixture,
         order=order,
         amount=order.net_amount,
-        tax_amount=order.tax_amount,
     )
 
     common_metadata: dict[str, Any] = {
@@ -1151,7 +1150,6 @@ async def _create_paid_order_events(
         "amount": order.net_amount,
         "net_amount": order.net_amount,
         "currency": "usd",
-        "tax_amount": order.tax_amount,
         "applied_balance_amount": order.applied_balance_amount,
         "platform_fee": order.platform_fee_amount,
     }
@@ -1307,7 +1305,6 @@ async def _seed_customer_scenario(
         email=f"{scenario.key}@example.com",
         name=scenario.key,
         external_id=scenario.external_id,
-        stripe_customer_id=f"cus_{scenario.key}",
     )
 
     for subscription_scenario in scenario.subscriptions:

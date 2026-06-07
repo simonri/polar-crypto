@@ -1,4 +1,3 @@
-import functools
 import os
 import tempfile
 from datetime import timedelta
@@ -7,14 +6,10 @@ from pathlib import Path
 from typing import Annotated, Literal
 from urllib.parse import urlparse
 
-from annotated_types import Ge
-from pydantic import AfterValidator, DirectoryPath, Field, PostgresDsn
-from pydantic_ai.models import Model, infer_model, parse_model_id
-from pydantic_ai.providers.gateway import gateway_provider
+from pydantic import AfterValidator, Field, PostgresDsn
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
-from polar.enums import EmailSender, TaxProcessor
-from polar.kit.address import Address, CountryAlpha2
+from polar.enums import EmailSender
 from polar.kit.jwk import JWKSFile
 
 
@@ -54,7 +49,6 @@ file_extension = ".exe" if os.name == "nt" else ""
 class Settings(BaseSettings):
     ENV: Environment = Environment.development
     SQLALCHEMY_DEBUG: bool = False
-    POSTHOG_DEBUG: bool = False
     LOG_LEVEL: str = "DEBUG"
     TESTING: bool = False
 
@@ -64,10 +58,6 @@ class Settings(BaseSettings):
     WORKER_PROMETHEUS_DIR: Path = Path(tempfile.gettempdir()) / "prometheus_multiproc"
 
     # Grafana Cloud Prometheus
-    GRAFANA_CLOUD_PROMETHEUS_WRITE_URL: str | None = None
-    GRAFANA_CLOUD_PROMETHEUS_WRITE_USERNAME: str | None = None
-    GRAFANA_CLOUD_PROMETHEUS_WRITE_PASSWORD: str | None = None
-    GRAFANA_CLOUD_PROMETHEUS_WRITE_INTERVAL: Annotated[int, Ge(1)] = 60  # seconds
     GRAFANA_CLOUD_PROMETHEUS_QUERY_URL: str | None = None
     GRAFANA_CLOUD_PROMETHEUS_QUERY_USER: str | None = None
     GRAFANA_CLOUD_PROMETHEUS_QUERY_KEY: str | None = None
@@ -98,8 +88,6 @@ class Settings(BaseSettings):
 
     # JSON list of accepted CORS origins
     CORS_ORIGINS: list[str] = []
-
-    ALLOWED_HOSTS: set[str] = {"127.0.0.1:3000", "localhost:3000"}
 
     # User-Agent sent by Polar's outbound HTTP clients (e.g. URL reachability
     # checks). Excludes the org review website/setup collectors, which use a
@@ -158,8 +146,6 @@ class Settings(BaseSettings):
 
     # Checkout
     CHECKOUT_TTL_SECONDS: int = 60 * 60 * 24  # 24 hours
-    IP_GEOLOCATION_DATABASE_DIRECTORY_PATH: DirectoryPath = Path(__file__).parent.parent
-    IP_GEOLOCATION_DATABASE_NAME: str = "ip-geolocation.mmdb"
 
     # Database
     POSTGRES_USER: str = "polar"
@@ -203,26 +189,6 @@ class Settings(BaseSettings):
     EMAIL_DEFAULT_REPLY_TO_NAME: str = "Polar Support"
     EMAIL_DEFAULT_REPLY_TO_EMAIL_ADDRESS: str = "support@polar.sh"
 
-    # Github App
-    GITHUB_CLIENT_ID: str = ""
-    GITHUB_CLIENT_SECRET: str = ""
-
-    # GitHub App for repository benefits
-    GITHUB_REPOSITORY_BENEFITS_APP_NAMESPACE: str = ""
-    GITHUB_REPOSITORY_BENEFITS_APP_IDENTIFIER: str = ""
-    GITHUB_REPOSITORY_BENEFITS_APP_PRIVATE_KEY: str = ""
-    GITHUB_REPOSITORY_BENEFITS_CLIENT_ID: str = ""
-    GITHUB_REPOSITORY_BENEFITS_CLIENT_SECRET: str = ""
-
-    # Discord
-    DISCORD_CLIENT_ID: str = ""
-    DISCORD_CLIENT_SECRET: str = ""
-    DISCORD_BOT_TOKEN: str = ""
-    DISCORD_BOT_PERMISSIONS: str = (
-        "268435459"  # Manage Roles, Kick Members, Create Instant Invite
-    )
-    DISCORD_PROXY_URL: str = ""
-
     # Google
     GOOGLE_CLIENT_ID: str = ""
     GOOGLE_CLIENT_SECRET: str = ""
@@ -232,10 +198,6 @@ class Settings(BaseSettings):
     APPLE_TEAM_ID: str = ""
     APPLE_KEY_ID: str = ""
     APPLE_KEY_VALUE: str = ""
-
-    # Pydantic AI Gateway
-    PYDANTIC_AI_GATEWAY_API_KEY: str = "DummyKey"
-    PYDANTIC_AI_GATEWAY_MODEL: str = "openai:gpt-5.5"
 
     # Organization review website scraping
     FIRECRAWL_API_KEY: str | None = None
@@ -247,26 +209,43 @@ class Settings(BaseSettings):
         "playwright"
     )
 
-    # Stripe
-    STRIPE_SECRET_KEY: str = ""
-    STRIPE_PUBLISHABLE_KEY: str = ""
-    # Stripe webhook secrets
-    STRIPE_WEBHOOK_SECRET: str = ""
-    STRIPE_CONNECT_WEBHOOK_SECRET: str = ""
-    STRIPE_STATEMENT_DESCRIPTOR: str = "POLAR"
+    # Crypto / Bitcart daemon configuration
+    # Each entry maps a currency symbol to its daemon URL.
+    # Example: POLAR_CRYPTO_DAEMON_BTC_URL=http://localhost:5000
+    CRYPTO_DAEMON_BTC_URL: str = "http://localhost:5000"
+    CRYPTO_DAEMON_ETH_URL: str = "http://localhost:5001"
+    CRYPTO_DAEMON_LTC_URL: str = "http://localhost:5002"
+    CRYPTO_DAEMON_RPC_USER: str = "polaruser"
+    CRYPTO_DAEMON_RPC_PASS: str = "polarpass"
 
-    # Numeral
-    NUMERAL_API_KEY: str | None = None
+    # Extended public keys for each currency (used by the daemon to derive addresses)
+    CRYPTO_BTC_XPUB: str | None = None
+    CRYPTO_ETH_XPUB: str | None = None
+    CRYPTO_LTC_XPUB: str | None = None
+
+    # Comma-separated list of currencies enabled for payments
+    CRYPTO_CURRENCIES: str = "btc"
+
+    # Invoice expiry in minutes (displayed countdown on checkout)
+    CRYPTO_INVOICE_EXPIRY_MINUTES: int = 15
+
+    def get_crypto_daemon_configs(self) -> dict[str, tuple[str, str | None]]:
+        """Return {currency: (daemon_url, xpub)} for every enabled currency."""
+        enabled = [
+            c.strip().lower() for c in self.CRYPTO_CURRENCIES.split(",") if c.strip()
+        ]
+        configs: dict[str, tuple[str, str | None]] = {
+            "btc": (self.CRYPTO_DAEMON_BTC_URL, self.CRYPTO_BTC_XPUB),
+            "eth": (self.CRYPTO_DAEMON_ETH_URL, self.CRYPTO_ETH_XPUB),
+            "ltc": (self.CRYPTO_DAEMON_LTC_URL, self.CRYPTO_LTC_XPUB),
+        }
+        return {c: configs[c] for c in enabled if c in configs}
 
     # Sentry
     SENTRY_DSN: str | None = None
 
-    # Discord
     FAVICON_URL: str = "https://raw.githubusercontent.com/polarsource/polar/2648cf7472b5128704a097cd1eb3ae5f1dd847e5/docs/docs/assets/favicon.png"
     THUMBNAIL_URL: str = "https://raw.githubusercontent.com/polarsource/polar/4fd899222e200ca70982f437039f549b7a822ecc/clients/apps/web/public/email-logo-dark.png"
-
-    # Posthog
-    POSTHOG_PROJECT_API_KEY: str = ""
 
     # Tinybird
     TINYBIRD_API_URL: str = "http://localhost:7181"
@@ -277,30 +256,9 @@ class Settings(BaseSettings):
     TINYBIRD_CLICKHOUSE_TOKEN: str | None = None
     TINYBIRD_WORKSPACE: str | None = None
     TINYBIRD_BRANCH: str | None = None
-    # Logo.dev (for company logo avatars)
-    LOGO_DEV_PUBLISHABLE_KEY: str | None = None
-    PERSONAL_EMAIL_DOMAINS: set[str] = {
-        "gmail.com",
-        "yahoo.com",
-        "hotmail.com",
-        "outlook.com",
-        "aol.com",
-        "icloud.com",
-        "mail.com",
-        "protonmail.com",
-        "proton.me",
-        "zoho.com",
-        "gmx.com",
-        "yandex.com",
-        "msn.com",
-        "live.com",
-        "qq.com",
-    }
-
     # Memory Profiling
     MEMORY_PROFILE_ENABLED: bool = False
     MEMORY_PROFILE_INTERVAL: int = 300  # seconds between snapshots
-    MEMORY_PROFILE_S3_BUCKET_NAME: str | None = None
 
     # Logfire
     LOGFIRE_TOKEN: str | None = None
@@ -308,8 +266,6 @@ class Settings(BaseSettings):
         "organization_access_token.record_usage",
         "personal_access_token.record_usage",
     }
-    # S3 logs storage
-    S3_LOGS_BUCKET_NAME: str | None = None
 
     # Plain
     PLAIN_REQUEST_SIGNING_SECRET: str | None = None
@@ -317,84 +273,18 @@ class Settings(BaseSettings):
     PLAIN_CHAT_SECRET: str | None = None
     PLAIN_DEFAULT_TIER_EXTERNAL_ID: str | None = None
 
-    # AWS (File Downloads)
-    AWS_ACCESS_KEY_ID: str = "polar-development"
-    AWS_SECRET_ACCESS_KEY: str = "polar123456789"
-    AWS_REGION: str = "us-east-2"
-    AWS_SIGNATURE_VERSION: str = "v4"
-
-    # Worker SQS/Lambda execution engine (POC)
-    # When enabled, jobs enqueued for an allowlisted actor are routed to a
-    # per-actor SQS queue (consumed by a Lambda) instead of the Redis broker.
-    WORKER_SQS_ENABLED: bool = False
-    WORKER_SQS_ACTORS: set[str] = set()
-    WORKER_SQS_QUEUE_PREFIX: str = "polar-tasks"
-    # Override to http://127.0.0.1:4566 in .env to target LocalStack
-    SQS_ENDPOINT_URL: str | None = None
-
-    # Downloadable files
-    S3_FILES_BUCKET_NAME: str = "polar-s3"
-    S3_FILES_PUBLIC_BUCKET_NAME: str = "polar-s3-public"
-    S3_FILES_PRESIGN_TTL: int = 3600  # 60 minutes
-    S3_FILES_DOWNLOAD_SECRET: str = "supersecret"
-    S3_FILES_DOWNLOAD_SALT: str = "saltysalty"
-    # Override to http://127.0.0.1:9000 in .env during development
-    S3_ENDPOINT_URL: str | None = None
-
-    MINIO_USER: str = "polar"
-    MINIO_PWD: str = "polarpolar"
-
-    # Chargeback Stop
-    CHARGEBACK_STOP_WEBHOOK_SECRET: str = ""
-
     # Polar's usage of Polar
     POLAR_ACCESS_TOKEN: str = ""
     POLAR_WEBHOOK_SECRET: str = ""
     POLAR_ORGANIZATION_ID: str = ""
-    POLAR_FREE_PRODUCT_ID: str = ""
-    # Scale plan product, used by the Startup Program to grant a 100% discount
-    POLAR_SCALE_PRODUCT_ID: str = ""
     POLAR_API_URL: str = "https://api.polar.sh"
 
     @property
     def POLAR_SELF_ENABLED(self) -> bool:
-        return all(
-            [
-                self.POLAR_ACCESS_TOKEN,
-                self.POLAR_ORGANIZATION_ID,
-                self.POLAR_FREE_PRODUCT_ID,
-            ]
-        )
-
-    @property
-    def STARTUP_PROGRAM_ENABLED(self) -> bool:
-        # All three are required: org_id to scope reads, scale_product_id to
-        # attach the discount to, access_token so the SDK calls can auth.
-        return bool(
-            self.POLAR_ORGANIZATION_ID
-            and self.POLAR_SCALE_PRODUCT_ID
-            and self.POLAR_ACCESS_TOKEN
-        )
+        return bool(self.POLAR_ACCESS_TOKEN and self.POLAR_ORGANIZATION_ID)
 
     # Customer portal URL overrides per organization
     CUSTOMER_PORTAL_URL_OVERRIDES: dict[str, str] = {}
-
-    # Invoices
-    S3_CUSTOMER_INVOICES_BUCKET_NAME: str = "polar-customer-invoices"
-    S3_CUSTOMER_RECEIPTS_BUCKET_NAME: str = "polar-customer-receipts"
-    S3_PAYOUT_INVOICES_BUCKET_NAME: str = "polar-payout-invoices"
-    INVOICES_NAME: str = "Polar Software, Inc."
-    INVOICES_ADDRESS: Address = Address(
-        line1="548 Market St",
-        line2="PMB 61301",
-        postal_code="94104",
-        city="San Francisco",
-        state="US-CA",
-        country=CountryAlpha2("US"),
-    )
-    INVOICES_ADDITIONAL_INFO: str | None = "[support@polar.sh](mailto:support@polar.sh)"
-    INVOICES_VAT_NUMBERS: dict[str, str] = {}
-    PAYOUT_INVOICES_PREFIX: str = "POLAR-"
 
     # Application behaviours
     API_PAGINATION_MAX_LIMIT: int = 100
@@ -438,14 +328,7 @@ class Settings(BaseSettings):
         "usd": _DEFAULT_ACCOUNT_PAYOUT_MINIMUM_BALANCE,
     }
 
-    # Stripe enforces per-country minimum payout amounts in the recipient's
-    # local currency. For most countries the per-currency minimum above
-    # already exceeds the country minimum after FX conversion, but a few
-    # don't fit that pattern: USD-denominated countries with a higher local
-    # minimum than the default $10, and BSD (not listed per-currency above).
-    # Values are in USD cents and indexed by ISO 3166-1 alpha-2 country
-    # code, rounded up to the next multiple of $5 USD for FX headroom. See:
-    # https://docs.stripe.com/global-payouts/send-money
+    # Per-country minimum payout amounts in USD cents for legacy data compatibility.
     ACCOUNT_PAYOUT_MINIMUM_BALANCE_PER_PAYOUT_COUNTRY: dict[str, int] = {
         "BS": 3000,  # Bahamas: 25 BSD
         "SV": 3000,  # El Salvador: 30 USD
@@ -519,9 +402,6 @@ class Settings(BaseSettings):
         timedelta(days=7),  # Fourth retry after 21 days (2 + 5 + 7 + 7)
     ]
     CUSTOMER_RETRY_MAX_ATTEMPTS: int = 5
-
-    TAX_PROCESSORS: list[TaxProcessor] = [TaxProcessor.stripe]
-    TAX_RECORD_PROCESSOR: TaxProcessor = TaxProcessor.stripe
 
     model_config = SettingsConfigDict(
         env_prefix="polar_",
@@ -608,10 +488,6 @@ class Settings(BaseSettings):
             return self.generate_external_url(f"/backoffice{path}")
         return f"https://{self.BACKOFFICE_HOST}{path}"
 
-    @property
-    def stripe_descriptor_suffix_max_length(self) -> int:
-        return 22 - len("* ") - len(self.STRIPE_STATEMENT_DESCRIPTOR)
-
     def get_minimum_payout(self, currency: str, country: str) -> int:
         currency_minimum = self.ACCOUNT_PAYOUT_MINIMUM_BALANCE_PER_PAYOUT_CURRENCY.get(
             currency.lower(), self._DEFAULT_ACCOUNT_PAYOUT_MINIMUM_BALANCE
@@ -620,23 +496,6 @@ class Settings(BaseSettings):
             country.upper(), 0
         )
         return max(currency_minimum, country_minimum)
-
-    def get_pydantic_gateway_model(
-        self, model: str | None = None
-    ) -> tuple[Model, str, str]:
-        model = model or settings.PYDANTIC_AI_GATEWAY_MODEL
-        model_provider, model_name = parse_model_id(model)
-        assert model_provider is not None
-        return (
-            infer_model(
-                model,
-                provider_factory=functools.partial(
-                    gateway_provider, api_key=self.PYDANTIC_AI_GATEWAY_API_KEY
-                ),
-            ),
-            model_provider,
-            model_name,
-        )
 
 
 settings = Settings()

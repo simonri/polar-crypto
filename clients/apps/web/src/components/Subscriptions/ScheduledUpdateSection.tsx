@@ -55,12 +55,6 @@ export const ScheduledUpdateSection = ({
             }
           />
         )}
-        {pendingUpdate.seats !== null && (
-          <DetailRow
-            label="New Seats"
-            value={`${subscription.seats ?? 0} -> ${pendingUpdate.seats}`}
-          />
-        )}
         <DetailRow
           label="Will be applied on"
           value={<FormattedDateTime datetime={pendingUpdate.applies_at} />}

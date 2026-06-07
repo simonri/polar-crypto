@@ -20,8 +20,6 @@ const SOCIAL_PLATFORM_DOMAINS: Record<string, string> = {
   'github.com': 'github',
   'threads.net': 'threads',
   'tiktok.com': 'tiktok',
-  'discord.gg': 'discord',
-  'discord.com': 'discord',
 }
 
 const inferPlatformFromUrl = (

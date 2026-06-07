@@ -66,7 +66,7 @@ class TestCreate:
             await checkout_link_service.create(
                 session,
                 CheckoutLinkCreateProducts(
-                    payment_processor=PaymentProcessor.stripe,
+                    payment_processor=PaymentProcessor.crypto,
                     products=[uuid.uuid4()],
                 ),
                 auth_subject,
@@ -86,7 +86,7 @@ class TestCreate:
             await checkout_link_service.create(
                 session,
                 CheckoutLinkCreateProducts(
-                    payment_processor=PaymentProcessor.stripe,
+                    payment_processor=PaymentProcessor.crypto,
                     products=[product_one_time.id],
                 ),
                 auth_subject,
@@ -111,7 +111,7 @@ class TestCreate:
             await checkout_link_service.create(
                 session,
                 CheckoutLinkCreateProducts(
-                    payment_processor=PaymentProcessor.stripe,
+                    payment_processor=PaymentProcessor.crypto,
                     products=[product_one_time.id],
                 ),
                 auth_subject,
@@ -140,7 +140,7 @@ class TestCreate:
             await checkout_link_service.create(
                 session,
                 CheckoutLinkCreateProducts(
-                    payment_processor=PaymentProcessor.stripe,
+                    payment_processor=PaymentProcessor.crypto,
                     products=[product.id, product_organization_second.id],
                 ),
                 auth_subject,
@@ -157,7 +157,7 @@ class TestCreate:
         checkout_link = await checkout_link_service.create(
             session,
             CheckoutLinkCreateProducts(
-                payment_processor=PaymentProcessor.stripe,
+                payment_processor=PaymentProcessor.crypto,
                 products=[product_one_time.id],
                 success_url=HttpUrl(
                     "https://example.com/success?checkout_id={CHECKOUT_ID}"
@@ -189,7 +189,7 @@ class TestCreate:
         checkout_link = await checkout_link_service.create(
             session,
             CheckoutLinkCreateProducts(
-                payment_processor=PaymentProcessor.stripe,
+                payment_processor=PaymentProcessor.crypto,
                 products=[product_one_time.id],
                 discount_id=discount_fixed_once.id,
                 success_url=HttpUrl(

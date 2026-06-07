@@ -20,8 +20,6 @@ from sqlalchemy.orm import joinedload
 
 from polar.kit.db.postgres import create_async_sessionmaker
 from polar.models import (
-    Benefit,
-    BenefitGrant,
     BillingEntry,
     Checkout,
     CheckoutLink,
@@ -30,13 +28,10 @@ from polar.models import (
     CustomerSession,
     Discount,
     DiscountRedemption,
-    Downloadable,
     Event,
-    LicenseKey,
     Order,
     PaymentMethod,
     Product,
-    ProductBenefit,
     Subscription,
     TrialRedemption,
 )
@@ -88,7 +83,6 @@ class ProductTransferService:
         self.source_organization_id = source_organization_id
         self.target_organization_id = target_organization_id
         self.products: Sequence[Product] = []
-        self.benefits_to_transfer: Sequence[Benefit] = []
         self.customers_to_split: Sequence[Customer] = []
         self.customers_to_transfer: Sequence[Customer] = []
         self.customers_to_merge: list[
@@ -156,24 +150,6 @@ class ProductTransferService:
     async def analyze_affected_data(self, session: AsyncSession) -> None:
         """Analyze all data that will be affected by the transfer."""
         print("[bold yellow]🔍 Analyzing affected data...[/bold yellow]")
-
-        # Find all benefits used by the transferring products
-        product_benefit_ids_result = await session.execute(
-            select(ProductBenefit.benefit_id).where(
-                ProductBenefit.product_id.in_([p.id for p in self.products])
-            )
-        )
-        product_benefit_ids = product_benefit_ids_result.scalars().all()
-
-        benefits_result = await session.execute(
-            select(Benefit).where(
-                and_(
-                    Benefit.id.in_(product_benefit_ids),
-                    Benefit.organization_id == self.source_organization_id,
-                )
-            )
-        )
-        self.benefits_to_transfer = benefits_result.scalars().all()
 
         # Find all customers who have orders/subscriptions for these products
         customer_ids_with_transferring_products_result = await session.execute(
@@ -267,9 +243,6 @@ class ProductTransferService:
             f"[bold green]✓ Found {len(self.products)} products to transfer[/bold green]"
         )
         print(
-            f"[bold green]✓ Found {len(self.benefits_to_transfer)} benefits to transfer[/bold green]"
-        )
-        print(
             f"[bold green]✓ Found {len(self.customers_to_split)} customers to split[/bold green]"
         )
         print(
@@ -290,7 +263,6 @@ class ProductTransferService:
         await self._analyze_checkout_links(session)
 
         self.transfer_stats["products"] = len(self.products)
-        self.transfer_stats["benefits"] = len(self.benefits_to_transfer)
         self.transfer_stats["customers_to_split"] = len(self.customers_to_split)
         self.transfer_stats["customers_to_transfer"] = len(self.customers_to_transfer)
         self.transfer_stats["discounts_to_transfer"] = len(self.discounts_to_transfer)
@@ -657,40 +629,6 @@ class ProductTransferService:
                     session.add(subscription)
                     self.transfer_stats["subscriptions_updated"] += 1
 
-                # Update benefit grants for this customer
-                benefit_grants_result = await session.execute(
-                    select(BenefitGrant).where(BenefitGrant.customer_id == customer.id)
-                )
-                benefit_grants_to_update = benefit_grants_result.scalars().all()
-
-                for grant in benefit_grants_to_update:
-                    grant.customer_id = existing_customer.id
-                    session.add(grant)
-                    self.transfer_stats["benefit_grants_updated"] += 1
-
-                # Update license keys for this customer
-                license_keys_result = await session.execute(
-                    select(LicenseKey).where(LicenseKey.customer_id == customer.id)
-                )
-                license_keys_to_update = license_keys_result.scalars().all()
-
-                for license_key in license_keys_to_update:
-                    license_key.customer_id = existing_customer.id
-                    license_key.organization_id = self.target_organization_id
-                    session.add(license_key)
-                    self.transfer_stats["license_keys_updated"] += 1
-
-                # Update downloadables for this customer
-                downloadables_result = await session.execute(
-                    select(Downloadable).where(Downloadable.customer_id == customer.id)
-                )
-                downloadables_to_update = downloadables_result.scalars().all()
-
-                for downloadable in downloadables_to_update:
-                    downloadable.customer_id = existing_customer.id
-                    session.add(downloadable)
-                    self.transfer_stats["downloadables_updated"] += 1
-
                 # Update billing entries for this customer
                 billing_entries_result = await session.execute(
                     select(BillingEntry).where(BillingEntry.customer_id == customer.id)
@@ -789,61 +727,6 @@ class ProductTransferService:
                 session.add(subscription)
                 self.transfer_stats["subscriptions_updated"] += 1
 
-            # Update benefit grants for transferring products
-            benefit_grants_result = await session.execute(
-                select(BenefitGrant).where(
-                    and_(
-                        BenefitGrant.customer_id == customer.id,
-                        BenefitGrant.benefit_id.in_(
-                            [b.id for b in self.benefits_to_transfer]
-                        ),
-                    )
-                )
-            )
-            benefit_grants_to_update = benefit_grants_result.scalars().all()
-
-            for grant in benefit_grants_to_update:
-                grant.customer_id = new_customer.id
-                session.add(grant)
-                self.transfer_stats["benefit_grants_updated"] += 1
-
-            # Update license keys for transferring benefits
-            license_keys_result = await session.execute(
-                select(LicenseKey).where(
-                    and_(
-                        LicenseKey.customer_id == customer.id,
-                        LicenseKey.benefit_id.in_(
-                            [b.id for b in self.benefits_to_transfer]
-                        ),
-                    )
-                )
-            )
-            license_keys_to_update = license_keys_result.scalars().all()
-
-            for license_key in license_keys_to_update:
-                license_key.customer_id = new_customer.id
-                license_key.organization_id = self.target_organization_id
-                session.add(license_key)
-                self.transfer_stats["license_keys_updated"] += 1
-
-            # Update downloadables for transferring benefits
-            downloadables_result = await session.execute(
-                select(Downloadable).where(
-                    and_(
-                        Downloadable.customer_id == customer.id,
-                        Downloadable.benefit_id.in_(
-                            [b.id for b in self.benefits_to_transfer]
-                        ),
-                    )
-                )
-            )
-            downloadables_to_update = downloadables_result.scalars().all()
-
-            for downloadable in downloadables_to_update:
-                downloadable.customer_id = new_customer.id
-                session.add(downloadable)
-                self.transfer_stats["downloadables_updated"] += 1
-
             # Update billing entries for transferring products
             billing_entries_result = await session.execute(
                 select(BillingEntry).where(
@@ -900,21 +783,6 @@ class ProductTransferService:
             event.organization_id = self.target_organization_id
             session.add(event)
             self.transfer_stats["events_transferred"] += 1
-
-        await session.flush()
-
-    async def transfer_benefits(self, session: AsyncSession) -> None:
-        """Transfer benefits to the target organization."""
-        if not self.benefits_to_transfer:
-            print("[bold blue]ℹ️  No benefits to transfer[/bold blue]")
-            return
-
-        print("[bold yellow]🔄 Transferring benefits...[/bold yellow]")
-
-        for benefit in self.benefits_to_transfer:
-            benefit.organization_id = self.target_organization_id
-            session.add(benefit)  # Ensure benefit is tracked by session
-            self.transfer_stats["benefits_transferred"] += 1
 
         await session.flush()
 
@@ -1102,23 +970,6 @@ class ProductTransferService:
                 f"found {len(products_in_target)} in target organization"
             )
 
-        # Check that all benefits now belong to the target organization
-        result = await session.execute(
-            select(Benefit.id).where(
-                and_(
-                    Benefit.id.in_([b.id for b in self.benefits_to_transfer]),
-                    Benefit.organization_id == self.target_organization_id,
-                )
-            )
-        )
-        benefits_in_target = result.scalars().all()
-
-        if len(benefits_in_target) != len(self.benefits_to_transfer):
-            raise TransferValidationError(
-                f"Not all benefits were transferred. Expected {len(self.benefits_to_transfer)}, "
-                f"found {len(benefits_in_target)} in target organization"
-            )
-
         # Check that events for transferred customers are now in target org
         if self.events_to_transfer:
             result = await session.execute(
@@ -1159,9 +1010,6 @@ class ProductTransferService:
 
             # Transfer events (after customers are in their final state)
             await self.transfer_events(session)
-
-            # Transfer benefits
-            await self.transfer_benefits(session)
 
             # Transfer products
             await self.transfer_products(session)

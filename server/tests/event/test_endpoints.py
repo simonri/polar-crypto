@@ -7,9 +7,9 @@ import pytest
 import pytest_asyncio
 from httpx import AsyncClient
 
+from polar.event.filter import Filter, FilterClause, FilterConjunction, FilterOperator
 from polar.integrations.tinybird.client import TinybirdClient
 from polar.kit.utils import utc_now
-from polar.meter.filter import Filter, FilterClause, FilterConjunction, FilterOperator
 from polar.models import Event, Organization, UserOrganization
 from tests.fixtures.auth import AuthSubjectFixture
 from tests.fixtures.database import SaveFixture

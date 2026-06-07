@@ -9,7 +9,6 @@ import structlog
 
 from polar.config import settings
 from polar.logging import Logger
-from polar.observability import TASK_DEBOUNCE_DELAY, TASK_DEBOUNCED
 
 if TYPE_CHECKING:
     from ._enqueue import JSONSerializable
@@ -158,15 +157,7 @@ class DebounceMiddleware(dramatiq.Middleware):
         if debounce_key is None:
             return
 
-        enqueue_timestamp: int | None = message.options.pop(
-            "debounce_enqueue_timestamp"
-        )
-        if enqueue_timestamp is not None:
-            delay = now_timestamp() - enqueue_timestamp
-            queue_name = message.queue_name or "default"
-            TASK_DEBOUNCE_DELAY.labels(
-                queue=queue_name, task_name=message.actor_name
-            ).observe(delay)
+        message.options.pop("debounce_enqueue_timestamp", None)
 
         with self._redis.pipeline(transaction=True) as pipe:
             if message.options.pop("debounce_max_threshold_execution", False):
@@ -195,8 +186,6 @@ class DebounceMiddleware(dramatiq.Middleware):
         )
 
     def _skip_debounced(self, message: dramatiq.MessageProxy) -> Never:
-        queue_name = message.queue_name or "default"
-        TASK_DEBOUNCED.labels(queue=queue_name, task_name=message.actor_name).inc()
         raise dramatiq.middleware.SkipMessage()
 
 

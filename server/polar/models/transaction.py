@@ -5,9 +5,7 @@ from uuid import UUID
 from sqlalchemy import BigInteger, Float, ForeignKey, Integer, String, Uuid
 from sqlalchemy.orm import Mapped, declared_attr, mapped_column, relationship
 
-from polar.enums import TaxProcessor
 from polar.kit.db.models import RecordModel
-from polar.kit.extensions.sqlalchemy.types import StringEnum
 
 if TYPE_CHECKING:
     from polar.models import (
@@ -25,11 +23,9 @@ if TYPE_CHECKING:
 
 
 class Processor(StrEnum):
-    """
-    Supported payment or payout processors, i.e rails for transactions.
-    """
+    """Supported payment or payout processors."""
 
-    stripe = "stripe"
+    crypto = "crypto"
     manual = "manual"
 
 
@@ -214,34 +210,12 @@ class Transaction(RecordModel):
     """Currency of this transaction from user's account perspective. Might not be `usd`."""
     account_amount: Mapped[int] = mapped_column(BigInteger, nullable=False)
     """Amount in cents of this transaction from user's account perspective."""
-    tax_amount: Mapped[int] = mapped_column(BigInteger, nullable=False)
-    """Amount of tax collected by Polar for this payment."""
-    tax_country: Mapped[str] = mapped_column(String(2), nullable=True, index=True)
-    """Country for which Polar collected the tax."""
-    tax_state: Mapped[str] = mapped_column(String(2), nullable=True, index=True)
-    """State for which Polar collected the tax."""
     presentment_amount: Mapped[int | None] = mapped_column(BigInteger, nullable=True)
     """Amount in cents of this transaction from customer's perspective."""
-    presentment_tax_amount: Mapped[int | None] = mapped_column(
-        BigInteger, nullable=True
-    )
-    """Amount of tax in the presentment currency collected by Polar for this payment."""
     presentment_currency: Mapped[str | None] = mapped_column(String(3), nullable=True)
     """Currency in which the customer made the payment."""
     exchange_rate: Mapped[float | None] = mapped_column(Float, nullable=True)
     """Exchange rate from presentment currency to settlement currency."""
-    tax_processor: Mapped[TaxProcessor | None] = mapped_column(
-        StringEnum(TaxProcessor), default=None, nullable=True
-    )
-    """Tax processor used to calculate and collect tax for this payment."""
-    tax_filing_amount: Mapped[int | None] = mapped_column(BigInteger, nullable=True)
-    """Amount of tax filed to the jurisdiction by Polar for this payment."""
-    tax_filing_currency: Mapped[str | None] = mapped_column(String(3), nullable=True)
-    """Currency in which the tax was filed to the jurisdiction by Polar."""
-    tax_processor_id: Mapped[str | None] = mapped_column(
-        String, nullable=True, default=None
-    )
-    """ID of the tax transaction in the tax processor system."""
 
     processor_fee_type: Mapped[ProcessorFeeType | None] = mapped_column(
         String, nullable=True, index=True

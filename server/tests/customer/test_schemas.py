@@ -51,7 +51,6 @@ async def test_state_external_id(
 
     customer.active_subscriptions = []
     customer.granted_benefits = []
-    customer.active_meters = []
 
     customer_state_schema = _CustomerStateAdapter.validate_python(
         customer, from_attributes=True

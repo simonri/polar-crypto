@@ -1,7 +1,4 @@
 import dataclasses
-import random
-import string
-import uuid
 from collections.abc import AsyncGenerator
 from datetime import UTC, datetime
 from typing import overload
@@ -14,21 +11,16 @@ from sse_starlette.event import ServerSentEvent
 from tagflow import document, tag, text
 
 from polar import tasks  # noqa: F401
-from polar.benefit.grant.repository import BenefitGrantRepository
-from polar.benefit.repository import BenefitRepository
 from polar.customer.repository import CustomerRepository
 from polar.customer.service import customer as customer_service
 from polar.exceptions import PolarError
 from polar.kit.address import SUPPORTED_COUNTRIES, Address, CountryAlpha2
-from polar.license_key.repository import LicenseKeyRepository
-from polar.models import Benefit, BenefitGrant, Customer, Order, Organization, Product
-from polar.models.benefit import BenefitType
+from polar.models import Customer, Order, Organization, Product
 from polar.models.order import OrderBillingReason, OrderStatus
 from polar.models.order_item import OrderItem
 from polar.order.repository import OrderRepository
 from polar.postgres import AsyncSession
 from polar.product.repository import ProductRepository
-from polar.worker import enqueue_job
 from polar.worker._enqueue import JobQueueManager
 
 from ..components import alert
@@ -109,20 +101,13 @@ async def orders_import(
     session: AsyncSession,
     organization: Organization,
     file: UploadFile,
-    *,
-    invoice_number_prefix: str = "IMPORTED_",
 ) -> AsyncGenerator[tuple[int, int], None]:
     customer_repository = CustomerRepository.from_session(session)
     product_repository = ProductRepository.from_session(session)
     order_repository = OrderRepository.from_session(session)
-    benefit_repository = BenefitRepository.from_session(session)
-    benefit_grant_repository = BenefitGrantRepository.from_session(session)
-    license_key_repository = LicenseKeyRepository.from_session(session)
 
     customer_map: dict[str, Customer] = {}
     product_map: dict[str, Product] = {}
-    benefit_map: dict[str, Benefit] = {}
-    license_keys: set[str] = set()
 
     decoded_file = DecodedUploadFile(file)
 
@@ -223,30 +208,6 @@ async def orders_import(
         )
 
         subtotal_amount = int(_getter(row, "subtotal", default="0"))
-        order_number = _getter(
-            row,
-            "order_number",
-            default="".join(random.choices(string.ascii_uppercase, k=6)),
-        )
-        invoice_number = (
-            f"{invoice_number_prefix}{organization.slug.upper()}-{order_number}"
-        )
-
-        existing_invoice_statement = order_repository.get_base_statement().where(
-            Order.invoice_number == invoice_number,
-        )
-        existing_invoice_order = await order_repository.get_one_or_none(
-            existing_invoice_statement
-        )
-        if existing_invoice_order is not None:
-            errors.append(
-                RowError(
-                    i + 1,
-                    f"Order with invoice number {invoice_number} already exists — skipping row {i + 1}",
-                )
-            )
-            yield i, total_rows
-            continue
 
         order = await order_repository.create(
             Order(
@@ -255,15 +216,11 @@ async def orders_import(
                 subtotal_amount=0,
                 discount_amount=0,
                 net_amount=0,
-                tax_amount=0,  # Don't import tax to avoid perturbing our own tax reports
                 applied_balance_amount=0,
                 currency="usd",
                 billing_reason=OrderBillingReason.purchase,
                 billing_name=customer.billing_name,
                 billing_address=customer.billing_address,
-                tax_id=None,
-                tax_calculation_processor_id=None,
-                invoice_number=invoice_number,
                 organization=organization,
                 customer=customer,
                 product=product,
@@ -275,7 +232,6 @@ async def orders_import(
                         label="Imported",
                         amount=subtotal_amount,
                         net_amount=subtotal_amount,
-                        tax_amount=0,  # Don't import tax to avoid perturbing our own tax reports
                         proration=False,
                     )
                 ],
@@ -287,76 +243,6 @@ async def orders_import(
                 custom_field_data={},
             ),
             flush=True,
-        )
-
-        # Import a License Key
-        benefit_id = _getter(row, "benefit_id")
-        license_key = _getter(row, "license_key")
-        if benefit_id is not None and license_key is not None:
-            benefit = benefit_map.get(
-                benefit_id,
-                await benefit_repository.get_by_id_and_product(
-                    uuid.UUID(benefit_id), product.id
-                ),
-            )
-            if benefit is None:
-                errors.append(
-                    RowError(
-                        i + 1,
-                        f"Benefit not found or not linked to product: {benefit_id}",
-                    ),
-                )
-                yield i, total_rows
-                continue
-            if benefit.type != BenefitType.license_keys:
-                errors.append(
-                    RowError(
-                        i + 1, f"Benefit is not a license key benefit: {benefit_id}"
-                    )
-                )
-            if license_key in license_keys:
-                errors.append(
-                    RowError(
-                        i + 1, f"Duplicate license key in import file: {license_key}"
-                    )
-                )
-                yield i, total_rows
-                continue
-            if (
-                await license_key_repository.get_by_organization_and_key(
-                    organization.id, license_key
-                )
-            ) is not None:
-                errors.append(
-                    RowError(
-                        i + 1,
-                        f"License key already exists in organization: {license_key}",
-                    )
-                )
-                yield i, total_rows
-                continue
-
-            license_keys.add(license_key)
-
-            # Create a grant manually to force properties
-            # Since it's not granted, it'll be handled automatically by the grant task
-            grant = BenefitGrant(
-                customer=customer,
-                benefit=benefit,
-                member=None,
-                properties={"user_provided_key": license_key},
-                order=order,
-            )
-            await benefit_grant_repository.create(grant)
-
-            benefit_map[benefit_id] = benefit
-
-        enqueue_job(
-            "benefit.enqueue_benefits_grants",
-            task="grant",
-            customer_id=customer.id,
-            product_id=product.id,
-            order_id=order.id,
         )
 
         yield i, total_rows
@@ -374,8 +260,6 @@ async def orders_import_sse(
     session: AsyncSession,
     organization: Organization,
     file: UploadFile,
-    *,
-    invoice_number_prefix: str = "IMPORTED_",
 ) -> AsyncGenerator[ServerSentEvent, None]:
     """Same as orders_import but yields progress for SSE."""
     try:
@@ -383,7 +267,6 @@ async def orders_import_sse(
             session,
             organization,
             file,
-            invoice_number_prefix=invoice_number_prefix,
         ):
             with document() as d:
                 with tag.progress(

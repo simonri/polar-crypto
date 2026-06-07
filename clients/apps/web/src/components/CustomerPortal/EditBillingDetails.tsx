@@ -25,7 +25,6 @@ const EditBillingDetails = ({ onSuccess }: { onSuccess: () => void }) => {
     defaultValues: {
       billing_name: customer?.billing_name || customer?.name,
       billing_address: customer?.billing_address as schemas['AddressInput'],
-      tax_id: customer?.tax_id ? customer.tax_id[0] : null,
     },
   })
 
@@ -58,7 +57,6 @@ const EditBillingDetails = ({ onSuccess }: { onSuccess: () => void }) => {
           billing_address: updatedCustomer.billing_address as
             | schemas['AddressInput']
             | null,
-          tax_id: updatedCustomer.tax_id ? updatedCustomer.tax_id[0] : null,
         })
 
         onSuccess()
@@ -258,25 +256,6 @@ const EditBillingDetails = ({ onSuccess }: { onSuccess: () => void }) => {
             </p>
           )}
         </FormItem>
-        <FormField
-          control={control}
-          name="tax_id"
-          render={({ field }) => (
-            <FormItem>
-              <FormLabel>Tax ID</FormLabel>
-              <FormControl>
-                <Input
-                  type="text"
-                  autoComplete="off"
-                  {...field}
-                  value={field.value || ''}
-                  className="bg-white shadow-xs"
-                />
-              </FormControl>
-              <FormMessage />
-            </FormItem>
-          )}
-        />
         <Button
           type="submit"
           loading={update.isPending}

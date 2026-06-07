@@ -20,9 +20,6 @@ class WebhookEventType(StrEnum):
     customer_updated = "customer.updated"
     customer_deleted = "customer.deleted"
     customer_state_changed = "customer.state_changed"
-    customer_seat_assigned = "customer_seat.assigned"
-    customer_seat_claimed = "customer_seat.claimed"
-    customer_seat_revoked = "customer_seat.revoked"
     member_created = "member.created"
     member_updated = "member.updated"
     member_deleted = "member.deleted"
@@ -41,12 +38,6 @@ class WebhookEventType(StrEnum):
     refund_updated = "refund.updated"
     product_created = "product.created"
     product_updated = "product.updated"
-    benefit_created = "benefit.created"
-    benefit_updated = "benefit.updated"
-    benefit_grant_created = "benefit_grant.created"
-    benefit_grant_cycled = "benefit_grant.cycled"
-    benefit_grant_updated = "benefit_grant.updated"
-    benefit_grant_revoked = "benefit_grant.revoked"
     organization_updated = "organization.updated"
 
 
@@ -60,7 +51,6 @@ CustomerWebhookEventType = Literal[
 
 class WebhookFormat(StrEnum):
     raw = "raw"
-    discord = "discord"
     slack = "slack"
 
 

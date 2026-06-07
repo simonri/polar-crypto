@@ -1,6 +1,5 @@
 import { schemas } from '@polar-sh/client'
 import { useMemo } from 'react'
-import { BenefitEventCard } from './EventCard/BenefitEventCard'
 import { LLMInferenceEventCard } from './EventCard/LLMInferenceEventCard'
 import { OrderEventCard } from './EventCard/OrderEventCard'
 import { SubscriptionEventCard } from './EventCard/SubscriptionEventCard'
@@ -12,11 +11,6 @@ export const useEventCard = (event: schemas['Event']) => {
     switch (event.source) {
       case 'system':
         switch (event.name) {
-          case 'benefit.granted':
-          case 'benefit.cycled':
-          case 'benefit.updated':
-          case 'benefit.revoked':
-            return <BenefitEventCard event={event} />
           case 'subscription.cycled':
           case 'subscription.revoked':
           case 'subscription.product_updated':

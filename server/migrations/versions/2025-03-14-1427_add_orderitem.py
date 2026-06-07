@@ -6,20 +6,8 @@ Create Date: 2025-03-11 14:27:16.542483
 
 """
 
-import concurrent.futures
-import datetime
-import itertools
-import random
-import time
-from typing import Any, TypedDict, cast
-from uuid import UUID
-
 import sqlalchemy as sa
-import sqlalchemy.exc
-import stripe as stripe_lib
 from alembic import op
-
-# Polar Custom Imports
 
 # revision identifiers, used by Alembic.
 revision = "78b2c37d5aa0"
@@ -66,7 +54,7 @@ def upgrade() -> None:
         op.f("ix_order_items_modified_at"), "order_items", ["modified_at"], unique=False
     )
 
-    # Ugrade legacy donations without stripe_invoice_id
+    # Migrate legacy donation orders (no stripe_invoice_id) to order_items
     op.execute(
         """
         INSERT INTO order_items (

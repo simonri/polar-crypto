@@ -18,7 +18,7 @@ permissions:
 jobs:
   changes:
     name: "Detect changes"
-    runs-on: blacksmith-4vcpu-ubuntu-2404
+    runs-on: ubuntu-latest
     outputs:
       server: ${{ steps.filter.outputs.server }}
       emails: ${{ steps.filter.outputs.emails }}
@@ -26,8 +26,8 @@ jobs:
       tinybird: ${{ steps.filter.outputs.tinybird }}
       server_files: ${{ steps.filter.outputs.server_files }}
     steps:
-      - uses: actions/checkout@v6.0.2
-      - uses: dorny/paths-filter@v4
+      - uses: actions/checkout@v4
+      - uses: dorny/paths-filter@v3
         id: filter
         with:
           list-files: json
@@ -48,9 +48,9 @@ jobs:
     needs: changes
     if: needs.changes.outputs.server == 'true'
     timeout-minutes: 15
-    runs-on: blacksmith-4vcpu-ubuntu-2404
+    runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v6.0.2
+      - uses: actions/checkout@v4
 
       # - uses: actions/cache@v4
       #   with:
@@ -88,9 +88,9 @@ jobs:
     needs: changes
     if: needs.changes.outputs.emails == 'true'
     timeout-minutes: 10
-    runs-on: blacksmith-4vcpu-ubuntu-2404
+    runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v6.0.2
+      - uses: actions/checkout@v4
 
       - uses: pnpm/action-setup@v6.0.8
         with:
@@ -119,7 +119,7 @@ jobs:
     name: "Server: Tinybird Schema 🐦"
     needs: changes
     if: needs.changes.outputs.tinybird == 'true'
-    runs-on: blacksmith-4vcpu-ubuntu-2404
+    runs-on: ubuntu-latest
     services:
       tinybird:
         image: tinybirdco/tinybird-local:latest
@@ -131,7 +131,7 @@ jobs:
           --health-timeout 5s
           --health-retries 5
     steps:
-      - uses: actions/checkout@v6.0.2
+      - uses: actions/checkout@v4
 
       - name: 🐦 Install Tinybird CLI
         run: curl -sSL https://tinybird.co/install.sh | bash && echo "$HOME/.local/bin" >> $GITHUB_PATH
@@ -149,7 +149,7 @@ jobs:
     name: "Server: Migration Check 📚"
     needs: changes
     if: needs.changes.outputs.migrations == 'true' && github.event_name == 'pull_request'
-    runs-on: blacksmith-4vcpu-ubuntu-2404
+    runs-on: ubuntu-latest
     steps:
       - name: Check for disallowed files
         id: check
@@ -233,7 +233,7 @@ jobs:
     name: "Server: Tests 🐍"
     needs: changes
     if: needs.changes.outputs.server == 'true'
-    runs-on: blacksmith-4vcpu-ubuntu-2404
+    runs-on: ubuntu-latest
     timeout-minutes: 15
     env:
       POLAR_ENV: testing
@@ -265,20 +265,6 @@ jobs:
         ports:
           - 6379:6379
 
-      minio:
-        image: bitnamilegacy/minio:2024.5.28
-        ports:
-          - 9000:9000
-          - 9001:9001
-        env:
-          MINIO_ROOT_USER: polar
-          MINIO_ROOT_PASSWORD: polarpolar
-        options: >-
-          --health-cmd "curl -I http://127.0.0.1:9000/minio/health/live"
-          --health-interval 10s
-          --health-timeout 5s
-          --health-retries 5
-
       tinybird:
         image: tinybirdco/tinybird-local:latest
         ports:
@@ -291,20 +277,7 @@ jobs:
           --health-retries 5
 
     steps:
-      - uses: actions/checkout@v6.0.2
-
-      - name: 💿 MinIO Setup
-        working-directory: ./server/.minio
-        env:
-          MINIO_HOST: 127.0.0.1
-          MINIO_ROOT_USER: polar
-          MINIO_ROOT_PASSWORD: polarpolar
-          ACCESS_KEY: polar-development
-          SECRET_ACCESS_KEY: polar123456789
-          BUCKET_NAME: polar-s3
-          BUCKET_TESTING_NAME: testing-polar-s3
-          POLICY_FILE: policy.json
-        run: bash github.sh
+      - uses: actions/checkout@v4
 
       - uses: pnpm/action-setup@v6.0.8
         with:

@@ -13,7 +13,6 @@ import { useMetrics } from '@/hooks/queries/metrics'
 import { fromISODate, toISODate } from '@/utils/metrics'
 import { schemas } from '@polar-sh/client'
 import { formatCurrency } from '@polar-sh/currency'
-import { Avatar } from '@polar-sh/orbit'
 import { RankedList, RankedListItem } from './RankedListItem'
 import {
   Tabs,
@@ -494,11 +493,6 @@ export default function ClientPage({
                         }
                         label={
                           <>
-                            <Avatar
-                              name={r.label}
-                              avatar_url={null}
-                              className="h-9 w-9 shrink-0 text-xs"
-                            />
                             <div className="min-w-0 flex-1">
                               <p className="truncate text-sm font-medium dark:text-white">
                                 {r.label}
@@ -756,11 +750,6 @@ export default function ClientPage({
                       }
                       label={
                         <>
-                          <Avatar
-                            name={r.label}
-                            avatar_url={null}
-                            className="h-9 w-9 shrink-0 text-xs"
-                          />
                           <div className="min-w-0 flex-1">
                             <p className="truncate text-sm font-medium dark:text-white">
                               {r.label}

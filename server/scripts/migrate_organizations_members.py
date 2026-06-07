@@ -32,7 +32,7 @@ Usage:
         uv run python -m scripts.migrate_organizations_members repair --no-dry-run --limit 1000 --offset 1000
         uv run python -m scripts.migrate_organizations_members repair --no-dry-run --limit 1000 --offset 2000
 
-    Prepare seat-based orgs for member model (Phase 0B, non-destructive):
+    Prepare orgs for member model (Phase 0B, non-destructive):
         uv run python -m scripts.migrate_organizations_members prepare
         uv run python -m scripts.migrate_organizations_members prepare --slug my-org --no-dry-run
         uv run python -m scripts.migrate_organizations_members prepare --limit 10 --no-dry-run
@@ -51,22 +51,19 @@ from typing import Any, cast
 
 import structlog
 import typer
+from polar.models.benefit_grant import BenefitGrant
 from sqlalchemy import String, func, or_, select, update
 from sqlalchemy.engine import CursorResult
 from sqlalchemy.orm import aliased, joinedload
 
 from polar.kit.db.postgres import create_async_sessionmaker
 from polar.models import Organization
-from polar.models.benefit_grant import BenefitGrant
 from polar.models.organization import OrganizationStatus
 from polar.organization.repository import OrganizationRepository
 from polar.organization.tasks import (
     _backfill_benefit_grants,
     _backfill_owner_members,
-    _backfill_seats,
-    _cleanup_orphaned_seat_customers,
     _prepare_benefit_grants,
-    _prepare_seats,
 )
 from polar.postgres import AsyncSession, create_async_engine
 
@@ -220,18 +217,7 @@ async def migrate_organizations(
                 )
                 await session.commit()
 
-            # Step B: Migrate active seats
-            async with sessionmaker() as session:
-                organization = await OrganizationRepository.from_session(
-                    session
-                ).get_by_id(org.id)
-                assert organization is not None
-                seats_migrated, orphaned_customer_ids = await _backfill_seats(
-                    session, organization
-                )
-                await session.commit()
-
-            # Step C: Link benefit grants to correct members
+            # Step B: Link benefit grants to correct members
             async with sessionmaker() as session:
                 organization = await OrganizationRepository.from_session(
                     session
@@ -240,23 +226,12 @@ async def migrate_organizations(
                 grants_linked = await _backfill_benefit_grants(session, organization)
                 await session.commit()
 
-            # Step D: Soft-delete orphaned seat-holder customers
-            async with sessionmaker() as session:
-                organization = await OrganizationRepository.from_session(
-                    session
-                ).get_by_id(org.id)
-                assert organization is not None
-                customers_deleted = await _cleanup_orphaned_seat_customers(
-                    session, organization, orphaned_customer_ids
-                )
-                await session.commit()
-
             migrated_count += 1
             typer.echo(
                 f"  [{migrated_count}/{len(organizations)}] "
                 f"{org.slug} (threshold={org.next_review_threshold}) "
-                f"owners={owner_members_created} seats={seats_migrated} "
-                f"grants={grants_linked} deleted={customers_deleted}"
+                f"owners={owner_members_created} "
+                f"grants={grants_linked}"
             )
 
         except Exception as e:
@@ -289,7 +264,7 @@ async def repair(
     """Re-run backfill for orgs that already have member_model_enabled.
 
     This is safe to run on all enabled orgs — every backfill step is idempotent
-    and skips customers/seats/grants that already have members.
+    and skips customers/grants that already have members.
     """
     engine = create_async_engine("script")
     sessionmaker = create_async_sessionmaker(engine)
@@ -387,18 +362,7 @@ async def repair(
                 )
                 await session.commit()
 
-            # Step B: Migrate active seats
-            async with sessionmaker() as session:
-                organization = await OrganizationRepository.from_session(
-                    session
-                ).get_by_id(org.id)
-                assert organization is not None
-                seats_migrated, orphaned_customer_ids = await _backfill_seats(
-                    session, organization
-                )
-                await session.commit()
-
-            # Step C: Link benefit grants to correct members
+            # Step B: Link benefit grants to correct members
             async with sessionmaker() as session:
                 organization = await OrganizationRepository.from_session(
                     session
@@ -407,22 +371,9 @@ async def repair(
                 grants_linked = await _backfill_benefit_grants(session, organization)
                 await session.commit()
 
-            # Step D: Soft-delete orphaned seat-holder customers
-            async with sessionmaker() as session:
-                organization = await OrganizationRepository.from_session(
-                    session
-                ).get_by_id(org.id)
-                assert organization is not None
-                customers_deleted = await _cleanup_orphaned_seat_customers(
-                    session, organization, orphaned_customer_ids
-                )
-                await session.commit()
-
             if (
                 owner_members_created == 0
-                and seats_migrated == 0
                 and grants_linked == 0
-                and customers_deleted == 0
             ):
                 skipped_count += 1
             else:
@@ -430,8 +381,8 @@ async def repair(
                 typer.echo(
                     f"  [{repaired_count}] "
                     f"{org.slug} (threshold={org.next_review_threshold}) "
-                    f"owners={owner_members_created} seats={seats_migrated} "
-                    f"grants={grants_linked} deleted={customers_deleted}"
+                    f"owners={owner_members_created} "
+                    f"grants={grants_linked}"
                 )
 
         except Exception as e:
@@ -459,9 +410,9 @@ async def prepare(
         None, help="Maximum number of organizations to prepare"
     ),
 ) -> None:
-    """Prepare seat-based orgs for member model migration (Phase 0B).
+    """Prepare orgs for member model migration (Phase 0B).
 
-    Non-destructive: populates member_id/email on seats and grants without
+    Non-destructive: populates member_id/email on grants without
     changing customer_id, deleting customers, or flipping any flags.
 
     Targets orgs with seat_based_pricing_enabled=True and member_model_enabled=False.
@@ -535,16 +486,7 @@ async def prepare(
                 )
                 await session.commit()
 
-            # Step B: Prepare seats (set member_id and email, don't change customer_id)
-            async with sessionmaker() as session:
-                organization = await OrganizationRepository.from_session(
-                    session
-                ).get_by_id(org.id)
-                assert organization is not None
-                seats_prepared = await _prepare_seats(session, organization)
-                await session.commit()
-
-            # Step C: Prepare grants (set member_id, don't change customer_id)
+            # Step B: Prepare grants (set member_id, don't change customer_id)
             async with sessionmaker() as session:
                 organization = await OrganizationRepository.from_session(
                     session
@@ -553,13 +495,11 @@ async def prepare(
                 grants_linked = await _prepare_benefit_grants(session, organization)
                 await session.commit()
 
-            # NO Step D — no customer deletion
-
             prepared_count += 1
             typer.echo(
                 f"  [{prepared_count}/{len(organizations)}] "
                 f"{org.slug} "
-                f"owners={owner_members_created} seats={seats_prepared} "
+                f"owners={owner_members_created} "
                 f"grants={grants_linked}"
             )
 
@@ -649,8 +589,9 @@ async def restore_oneoff_grant_batch(
 
     Returns (grants_restored, license_keys_restored).
     """
-    from polar.kit.utils import utc_now
     from polar.models.license_key import LicenseKey, LicenseKeyStatus
+
+    from polar.kit.utils import utc_now
 
     # Re-fetch with qualifying filters so the function is safe
     # regardless of what IDs are passed in.

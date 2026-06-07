@@ -36,14 +36,8 @@ class Scope(StrEnum):
     products_read = "products:read"
     products_write = "products:write"
 
-    benefits_read = "benefits:read"
-    benefits_write = "benefits:write"
-
     events_read = "events:read"
     events_write = "events:write"
-
-    meters_read = "meters:read"
-    meters_write = "meters:write"
 
     files_read = "files:read"
     files_write = "files:write"
@@ -62,13 +56,8 @@ class Scope(StrEnum):
 
     disputes_read = "disputes:read"
 
-    customer_meters_read = "customer_meters:read"
-
     customer_sessions_write = "customer_sessions:write"
     member_sessions_write = "member_sessions:write"
-
-    customer_seats_read = "customer_seats:read"
-    customer_seats_write = "customer_seats:write"
 
     orders_read = "orders:read"
     orders_write = "orders:write"
@@ -83,17 +72,8 @@ class Scope(StrEnum):
     webhooks_read = "webhooks:read"
     webhooks_write = "webhooks:write"
 
-    license_keys_read = "license_keys:read"
-    license_keys_write = "license_keys:write"
-
     customer_portal_read = "customer_portal:read"
     customer_portal_write = "customer_portal:write"
-
-    notifications_read = "notifications:read"
-    notifications_write = "notifications:write"
-
-    notification_recipients_read = "notification_recipients:read"
-    notification_recipients_write = "notification_recipients:write"
 
     organization_access_tokens_read = "organization_access_tokens:read"
     organization_access_tokens_write = "organization_access_tokens:write"
@@ -121,26 +101,19 @@ READ_ONLY_SCOPES: set[Scope] = {
     Scope.transactions_read,
     Scope.payouts_read,
     Scope.products_read,
-    Scope.benefits_read,
     Scope.events_read,
-    Scope.meters_read,
     Scope.files_read,
     Scope.subscriptions_read,
     Scope.customers_read,
     Scope.members_read,
     Scope.wallets_read,
     Scope.disputes_read,
-    Scope.customer_meters_read,
-    Scope.customer_seats_read,
     Scope.orders_read,
     Scope.refunds_read,
     Scope.payments_read,
     Scope.metrics_read,
     Scope.webhooks_read,
-    Scope.license_keys_read,
     Scope.customer_portal_read,
-    Scope.notifications_read,
-    Scope.notification_recipients_read,
     Scope.organization_access_tokens_read,
 }
 
@@ -167,12 +140,8 @@ SCOPES_SUPPORTED_DISPLAY_NAMES: dict[Scope, str] = {
     Scope.payouts_write: "Create or modify payouts",
     Scope.products_read: "Read products",
     Scope.products_write: "Create or modify products",
-    Scope.benefits_read: "Read benefits",
-    Scope.benefits_write: "Create or modify benefits",
     Scope.events_read: "Read events",
     Scope.events_write: "Create events",
-    Scope.meters_read: "Read meters",
-    Scope.meters_write: "Create or modify meters",
     Scope.files_read: "Read file uploads",
     Scope.files_write: "Create or modify file uploads",
     Scope.subscriptions_read: "Read subscriptions made on your organizations",
@@ -186,11 +155,8 @@ SCOPES_SUPPORTED_DISPLAY_NAMES: dict[Scope, str] = {
     Scope.wallets_read: "Read wallets",
     Scope.wallets_write: "Create or modify wallets",
     Scope.disputes_read: "Read disputes",
-    Scope.customer_meters_read: "Read customer meters",
     Scope.customer_sessions_write: "Create or modify customer sessions",
     Scope.member_sessions_write: "Create or modify member sessions",
-    Scope.customer_seats_read: "Read customer seats",
-    Scope.customer_seats_write: "Create or modify customer seats",
     Scope.orders_read: "Read orders made on your organizations",
     Scope.orders_write: "Modify orders made on your organizations",
     Scope.refunds_read: "Read refunds made on your organizations",
@@ -200,21 +166,21 @@ SCOPES_SUPPORTED_DISPLAY_NAMES: dict[Scope, str] = {
     Scope.metrics_write: "Create or modify metric definitions",
     Scope.webhooks_read: "Read webhooks",
     Scope.webhooks_write: "Create or modify webhooks",
-    Scope.license_keys_read: "Read license keys",
-    Scope.license_keys_write: "Modify license keys",
-    Scope.customer_portal_read: "Read your orders, subscriptions and benefits",
-    Scope.customer_portal_write: "Create or modify your orders, subscriptions and benefits",
-    Scope.notifications_read: "Read notifications",
-    Scope.notifications_write: "Mark notifications as read",
-    Scope.notification_recipients_read: "Read notification recipients",
-    Scope.notification_recipients_write: "Create or modify notification recipients",
+    Scope.customer_portal_read: "Read your orders and subscriptions",
+    Scope.customer_portal_write: "Create or modify your orders and subscriptions",
     Scope.organization_access_tokens_read: "Read organization access tokens",
     Scope.organization_access_tokens_write: "Create or modify organization access tokens",
 }
 
 
 def scope_to_set(scope: str) -> set[Scope]:
-    return {Scope(x) for x in scope.strip().split()}
+    result: set[Scope] = set()
+    for x in scope.strip().split():
+        try:
+            result.add(Scope(x))
+        except ValueError:
+            pass
+    return result
 
 
 def scope_to_list(scope: str) -> list[Scope]:

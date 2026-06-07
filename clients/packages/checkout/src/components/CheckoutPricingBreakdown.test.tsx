@@ -4,8 +4,6 @@ import { afterEach, describe, expect, it, vi } from 'vitest'
 import {
   createBaseCheckout,
   createCheckout,
-  createMeteredPrice,
-  createSeatBasedPrice,
 } from '../test-utils/makeCheckout'
 import CheckoutPricingBreakdown from './CheckoutPricingBreakdown'
 
@@ -30,7 +28,6 @@ function createDiscountedCheckout({
         amount: 999,
         discount_amount: 500,
         net_amount: 499,
-        tax_amount: null,
         total_amount: 499,
         product: {
           ...createCheckout().product,
@@ -49,7 +46,6 @@ function createDiscountedCheckout({
         amount: 999,
         discount_amount: 500,
         net_amount: 499,
-        tax_amount: null,
         total_amount: 499,
         discount,
       })
@@ -85,7 +81,6 @@ describe('CheckoutPricingBreakdown', () => {
       const checkout = createBaseCheckout({
         amount: 999,
         net_amount: 999,
-        tax_amount: null,
         total_amount: 999,
       })
 
@@ -97,48 +92,12 @@ describe('CheckoutPricingBreakdown', () => {
     })
   })
 
-  describe('with exclusive taxes, no discount', () => {
-    it('shows subtotal, tax amount, and total correctly', () => {
-      const checkout = createBaseCheckout({
-        amount: 999,
-        net_amount: 999,
-        tax_amount: 250,
-        tax_behavior: 'exclusive',
-        total_amount: 1249,
-      })
-
-      render(<CheckoutPricingBreakdown checkout={checkout} locale="en" />)
-
-      expect(getRowValue('Subtotal')).toBe('$9.99')
-      expect(getRowValue('Taxes')).toBe('$2.50')
-      expect(getRowValue('Total')).toBe('$12.49')
-    })
-  })
-
-  describe('with inclusive taxes', () => {
-    it('shows "Taxes (included)" label', () => {
-      const checkout = createBaseCheckout({
-        amount: 999,
-        net_amount: 799,
-        tax_amount: 200,
-        tax_behavior: 'inclusive',
-        total_amount: 999,
-      })
-
-      render(<CheckoutPricingBreakdown checkout={checkout} locale="en" />)
-
-      expect(getRowValue('Taxes (included)')).toBe('$2')
-      expect(getRowValue('Total')).toBe('$9.99')
-    })
-  })
-
   describe('with discount, no tax', () => {
     it('shows subtotal, discount, taxable amount, and total', () => {
       const checkout = createBaseCheckout({
         amount: 2000,
         discount_amount: 400,
         net_amount: 1600,
-        tax_amount: null,
         total_amount: 1600,
         discount: {
           id: 'disc_1',
@@ -167,8 +126,7 @@ describe('CheckoutPricingBreakdown', () => {
         amount: 2000,
         discount_amount: 400,
         net_amount: 1600,
-        tax_amount: 400,
-        total_amount: 2000,
+        total_amount: 1600,
         discount: {
           id: 'disc_1',
           name: '20% off',
@@ -185,23 +143,8 @@ describe('CheckoutPricingBreakdown', () => {
       expect(getRowValue('20% off')).toBe('-$4')
       expect(screen.getByText('(-20%)')).toBeInTheDocument()
       expect(getRowValue('Taxable amount')).toBe('$16')
-      expect(getRowValue('Taxes')).toBe('$4')
-      expect(getRowValue('Total')).toBe('$20')
-    })
-  })
-
-  describe('zero tax (calculated)', () => {
-    it('shows $0 for taxes, not em-dash', () => {
-      const checkout = createBaseCheckout({
-        amount: 999,
-        net_amount: 999,
-        tax_amount: 0,
-        total_amount: 999,
-      })
-
-      render(<CheckoutPricingBreakdown checkout={checkout} locale="en" />)
-
-      expect(getRowValue('Taxes')).toBe('$0')
+      expect(getRowValue('Taxes')).toBe('—')
+      expect(getRowValue('Total')).toBe('$16')
     })
   })
 
@@ -228,7 +171,6 @@ describe('CheckoutPricingBreakdown', () => {
         amount: 999,
         discount_amount: 999,
         net_amount: 0,
-        tax_amount: 0,
         total_amount: 0,
         discount: {
           id: 'disc_1',
@@ -252,7 +194,6 @@ describe('CheckoutPricingBreakdown', () => {
       const checkout = createCheckout({
         amount: 999,
         net_amount: 999,
-        tax_amount: null,
         total_amount: 999,
         product: {
           ...createCheckout().product,
@@ -273,7 +214,6 @@ describe('CheckoutPricingBreakdown', () => {
       const checkout = createCheckout({
         amount: 4999,
         net_amount: 4999,
-        tax_amount: null,
         total_amount: 4999,
         product: {
           ...createCheckout().product,
@@ -295,7 +235,6 @@ describe('CheckoutPricingBreakdown', () => {
         amount: 2000,
         discount_amount: 500,
         net_amount: 1500,
-        tax_amount: null,
         total_amount: 1500,
         discount: {
           id: 'disc_1',
@@ -321,7 +260,6 @@ describe('CheckoutPricingBreakdown', () => {
         amount: 2000,
         discount_amount: 400,
         net_amount: 1600,
-        tax_amount: null,
         total_amount: 1600,
         product: {
           ...createCheckout().product,
@@ -349,7 +287,6 @@ describe('CheckoutPricingBreakdown', () => {
         amount: 2000,
         discount_amount: 400,
         net_amount: 1600,
-        tax_amount: null,
         total_amount: 1600,
         product: {
           ...createCheckout().product,
@@ -378,7 +315,6 @@ describe('CheckoutPricingBreakdown', () => {
         amount: 2000,
         discount_amount: 400,
         net_amount: 1600,
-        tax_amount: null,
         total_amount: 1600,
         product: {
           ...createCheckout().product,
@@ -407,7 +343,6 @@ describe('CheckoutPricingBreakdown', () => {
       const checkout = createCheckout({
         amount: 999,
         net_amount: 999,
-        tax_amount: null,
         total_amount: 999,
         active_trial_interval: 'month',
         active_trial_interval_count: 1,
@@ -429,7 +364,6 @@ describe('CheckoutPricingBreakdown', () => {
       const checkout = createBaseCheckout({
         amount: 999,
         net_amount: 999,
-        tax_amount: null,
         total_amount: 999,
         active_trial_interval: 'month',
         active_trial_interval_count: 1,
@@ -559,266 +493,6 @@ describe('CheckoutPricingBreakdown', () => {
       })
       render(<CheckoutPricingBreakdown checkout={checkout} locale="en" />)
       expect(screen.getByText(/Until/i)).toBeInTheDocument()
-    })
-  })
-
-  describe('metered prices in breakdown', () => {
-    it('shows additional metered usage row', () => {
-      const meteredPrice = createMeteredPrice({
-        id: 'price_metered_1',
-        meter: { id: 'meter_1', name: 'API Calls', unit: 'scalar' as const },
-      })
-      const checkout = createCheckout({
-        amount: 999,
-        net_amount: 999,
-        tax_amount: null,
-        total_amount: 999,
-        prices: {
-          prod_1: [createCheckout().product_price, meteredPrice],
-        },
-      })
-
-      render(<CheckoutPricingBreakdown checkout={checkout} locale="en" />)
-
-      expect(screen.getByText(/additional metered usage/i)).toBeInTheDocument()
-      expect(screen.getByTestId('detail-row-API Calls')).toBeInTheDocument()
-    })
-
-    it('strikes through the original rate when a percentage discount is active', () => {
-      const meteredPrice = createMeteredPrice({
-        id: 'price_metered_1',
-        unit_amount: '900',
-        meter: { id: 'meter_1', name: 'Workspaces', unit: 'scalar' as const },
-      })
-      const checkout = createCheckout({
-        amount: 999,
-        discount_amount: 500,
-        net_amount: 499,
-        tax_amount: null,
-        total_amount: 499,
-        discount: {
-          id: 'disc_1',
-          name: 'half',
-          type: 'percentage',
-          duration: 'once',
-          code: 'halfoff',
-          basis_points: 5000,
-        } satisfies schemas['CheckoutPublic']['discount'],
-        prices: {
-          prod_1: [createCheckout().product_price, meteredPrice],
-        },
-      })
-
-      render(<CheckoutPricingBreakdown checkout={checkout} locale="en" />)
-
-      const row = screen.getByTestId('detail-row-Workspaces')
-      expect(row).toHaveTextContent('$9.00')
-      expect(row).toHaveTextContent('$4.50')
-      expect(within(row).getByText('$9.00')).toHaveClass('line-through')
-    })
-
-    it('does not strike through the rate for fixed-amount discounts', () => {
-      const meteredPrice = createMeteredPrice({
-        id: 'price_metered_1',
-        unit_amount: '900',
-        meter: { id: 'meter_1', name: 'Workspaces', unit: 'scalar' as const },
-      })
-      const checkout = createCheckout({
-        amount: 999,
-        discount_amount: 500,
-        net_amount: 499,
-        tax_amount: null,
-        total_amount: 499,
-        discount: {
-          id: 'disc_1',
-          name: '$5 off',
-          type: 'fixed',
-          duration: 'once',
-          code: null,
-          amount: 500,
-          currency: 'usd',
-          amounts: { usd: 500 },
-        } satisfies schemas['CheckoutPublic']['discount'],
-        prices: {
-          prod_1: [createCheckout().product_price, meteredPrice],
-        },
-      })
-
-      render(<CheckoutPricingBreakdown checkout={checkout} locale="en" />)
-
-      const row = screen.getByTestId('detail-row-Workspaces')
-      expect(row).toHaveTextContent('$9.00')
-      expect(within(row).queryByText('$4.50')).not.toBeInTheDocument()
-      expect(row.querySelector('.line-through')).toBeNull()
-    })
-  })
-
-  describe('volume seat pricing', () => {
-    it('shows single seat row above subtotal', () => {
-      const checkout = createCheckout({
-        amount: 5000,
-        net_amount: 5000,
-        tax_amount: null,
-        total_amount: 5000,
-        seats: 10,
-        product_price: createSeatBasedPrice({
-          seat_tiers: {
-            seat_tier_type: 'volume',
-            tiers: [{ min_seats: 1, max_seats: null, price_per_seat: 500 }],
-            minimum_seats: 1,
-            maximum_seats: null,
-          },
-        }),
-      })
-
-      render(<CheckoutPricingBreakdown checkout={checkout} locale="en" />)
-
-      const row = screen.getByTestId('detail-row-10 seats')
-      expect(row).toHaveTextContent('$5 per seat')
-      expect(row).toHaveTextContent('$50')
-    })
-  })
-
-  describe('graduated seat pricing', () => {
-    it('shows a row per tier', () => {
-      const checkout = createCheckout({
-        amount: 14000,
-        net_amount: 14000,
-        tax_amount: null,
-        total_amount: 14000,
-        seats: 15,
-        product_price: createSeatBasedPrice({
-          seat_tiers: {
-            seat_tier_type: 'graduated',
-            tiers: [
-              { min_seats: 1, max_seats: 10, price_per_seat: 1000 },
-              { min_seats: 11, max_seats: null, price_per_seat: 800 },
-            ],
-            minimum_seats: 1,
-            maximum_seats: null,
-          },
-        }),
-      })
-
-      render(<CheckoutPricingBreakdown checkout={checkout} locale="en" />)
-
-      const tier1 = screen.getByTestId('detail-row-10 seats')
-      expect(tier1).toHaveTextContent('$10 per seat')
-      expect(tier1).toHaveTextContent('$100')
-
-      const tier2 = screen.getByTestId('detail-row-5 seats')
-      expect(tier2).toHaveTextContent('$8 per seat')
-      expect(tier2).toHaveTextContent('$40')
-    })
-
-    it('shows single tier when seats fit in first tier', () => {
-      const checkout = createCheckout({
-        amount: 5000,
-        net_amount: 5000,
-        tax_amount: null,
-        total_amount: 5000,
-        seats: 5,
-        product_price: createSeatBasedPrice({
-          seat_tiers: {
-            seat_tier_type: 'graduated',
-            tiers: [
-              { min_seats: 1, max_seats: 10, price_per_seat: 1000 },
-              { min_seats: 11, max_seats: null, price_per_seat: 800 },
-            ],
-            minimum_seats: 1,
-            maximum_seats: null,
-          },
-        }),
-      })
-
-      render(<CheckoutPricingBreakdown checkout={checkout} locale="en" />)
-
-      const tier1 = screen.getByTestId('detail-row-5 seats')
-      expect(tier1).toHaveTextContent('$10 per seat')
-      expect(tier1).toHaveTextContent('$50')
-      expect(screen.queryByTestId('detail-row-0 seats')).not.toBeInTheDocument()
-    })
-  })
-
-  describe('included (free) seat tier', () => {
-    it('renders "N seats included" without a price when the first tier is free', () => {
-      const checkout = createCheckout({
-        amount: 3000,
-        net_amount: 3000,
-        tax_amount: null,
-        total_amount: 3000,
-        seats: 8,
-        product_price: createSeatBasedPrice({
-          seat_tiers: {
-            seat_tier_type: 'graduated',
-            tiers: [
-              { min_seats: 1, max_seats: 5, price_per_seat: 0 },
-              { min_seats: 6, max_seats: null, price_per_seat: 1000 },
-            ],
-            minimum_seats: 1,
-            maximum_seats: null,
-          },
-        }),
-      })
-
-      render(<CheckoutPricingBreakdown checkout={checkout} locale="en" />)
-
-      const includedRow = screen.getByTestId('detail-row-5 seats included')
-      expect(includedRow).not.toHaveTextContent('$')
-
-      const paidRow = screen.getByTestId('detail-row-3 seats')
-      expect(paidRow).toHaveTextContent('$10 per seat')
-      expect(paidRow).toHaveTextContent('$30')
-    })
-
-    it('uses the singular "One seat included" when a single seat is free', () => {
-      const checkout = createCheckout({
-        amount: 1000,
-        net_amount: 1000,
-        tax_amount: null,
-        total_amount: 1000,
-        seats: 2,
-        product_price: createSeatBasedPrice({
-          seat_tiers: {
-            seat_tier_type: 'graduated',
-            tiers: [
-              { min_seats: 1, max_seats: 1, price_per_seat: 0 },
-              { min_seats: 2, max_seats: null, price_per_seat: 1000 },
-            ],
-            minimum_seats: 1,
-            maximum_seats: null,
-          },
-        }),
-      })
-
-      render(<CheckoutPricingBreakdown checkout={checkout} locale="en" />)
-
-      expect(
-        screen.getByTestId('detail-row-One seat included'),
-      ).toBeInTheDocument()
-    })
-
-    it('renders a priced row (not "included") when the free tier has no maximum', () => {
-      const checkout = createCheckout({
-        amount: 0,
-        net_amount: 0,
-        tax_amount: null,
-        total_amount: 0,
-        seats: 4,
-        product_price: createSeatBasedPrice({
-          seat_tiers: {
-            seat_tier_type: 'volume',
-            tiers: [{ min_seats: 1, max_seats: null, price_per_seat: 0 }],
-            minimum_seats: 1,
-            maximum_seats: null,
-          },
-        }),
-      })
-
-      render(<CheckoutPricingBreakdown checkout={checkout} locale="en" />)
-
-      expect(screen.queryByText(/seats included/i)).not.toBeInTheDocument()
-      expect(screen.getByTestId('detail-row-4 seats')).toBeInTheDocument()
     })
   })
 

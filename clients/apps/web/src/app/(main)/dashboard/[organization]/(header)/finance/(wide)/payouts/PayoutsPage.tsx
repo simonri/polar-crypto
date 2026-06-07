@@ -2,10 +2,6 @@
 
 import AccessRestricted from '@/components/Finance/AccessRestricted'
 import AccountBalance from '@/components/Payouts/AccountBalance'
-import DownloadInvoice, {
-  InvoiceModal,
-} from '@/components/Payouts/DownloadInvoice'
-import { PayoutProvider } from '@/components/Payouts/PayoutContext'
 import { PayoutStatus } from '@/components/Payouts/PayoutStatus'
 import { useHasPermission } from '@/hooks/permissions'
 import { useOrganizationAccount } from '@/hooks/queries'
@@ -256,13 +252,6 @@ export default function ClientPage({
                 align="end"
                 className="dark:bg-polar-800 bg-gray-50 shadow-lg"
               >
-                {original.status === 'succeeded' && account && (
-                  <DownloadInvoice
-                    organization={organization}
-                    account={account}
-                    payout={original}
-                  />
-                )}
                 <DropdownMenuItem>
                   <Link
                     href={`${getServerURL()}/v1/payouts/${original.id}/csv`}
@@ -287,30 +276,25 @@ export default function ClientPage({
   }
 
   return (
-    <PayoutProvider>
-      <div className="flex flex-col gap-y-8">
-        {account && (
-          <AccountBalance account={account} organization={organization} />
-        )}
-        <DataTable
-          columns={columns}
-          data={payouts?.items ?? []}
-          rowCount={payouts?.pagination.total_count ?? 0}
-          pageCount={payouts?.pagination.max_page ?? 0}
-          pagination={pagination}
-          onPaginationChange={setPagination}
-          sorting={sorting}
-          onSortingChange={setSorting}
-          isLoading={isLoading}
-          getSubRows={(row) =>
-            isPayout(row) ? row.fees_transactions : undefined
-          }
-          onRowClick={(row) => row.getToggleExpandedHandler()()}
-        />
-        {account && (
-          <InvoiceModal organization={organization} account={account} />
-        )}
-      </div>
-    </PayoutProvider>
+    <div className="flex flex-col gap-y-8">
+      {account && (
+        <AccountBalance account={account} organization={organization} />
+      )}
+      <DataTable
+        columns={columns}
+        data={payouts?.items ?? []}
+        rowCount={payouts?.pagination.total_count ?? 0}
+        pageCount={payouts?.pagination.max_page ?? 0}
+        pagination={pagination}
+        onPaginationChange={setPagination}
+        sorting={sorting}
+        onSortingChange={setSorting}
+        isLoading={isLoading}
+        getSubRows={(row) =>
+          isPayout(row) ? row.fees_transactions : undefined
+        }
+        onRowClick={(row) => row.getToggleExpandedHandler()()}
+      />
+    </div>
   )
 }

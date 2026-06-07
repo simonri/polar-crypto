@@ -30,13 +30,6 @@ export const useDeletePersonalAccessToken = () =>
     },
   })
 
-export const useCreateIdentityVerification = () =>
-  useMutation({
-    mutationFn: () => {
-      return api.POST('/v1/users/me/identity-verification')
-    },
-  })
-
 export const useUpdateUser = () =>
   useMutation({
     mutationFn: (body: schemas['UserUpdate']) => {

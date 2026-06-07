@@ -14,7 +14,6 @@ from polar.auth.exception_handlers import (
 )
 from polar.auth.middlewares import AuthSubjectMiddleware
 from polar.backoffice import app as backoffice_app
-from polar.checkout import ip_geolocation
 from polar.checkout_link.app import app as checkout_link_redirect_app
 from polar.config import settings
 from polar.exception_handlers import add_exception_handlers
@@ -41,7 +40,6 @@ from polar.middlewares import (
     LogCorrelationIdMiddleware,
     OperationalErrorMiddleware,
     PathRewriteMiddleware,
-    SandboxResponseHeaderMiddleware,
 )
 from polar.oauth2.endpoints.well_known import router as well_known_router
 from polar.oauth2.exception_handlers import OAuth2Error, oauth2_error_exception_handler
@@ -49,10 +47,6 @@ from polar.observability.http_middleware import HttpMetricsMiddleware
 from polar.observability.memory_profile import (
     start_memory_profiler,
     stop_memory_profiler,
-)
-from polar.observability.remote_write import (
-    start_remote_write_pusher,
-    stop_remote_write_pusher,
 )
 from polar.observability.slo import start_slo_metrics, stop_slo_metrics
 from polar.openapi import OPENAPI_PARAMETERS, APITag, set_openapi_generator
@@ -62,7 +56,6 @@ from polar.postgres import (
     create_async_read_engine,
     create_sync_engine,
 )
-from polar.posthog import configure_posthog
 from polar.redis import Redis, create_redis
 from polar.search.endpoints import router as search_router
 from polar.sentry import configure_sentry
@@ -118,7 +111,6 @@ class State(TypedDict):
     sync_sessionmaker: SyncSessionMaker
 
     redis: Redis
-    ip_geolocation_client: ip_geolocation.IPGeolocationClient | None
 
 
 @contextlib.asynccontextmanager
@@ -129,12 +121,6 @@ async def lifespan(app: FastAPI) -> AsyncIterator[State]:
     profiler_enabled = start_memory_profiler()
     if profiler_enabled:
         log.info("memory_profile_enabled")
-
-    # Start HTTP metrics pusher (if configured)
-    # Use include_queue_metrics=False since queue metrics are worker-specific
-    metrics_enabled = start_remote_write_pusher(include_queue_metrics=False)
-    if metrics_enabled:
-        log.info("prometheus_remote_write_enabled")
 
     # Initialize SLO target metrics for critical endpoints (refreshed every 5 minutes)
     start_slo_metrics()
@@ -157,15 +143,6 @@ async def lifespan(app: FastAPI) -> AsyncIterator[State]:
 
     redis = create_redis("app")
 
-    try:
-        ip_geolocation_client = ip_geolocation.get_client()
-    except FileNotFoundError:
-        log.info(
-            "IP geolocation database not found. "
-            "Checkout won't automatically geolocate IPs."
-        )
-        ip_geolocation_client = None
-
     log.info("Polar API started")
 
     yield {
@@ -176,13 +153,11 @@ async def lifespan(app: FastAPI) -> AsyncIterator[State]:
         "sync_engine": sync_engine,
         "sync_sessionmaker": sync_sessionmaker,
         "redis": redis,
-        "ip_geolocation_client": ip_geolocation_client,
     }
 
     # Stop background threads
     stop_memory_profiler()
     stop_slo_metrics()
-    stop_remote_write_pusher()
 
     await redis.close(True)
     rate_limit_redis = getattr(app.state, "rate_limit_redis", None)
@@ -192,8 +167,6 @@ async def lifespan(app: FastAPI) -> AsyncIterator[State]:
     if async_read_engine is not async_engine:
         await async_read_engine.dispose()
     sync_engine.dispose()
-    if ip_geolocation_client is not None:
-        ip_geolocation_client.close()
 
     log.info("Polar API stopped")
 
@@ -206,8 +179,6 @@ def create_app() -> FastAPI:
     )
 
     app.add_middleware(OperationalErrorMiddleware)
-    if settings.is_sandbox():
-        app.add_middleware(SandboxResponseHeaderMiddleware)
     if not settings.is_testing():
         rate_limit_redis = create_redis("rate-limit")
         app.state.rate_limit_redis = rate_limit_redis
@@ -255,7 +226,6 @@ def create_app() -> FastAPI:
 configure_sentry()
 configure_logfire("server")
 configure_logging(logfire=True)
-configure_posthog()
 
 app = create_app()
 instrument_fastapi(app)

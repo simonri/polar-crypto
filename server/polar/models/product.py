@@ -18,7 +18,6 @@ from sqlalchemy import (
     select,
 )
 from sqlalchemy.dialects.postgresql import CITEXT, TSVECTOR
-from sqlalchemy.ext.associationproxy import AssociationProxy, association_proxy
 from sqlalchemy.ext.hybrid import hybrid_property
 from sqlalchemy.orm import Mapped, declared_attr, mapped_column, relationship
 
@@ -30,19 +29,14 @@ from polar.kit.schemas import SetSchemaReference
 from polar.kit.trial import TrialConfigurationMixin
 from polar.kit.visibility import Visibility, VisibilityMixin
 from polar.models.product_price import ProductPriceAmountType, ProductPriceType
-from polar.tax.calculation import TaxCode
 
 from .product_price import ProductPrice
 
 if TYPE_CHECKING:
     from polar.models import (
-        Benefit,
         Organization,
-        ProductBenefit,
         ProductCustomField,
-        ProductMedia,
     )
-    from polar.models.file import ProductMediaFile
 
 
 class ProductBillingType(StrEnum):
@@ -80,15 +74,6 @@ class Product(VisibilityMixin, TrialConfigurationMixin, MetadataMixin, RecordMod
         Integer, nullable=True, default=None
     )
 
-    is_tax_applicable: Mapped[bool] = mapped_column(
-        Boolean, nullable=False, default=True
-    )
-    tax_code: Mapped[TaxCode] = mapped_column(
-        StringEnum(TaxCode),
-        nullable=False,
-        default=TaxCode.general_electronically_supplied_services,
-    )
-
     organization_id: Mapped[UUID] = mapped_column(
         Uuid,
         ForeignKey("organizations.id", ondelete="cascade"),
@@ -119,35 +104,9 @@ class Product(VisibilityMixin, TrialConfigurationMixin, MetadataMixin, RecordMod
                 "ProductPrice.source == 'catalog'"
                 ")"
             ),
-            order_by="(case("
-            "(ProductPrice.amount_type.in_(['fixed', 'custom', 'free']), 0), "
-            "(ProductPrice.amount_type == 'metered_unit', 1), "
-            "), ProductPrice.created_at)",
+            order_by="ProductPrice.created_at",
             viewonly=True,
         )
-
-    product_benefits: Mapped[list["ProductBenefit"]] = relationship(
-        # Benefits are almost always needed, so eager loading makes sense
-        lazy="selectin",
-        order_by="ProductBenefit.order",
-        cascade="all, delete-orphan",
-        back_populates="product",
-    )
-
-    benefits: AssociationProxy[list["Benefit"]] = association_proxy(
-        "product_benefits", "benefit"
-    )
-
-    product_medias: Mapped[list["ProductMedia"]] = relationship(
-        lazy="raise",
-        order_by="ProductMedia.order",
-        cascade="all, delete-orphan",
-        back_populates="product",
-    )
-
-    medias: AssociationProxy[list["ProductMediaFile"]] = association_proxy(
-        "product_medias", "file"
-    )
 
     attached_custom_fields: Mapped[list["ProductCustomField"]] = relationship(
         lazy="raise",
@@ -168,13 +127,6 @@ class Product(VisibilityMixin, TrialConfigurationMixin, MetadataMixin, RecordMod
     @property
     def is_legacy_recurring_price(self) -> bool:
         return any(price.is_recurring for price in self.prices)
-
-    @property
-    def has_seat_based_price(self) -> bool:
-        return any(
-            price.amount_type == ProductPriceAmountType.seat_based
-            for price in self.prices
-        )
 
     @hybrid_property
     def is_recurring(self) -> bool:

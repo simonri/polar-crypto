@@ -7,7 +7,6 @@ from pytest_mock import MockerFixture
 
 from polar.config import settings
 from polar.customer_email_update.service import TOKEN_PREFIX
-from polar.integrations.stripe.service import StripeService
 from polar.kit.crypto import generate_token_hash_pair
 from polar.models import Customer, Organization, Product
 from polar.models.customer_email_verification import CustomerEmailVerification
@@ -25,10 +24,13 @@ from tests.fixtures.random_objects import (
 
 @pytest.fixture(autouse=True)
 def stripe_service_mock(mocker: MockerFixture) -> MagicMock:
-    mock = MagicMock(spec=StripeService)
-    mocker.patch("polar.payment_method.service.stripe_service", new=mock)
-    mocker.patch("polar.customer_email_update.service.stripe_service", new=mock)
-    mocker.patch("polar.customer_portal.service.customer.stripe_service", new=mock)
+    mock = MagicMock()
+    mocker.patch(
+        "polar.customer_email_update.service.stripe_service", new=mock, create=True
+    )
+    mocker.patch(
+        "polar.customer_portal.service.customer.stripe_service", new=mock, create=True
+    )
     return mock
 
 
@@ -242,7 +244,6 @@ class TestUpdateDefaultPaymentMethod:
             save_fixture,
             organization=organization,
             email="other@example.com",
-            stripe_customer_id="STRIPE_OTHER_CUSTOMER_ID",
         )
         other_payment_method = await create_payment_method(save_fixture, other_customer)
 
@@ -436,7 +437,6 @@ class TestVerifyEmailUpdate:
             save_fixture,
             organization=organization,
             email="taken@example.com",
-            stripe_customer_id="STRIPE_OTHER",
         )
 
         _record, token = await _create_verification(

@@ -7,7 +7,6 @@ from fastapi import Request
 from tagflow import classes, tag, text
 
 from polar.models import Organization
-from polar.models.user import IdentityVerificationStatus
 from polar.models.user_organization import OrganizationRole
 
 from ....components import action_bar, button, card
@@ -66,22 +65,6 @@ class TeamSection:
                                                     classes="hover:text-primary hover:underline",
                                                 ):
                                                     text(member.user.email or "Unknown")
-                                            status = (
-                                                member.user.identity_verification_status
-                                            )
-                                            if (
-                                                status
-                                                != IdentityVerificationStatus.unverified
-                                            ):
-                                                with tag.div(classes="badge badge-sm"):
-                                                    if (
-                                                        status
-                                                        == IdentityVerificationStatus.failed
-                                                    ):
-                                                        classes("badge-warning")
-                                                    else:
-                                                        classes("badge-neutral")
-                                                    text(status.get_display_name())
                                         with tag.div(
                                             classes="text-sm text-base-content/60"
                                         ):
@@ -122,14 +105,7 @@ class TeamSection:
                                             member_is_owner = (
                                                 member.role == OrganizationRole.owner
                                             )
-                                            member_is_verified = (
-                                                member.user.identity_verification_status
-                                                == IdentityVerificationStatus.verified
-                                            )
-                                            if (
-                                                not member_is_owner
-                                                and member_is_verified
-                                            ):
+                                            if not member_is_owner:
                                                 with tag.li():
                                                     with tag.a(
                                                         hx_post=str(
@@ -170,13 +146,6 @@ class TeamSection:
                             text(
                                 "• The new owner must already be a member "
                                 "of the organization"
-                            )
-
-                    with tag.li(classes="flex items-start gap-2"):
-                        with tag.span(classes="text-base-content/60"):
-                            text(
-                                "• The new owner must have completed Stripe "
-                                "identity verification"
                             )
 
                     with tag.li(classes="flex items-start gap-2"):

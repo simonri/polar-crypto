@@ -29,7 +29,7 @@ from polar.product.schemas import ProductID
 from polar.redis import Redis, get_redis
 from polar.routing import APIRouter
 
-from . import auth, ip_geolocation, sorting
+from . import auth, sorting
 from .schemas import Checkout as CheckoutSchema
 from .schemas import (
     CheckoutConfirm,
@@ -160,12 +160,11 @@ async def get(
 async def create(
     checkout_create: CheckoutCreate,
     auth_subject: auth.CheckoutWrite,
-    ip_geolocation_client: ip_geolocation.IPGeolocationClient,
     session: AsyncSession = Depends(get_db_session),
 ) -> Checkout:
     """Create a checkout session."""
     return await checkout_service.create(
-        session, checkout_create, auth_subject, ip_geolocation_client
+        session, checkout_create, auth_subject
     )
 
 
@@ -183,7 +182,6 @@ async def update(
     id: CheckoutID,
     checkout_update: CheckoutUpdate,
     auth_subject: auth.CheckoutWrite,
-    ip_geolocation_client: ip_geolocation.IPGeolocationClient,
     session: AsyncSession = Depends(get_db_session),
 ) -> Checkout:
     """Update a checkout session."""
@@ -197,7 +195,7 @@ async def update(
     )
 
     return await checkout_service.update(
-        session, checkout, checkout_update, ip_geolocation_client
+        session, checkout, checkout_update
     )
 
 
@@ -229,14 +227,13 @@ async def client_get(
 async def client_update(
     client_secret: CheckoutClientSecret,
     checkout_update: CheckoutUpdatePublic,
-    ip_geolocation_client: ip_geolocation.IPGeolocationClient,
     session: AsyncSession = Depends(get_db_session),
 ) -> Checkout:
     """Update a checkout session by client secret."""
     checkout = await checkout_service.get_by_client_secret(session, client_secret)
 
     return await checkout_service.update(
-        session, checkout, checkout_update, ip_geolocation_client
+        session, checkout, checkout_update
     )
 
 
@@ -294,6 +291,24 @@ async def client_opened(
     return await checkout_service.mark_opened(
         session, checkout, checkout_opened.distinct_id
     )
+
+
+@inner_router.get(
+    "/client/{client_secret}/crypto-status",
+    summary="Get Crypto Invoice Status",
+    include_in_schema=False,
+    tags=[APITag.private],
+)
+async def client_crypto_status(
+    client_secret: CheckoutClientSecret,
+    session: AsyncSession = Depends(get_db_session),
+) -> dict:  # type: ignore[type-arg]
+    """
+    Poll the Bitcart invoice status for a crypto checkout.
+    Returns payment addresses, amounts, and current confirmation count.
+    """
+    checkout = await checkout_service.get_by_client_secret(session, client_secret)
+    return await checkout_service.get_crypto_invoice_status(session, checkout)
 
 
 @inner_router.get("/client/{client_secret}/stream", include_in_schema=False)

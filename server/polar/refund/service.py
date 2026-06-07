@@ -1,47 +1,38 @@
 import uuid
 from collections.abc import Sequence
-from typing import Literal
+from typing import TYPE_CHECKING, Any, Literal
+
+if TYPE_CHECKING:
+    pass
 from uuid import UUID
 
-import stripe as stripe_lib
 import structlog
-from sqlalchemy.orm import joinedload
 
 from polar.auth.models import AuthSubject
 from polar.auth.permission import OrganizationPermission
 from polar.authz.service import assert_resource_permission, get_accessible_org_ids
-from polar.benefit.grant.service import benefit_grant as benefit_grant_service
-from polar.dispute.repository import DisputeRepository
-from polar.enums import PaymentProcessor
 from polar.event.service import event as event_service
 from polar.event.system import OrderRefundedMetadata, SystemEvent, build_system_event
 from polar.exceptions import PolarError, PolarRequestValidationError, ResourceNotFound
-from polar.integrations.stripe.service import stripe as stripe_service
-from polar.integrations.stripe.utils import get_expandable_id
 from polar.kit.db.postgres import AsyncSession
 from polar.kit.pagination import PaginationParams
 from polar.kit.sorting import Sorting
 from polar.logging import Logger
 from polar.models import (
     Customer,
-    Dispute,
     Order,
     Organization,
     Payment,
     User,
 )
-from polar.models.dispute import DisputeAlertProcessor
 from polar.models.order import RefundAmountTooHigh
-from polar.models.refund import Refund, RefundFailureReason, RefundReason, RefundStatus
+from polar.models.refund import Refund, RefundStatus
 from polar.models.webhook_endpoint import WebhookEventType
 from polar.order.repository import OrderRepository
 from polar.order.service import order as order_service
 from polar.payment.repository import PaymentRepository
-from polar.tax.calculation import tax_calculation as tax_calculation_service
-from polar.tax.calculation.base import AlreadyRevertedError
 from polar.transaction.service.refund import (
     RefundTransactionAlreadyExistsError,
-    RefundTransactionDoesNotExistError,
 )
 from polar.transaction.service.refund import (
     refund_transaction as refund_transaction_service,
@@ -227,9 +218,6 @@ class RefundService:
             raise RevokeSubscriptionBenefitsProhibited()
 
         refund_amount = create_schema.amount
-        refund_tax_amount = order.calculate_refunded_tax_from_subtotal(
-            create_schema.amount
-        )
         refund_id: UUID = uuid.uuid4()
 
         payment_repository = PaymentRepository.from_session(session)
@@ -237,37 +225,29 @@ class RefundService:
         if payment is None:
             raise RefundUnknownPayment(order.id, payment_type="order")
 
-        if payment.processor == PaymentProcessor.stripe:
-            refund_total = refund_amount + refund_tax_amount
-            stripe_metadata = dict(
-                refund_id=str(refund_id),
-                order_id=str(order.id),
-                charge_id=payment.processor_id,
-                amount=str(create_schema.amount),
-                refund_amount=str(refund_amount),
-                refund_tax_amount=str(refund_tax_amount),
-                revoke_benefits="1" if create_schema.revoke_benefits else "0",
-            )
-            try:
-                stripe_refund = await stripe_service.create_refund(
-                    charge_id=payment.processor_id,
-                    amount=refund_total,
-                    reason=RefundReason.to_stripe(create_schema.reason),
-                    metadata=stripe_metadata,
-                )
-            except stripe_lib.InvalidRequestError as e:
-                if e.code == "charge_already_refunded":
-                    log.warning("refund.attempted_already_refunded", order_id=order.id)
-                    raise RefundedAlready(order)
-                elif e.code == "charge_disputed":
-                    log.warning("refund.attempted_charge_disputed", order_id=order.id)
-                    raise RefundDisputedPayment(order)
-                else:
-                    raise e
-
-            refund = Refund.from_stripe(stripe_refund, order, payment)
-        else:
-            raise NotImplementedError()
+        # Crypto refunds: customers must supply a return wallet address.
+        # The actual TX broadcast is handled by the CryptoPayoutAccountService.
+        # For now create a pending refund record; the merchant triggers the TX.
+        refund = Refund(
+            id=refund_id,
+            status=RefundStatus.pending,
+            reason=create_schema.reason,
+            amount=refund_amount,
+            currency=order.currency,
+            failure_reason=None,
+            payment=payment,
+            order=order,
+            subscription=order.subscription,
+            customer=order.customer,
+            organization=order.organization,
+            pledge=None,
+            processor=payment.processor,
+            processor_id=None,
+            processor_receipt_number=None,
+            processor_reason=create_schema.reason.value,
+            processor_balance_transaction_id=None,
+            revoke_benefits=create_schema.revoke_benefits,
+        )
 
         refund.reason = create_schema.reason
         refund.comment = create_schema.comment
@@ -279,162 +259,17 @@ class RefundService:
 
         return refund
 
-    async def upsert_from_stripe(
-        self, session: AsyncSession, stripe_refund: stripe_lib.Refund
-    ) -> Refund:
-        repository = RefundRepository.from_session(session)
-        order_repository = OrderRepository.from_session(session)
-        refund = await repository.get_by_processor_id(
-            stripe_refund.id,
-            options=repository.get_eager_options(
-                order_options=order_repository.get_eager_options()
-            ),
-        )
+    async def upsert_from_stripe(self, *args: Any, **kwargs: Any) -> "Refund":
+        raise NotImplementedError("Stripe refunds removed")
 
-        if refund is not None:
-            return await self.update_from_stripe(session, refund, stripe_refund)
+    async def create_from_stripe(self, *args: Any, **kwargs: Any) -> "Refund":
+        raise NotImplementedError("Stripe refunds removed")
 
-        if stripe_refund.metadata and stripe_refund.metadata.get("refund_id"):
-            raise RefundPendingCreation(
-                uuid.UUID(stripe_refund.metadata.get("refund_id"))
-            )
+    async def update_from_stripe(self, *args: Any, **kwargs: Any) -> "Refund":
+        raise NotImplementedError("Stripe refunds removed")
 
-        return await self.create_from_stripe(session, stripe_refund)
-
-    async def create_from_stripe(
-        self,
-        session: AsyncSession,
-        stripe_refund: stripe_lib.Refund,
-    ) -> Refund:
-        repository = RefundRepository.from_session(session)
-        order, payment = await self._get_resources(session, stripe_refund)
-
-        refund = Refund.from_stripe(stripe_refund, order, payment)
-
-        # Check if there are disputes to link
-        dispute_repository = DisputeRepository.from_session(session)
-        dispute: Dispute | None = None
-        if stripe_refund.metadata and (
-            alert_id := stripe_refund.metadata.get("cbs_related_alert_id")
-        ):
-            dispute = await dispute_repository.get_by_alert_processor_id(
-                DisputeAlertProcessor.chargeback_stop, alert_id
-            )
-            # Dispute is missing, raise error, the task will be retried later
-            if dispute is None:
-                raise MissingRelatedDispute(stripe_refund.id, alert_id)
-
-            refund.dispute = dispute
-            refund.reason = RefundReason.dispute_prevention
-
-        refund = await repository.create(refund, flush=True)
-
-        await self._on_created(session, refund)
-
-        return refund
-
-    async def update_from_stripe(
-        self,
-        session: AsyncSession,
-        refund: Refund,
-        stripe_refund: stripe_lib.Refund,
-    ) -> Refund:
-        repository = RefundRepository.from_session(session)
-        had_succeeded = refund.succeeded
-
-        # Reference: https://docs.stripe.com/refunds#see-also
-        # Only `metadata` and `destination_details` should update according to
-        # docs, but a pending refund can surely become `succeeded`, `canceled` or `failed`
-        refund = await repository.update(
-            refund,
-            update_dict={
-                "status": RefundStatus(stripe_refund.status)
-                if stripe_refund.status
-                else refund.status,
-                "failure_reason": RefundFailureReason.from_stripe(
-                    getattr(stripe_refund, "failure_reason", None)
-                ),
-                "destination_details": getattr(
-                    stripe_refund, "destination_details", {}
-                ),
-                "processor_receipt_number": stripe_refund.receipt_number,
-            },
-        )
-        await self._on_updated(session, refund)
-
-        transitioned_to_succeeded = refund.succeeded and not had_succeeded
-        if transitioned_to_succeeded:
-            await self._on_succeeded(session, refund)
-
-        reverted = had_succeeded and refund.status in {
-            RefundStatus.canceled,
-            RefundStatus.failed,
-        }
-        if reverted:
-            try:
-                await refund_transaction_service.revert(session, refund)
-            except RefundTransactionDoesNotExistError:
-                pass
-
-            order = refund.order
-            if order:
-                await order_service.update_refunds(
-                    session,
-                    order,
-                    refunded_amount=-refund.amount,
-                    refunded_tax_amount=-refund.tax_amount,
-                )
-
-        return refund
-
-    async def create_from_dispute(
-        self,
-        session: AsyncSession,
-        dispute: Dispute,
-        processor_balance_transaction_id: str,
-    ) -> Refund:
-        repository = RefundRepository.from_session(session)
-
-        assert dispute.payment_processor is not None
-        assert dispute.payment_processor_id is not None
-
-        order_repository = OrderRepository.from_session(session)
-        order = await order_repository.get_by_id(
-            dispute.order_id, options=order_repository.get_eager_options()
-        )
-        assert order is not None
-        payment_repository = PaymentRepository.from_session(session)
-        payment = await payment_repository.get_by_id(dispute.payment_id)
-        assert payment is not None
-
-        refund = await repository.create(
-            Refund(
-                status=RefundStatus.succeeded,
-                reason=RefundReason.dispute_prevention,
-                amount=dispute.amount,
-                tax_amount=dispute.tax_amount,
-                currency=dispute.currency,
-                failure_reason=None,
-                payment=payment,
-                order=order,
-                subscription=None,
-                customer=order.customer,
-                organization=order.organization,
-                pledge=None,
-                dispute=dispute,
-                processor=dispute.payment_processor,
-                processor_id=dispute.payment_processor_id,
-                processor_receipt_number=None,
-                processor_reason="other",
-                processor_balance_transaction_id=processor_balance_transaction_id,
-                revoke_benefits=True,
-            ),
-            flush=True,
-        )
-
-        await self._on_created(session, refund)
-
-        return refund
+    async def create_from_dispute(self, *args: Any, **kwargs: Any) -> "Refund":
+        raise NotImplementedError("Disputes removed")
 
     async def _on_created(self, session: AsyncSession, refund: Refund) -> None:
         order = refund.order
@@ -450,15 +285,6 @@ class RefundService:
 
         if refund.succeeded:
             await self._on_succeeded(session, refund)
-
-        if refund.revoke_benefits and order.product is not None:
-            await benefit_grant_service.enqueue_benefits_grants(
-                session,
-                task="revoke",
-                customer=customer,
-                product=order.product,
-                order=order,
-            )
 
     async def _on_succeeded(
         self,
@@ -476,45 +302,14 @@ class RefundService:
                 session,
                 order,
                 refunded_amount=refund.amount,
-                refunded_tax_amount=refund.tax_amount,
             )
-
-            # Revert the tax transaction in the tax processor ledger
-            if (
-                order.stripe_invoice_id is None  # Tax managed via Stripe Billing
-                and order.tax_transaction_processor_id
-                and order.tax_amount > 0
-            ):
-                assert order.tax_processor is not None
-                assert order.billing_address is not None
-                assert order.product is not None
-                try:
-                    transaction_id = await tax_calculation_service.revert(
-                        order.tax_processor,
-                        order.tax_transaction_processor_id,
-                        reference=str(refund.id),
-                        address=order.billing_address,
-                        tax_code=order.product.tax_code,
-                        currency=order.currency,
-                        total_amount=order.total_amount,
-                        reverted_amount=refund.total_amount,
-                        reverted_tax_amount=refund.tax_amount,
-                    )
-                    refund.tax_transaction_processor_id = transaction_id
-                    session.add(refund)
-                # Case where we retry a failed refund:
-                # the tax is already reverted, so we can ignore the error.
-                except AlreadyRevertedError:
-                    pass
 
             # Reduce positive customer balance
             customer_balance = await wallet_service.get_billing_wallet_balance(
                 session, order.customer, order.currency, for_update=True
             )
             if customer_balance > 0:
-                reduction_amount = min(
-                    customer_balance, order.refunded_amount + order.refunded_tax_amount
-                )
+                reduction_amount = min(customer_balance, order.refunded_amount)
                 await wallet_service.create_balance_transaction(
                     session,
                     order.customer,
@@ -542,41 +337,14 @@ class RefundService:
                 session, order.organization, WebhookEventType.order_refunded, order
             )
 
-            if order.receipt_number is not None:
-                enqueue_job("receipt.render", order.id)
-
     async def _on_updated(self, session: AsyncSession, refund: Refund) -> None:
         if refund.organization is not None:
             await webhook_service.send(
                 session, refund.organization, WebhookEventType.refund_updated, refund
             )
 
-    async def _get_resources(
-        self, session: AsyncSession, refund: stripe_lib.Refund
-    ) -> tuple[Order, Payment]:
-        if refund.charge is None:
-            raise RefundUnknownPayment(refund.id, payment_type="charge")
-
-        charge_id = get_expandable_id(refund.charge)
-
-        payment_repository = PaymentRepository.from_session(session)
-        order_repository = OrderRepository.from_session(session)
-        payment = await payment_repository.get_by_processor_id(
-            PaymentProcessor.stripe,
-            charge_id,
-            options=(
-                joinedload(Payment.order).options(
-                    *order_repository.get_eager_options()  # type: ignore
-                ),
-            ),
-        )
-        if payment is None:
-            raise RefundUnknownPayment(charge_id, payment_type="charge")
-
-        if payment.order is None:
-            raise RefundUnknownPayment(payment.id, payment_type="order")
-
-        return payment.order, payment
+    async def _get_resources(self, *args: Any, **kwargs: Any) -> tuple[Order, Payment]:
+        raise NotImplementedError("Stripe refund resource lookup removed")
 
 
 refund = RefundService()

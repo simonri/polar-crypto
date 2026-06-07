@@ -6,7 +6,6 @@ from uuid import UUID
 from sqlalchemy import (
     ForeignKey,
     String,
-    UniqueConstraint,
     Uuid,
 )
 from sqlalchemy.orm import Mapped, mapped_column, relationship
@@ -48,7 +47,6 @@ class PayoutStatus(StrEnum):
 
 class Payout(RecordModel):
     __tablename__ = "payouts"
-    __table_args__ = (UniqueConstraint("account_id", "invoice_number"),)
 
     processor: Mapped[PayoutAccountType] = mapped_column(
         StringEnum(PayoutAccountType), nullable=False
@@ -90,17 +88,6 @@ class Payout(RecordModel):
         "PayoutAccount", lazy="raise"
     )
 
-    invoice_number: Mapped[str] = mapped_column(String, nullable=False)
-    """Reverse invoice number for this payout."""
-    invoice_path: Mapped[str | None] = mapped_column(
-        String, nullable=True, default=None
-    )
-    """
-    Path to the invoice for this payout on the storage bucket.
-
-    Might be `None` if not yet created.
-    """
-
     transactions: Mapped[list["Transaction"]] = relationship(
         "Transaction",
         back_populates="payout",
@@ -138,11 +125,6 @@ class Payout(RecordModel):
             for transaction in self.transaction.incurred_transactions
             if transaction.account_id is not None
         ]
-
-    @property
-    def is_invoice_generated(self) -> bool:
-        """Whether the invoice for this payout has been generated."""
-        return self.invoice_path is not None
 
     @property
     def latest_attempt(self) -> "PayoutAttempt | None":

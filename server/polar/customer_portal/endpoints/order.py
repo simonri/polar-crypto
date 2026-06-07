@@ -1,6 +1,6 @@
 from typing import Annotated
 
-from fastapi import Depends, Query, Response
+from fastapi import Depends, Query
 
 from polar.exceptions import ResourceNotFound
 from polar.kit.db.postgres import AsyncSession
@@ -12,8 +12,6 @@ from polar.models.product import ProductBillingType
 from polar.openapi import APITag
 from polar.order.schemas import OrderID
 from polar.order.service import (
-    MissingInvoiceBillingDetails,
-    NotPaidOrder,
     PaymentAlreadyInProgress,
 )
 from polar.payment.repository import PaymentRepository
@@ -26,10 +24,8 @@ from .. import auth
 from ..schemas.order import (
     CustomerOrder,
     CustomerOrderConfirmPayment,
-    CustomerOrderInvoice,
     CustomerOrderPaymentConfirmation,
     CustomerOrderPaymentStatus,
-    CustomerOrderReceipt,
     CustomerOrderUpdate,
 )
 from ..service.order import (
@@ -135,78 +131,6 @@ async def update(
     return await customer_order_service.update(session, order, order_update)
 
 
-@router.post(
-    "/{id}/invoice",
-    status_code=202,
-    summary="Generate Order Invoice",
-    responses={
-        422: {
-            "description": "Order is not paid or is missing billing name or address.",
-            "model": MissingInvoiceBillingDetails.schema() | NotPaidOrder.schema(),
-        },
-    },
-)
-async def generate_invoice(
-    id: OrderID,
-    auth_subject: auth.CustomerPortalUnionBillingRead,
-    session: AsyncSession = Depends(get_db_session),
-) -> None:
-    """Trigger generation of an order's invoice."""
-    order = await customer_order_service.get_by_id(session, auth_subject, id)
-
-    if order is None:
-        raise ResourceNotFound()
-
-    await customer_order_service.trigger_invoice_generation(session, order)
-
-
-@router.get(
-    "/{id}/invoice",
-    summary="Get Order Invoice",
-    response_model=CustomerOrderInvoice,
-    responses={404: OrderNotFound},
-)
-async def invoice(
-    id: OrderID,
-    auth_subject: auth.CustomerPortalUnionBillingRead,
-    session: AsyncSession = Depends(get_db_session),
-) -> CustomerOrderInvoice:
-    """Get an order's invoice data."""
-    order = await customer_order_service.get_by_id(session, auth_subject, id)
-
-    if order is None:
-        raise ResourceNotFound()
-
-    return await customer_order_service.get_order_invoice(order)
-
-
-@router.get(
-    "/{id}/receipt",
-    summary="Get Order Receipt",
-    response_model=CustomerOrderReceipt,
-    responses={
-        202: {"description": "Receipt generation in progress."},
-        404: OrderNotFound,
-    },
-)
-async def receipt(
-    id: OrderID,
-    auth_subject: auth.CustomerPortalUnionBillingRead,
-    session: AsyncSession = Depends(get_db_session),
-) -> Response | CustomerOrderReceipt:
-    """Get a presigned URL to download an order's receipt PDF."""
-    order = await customer_order_service.get_by_id(session, auth_subject, id)
-
-    if order is None:
-        raise ResourceNotFound()
-
-    receipt = await customer_order_service.get_order_receipt(order)
-    if receipt is None:
-        return Response(status_code=202)
-
-    return receipt
-
-
 @router.get(
     "/{id}/payment-status",
     summary="Get Order Payment Status",
@@ -265,7 +189,7 @@ async def confirm_retry_payment(
     auth_subject: auth.CustomerPortalUnionBillingWrite,
     session: AsyncSession = Depends(get_db_session),
 ) -> CustomerOrderPaymentConfirmation:
-    """Confirm a retry payment using a Stripe confirmation token."""
+    """Confirm a retry payment (Stripe removed; crypto payments confirmed via webhook)"""
     order = await customer_order_service.get_by_id(session, auth_subject, id)
 
     if order is None:

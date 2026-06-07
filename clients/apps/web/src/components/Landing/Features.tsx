@@ -1,35 +1,14 @@
 import Link from 'next/link'
-import { CreditArc } from './graphics/CreditArc'
 import { CycleArrow } from './graphics/CycleArrow'
-import { LinkedRings } from './graphics/LinkedRings'
 import { VectorField } from './graphics/VectorField'
-import { VennCluster } from './graphics/VennCluster'
 import { WaveBars } from './graphics/WaveBars'
 
 const TILES = [
-  {
-    title: 'Usage Billing',
-    desc: 'Meter tokens, API calls, compute, storage. Bill with precision down to the event.',
-    href: '/features/usage-billing',
-    Graphic: VennCluster,
-  },
   {
     title: 'Subscriptions',
     desc: 'Recurring plans with trials, upgrades, proration, and dunning built in.',
     href: '/features/subscriptions',
     Graphic: CycleArrow,
-  },
-  {
-    title: 'Seats',
-    desc: "Pricing that scales with your customer's teams. Add, remove, prorate automatically.",
-    href: '/features/seats',
-    Graphic: LinkedRings,
-  },
-  {
-    title: 'Credits',
-    desc: 'Prepay and draw down over time, like a wallet for your API.',
-    href: '/features/credits',
-    Graphic: CreditArc,
   },
   {
     title: 'Trials',

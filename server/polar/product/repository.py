@@ -70,7 +70,6 @@ class ProductRepository(
     def get_eager_options(self) -> Options:
         return (
             joinedload(Product.organization),
-            selectinload(Product.product_medias),
             selectinload(Product.attached_custom_fields),
             selectinload(Product.all_prices),
         )
@@ -180,16 +179,6 @@ class ProductPriceRepository(
         statement = (
             self.get_statement_by_org_ids(org_ids)
             .where(ProductPrice.id == id)
-            .options(*options)
-        )
-        return await self.get_one_or_none(statement)
-
-    async def get_by_stripe_price_id(
-        self, stripe_price_id: str, *, options: Options = ()
-    ) -> ProductPrice | None:
-        statement = (
-            self.get_base_statement()
-            .where(ProductPrice.__table__.c["stripe_price_id"] == stripe_price_id)
             .options(*options)
         )
         return await self.get_one_or_none(statement)

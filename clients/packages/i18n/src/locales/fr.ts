@@ -278,7 +278,6 @@ export default {
     github_repository: 'Accès au dépôt GitHub',
     discord: 'Invitation Discord',
     downloadables: 'Fichiers',
-    meter_credit: 'Crédits prépayés',
     feature_flag: 'Accès à une fonctionnalité',
   },
   ordinal: {

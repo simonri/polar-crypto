@@ -13,9 +13,9 @@ from load_tests.config import config
 EVENT_NAMES = ["generate.text", "generate.image"]
 EVENT_NAME_WEIGHTS = [0.7, 0.3]
 
-# Meter slug distribution: 60% pack, 40% tier
-METER_SLUGS = ["v1:meter:pack", "v1:meter:tier"]
-METER_SLUG_WEIGHTS = [0.6, 0.4]
+# Usage category distribution: 60% pack, 40% tier
+USAGE_CATEGORIES = ["pack", "tier"]
+USAGE_CATEGORY_WEIGHTS = [0.6, 0.4]
 
 
 def generate_random_email() -> str:
@@ -103,7 +103,7 @@ def generate_checkout_confirmation_data(
 def generate_event_payload(
     external_customer_id: str,
     event_name: str | None = None,
-    meter_slug: str | None = None,
+    usage_category: str | None = None,
     total_price: float | None = None,
 ) -> dict[str, Any]:
     """
@@ -112,7 +112,7 @@ def generate_event_payload(
     Args:
         external_customer_id: External customer ID (your system's customer identifier)
         event_name: Event name (random from distribution if None)
-        meter_slug: Meter slug for selectedMeterSlug metadata (random if None)
+        usage_category: Usage category metadata value (random if None)
         total_price: Price value for totalPrice metadata (random 0.01-1.00 if None)
 
     Returns:
@@ -125,8 +125,10 @@ def generate_event_payload(
     if event_name is None:
         event_name = random.choices(EVENT_NAMES, weights=EVENT_NAME_WEIGHTS, k=1)[0]
 
-    if meter_slug is None:
-        meter_slug = random.choices(METER_SLUGS, weights=METER_SLUG_WEIGHTS, k=1)[0]
+    if usage_category is None:
+        usage_category = random.choices(
+            USAGE_CATEGORIES, weights=USAGE_CATEGORY_WEIGHTS, k=1
+        )[0]
 
     if total_price is None:
         total_price = round(random.uniform(0.01, 1.00), 2)
@@ -137,7 +139,7 @@ def generate_event_payload(
         "timestamp": datetime.now(UTC).isoformat(),
         "external_id": f"loadtest-{uuid4().hex}",
         "metadata": {
-            "selectedMeterSlug": meter_slug,
+            "usageCategory": usage_category,
             "totalPrice": total_price,
         },
     }

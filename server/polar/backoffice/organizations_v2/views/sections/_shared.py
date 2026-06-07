@@ -1,4 +1,4 @@
-"""Shared constants and helpers for organization review sections."""
+"""Shared constants and helpers for organization sections."""
 
 from __future__ import annotations
 
@@ -8,21 +8,6 @@ from tagflow import tag, text
 
 if TYPE_CHECKING:
     from polar.models import Organization
-    from polar.organization_review.schemas import DimensionAssessment
-
-# DaisyUI badge class for each RiskLevel value
-RISK_LEVEL_BADGE: dict[str, str] = {
-    "LOW": "badge-ghost",
-    "MEDIUM": "badge-warning",
-    "HIGH": "badge-error",
-}
-
-# DaisyUI badge class for each ReviewVerdict value
-VERDICT_BADGE: dict[str, str] = {
-    "APPROVE": "badge-success",
-    "DENY": "badge-error",
-    "NEEDS_HUMAN_REVIEW": "badge-warning",
-}
 
 
 def render_checklist_row(label: str, is_set: bool, value: str | None) -> None:
@@ -40,29 +25,6 @@ def render_checklist_row(label: str, is_set: bool, value: str | None) -> None:
             classes="text-sm" + (" text-base-content/60" if not is_set else "")
         ):
             text((value or "Set") if is_set else "Missing")
-
-
-def render_dimension(dim: DimensionAssessment) -> None:
-    """Render a single dimension assessment card."""
-    name = dim.dimension.value.replace("_", " ").title()
-
-    badge_class = RISK_LEVEL_BADGE.get(dim.risk_level.value, "badge-ghost")
-
-    with tag.div(classes="border border-base-200 rounded p-3"):
-        with tag.div(classes="flex items-center justify-between mb-1"):
-            with tag.span(classes="text-sm font-medium"):
-                text(name)
-            with tag.div(classes="flex items-center gap-2"):
-                with tag.div(classes=f"badge badge-sm {badge_class}"):
-                    text(dim.risk_level.value)
-                with tag.span(classes="text-xs text-base-content/60"):
-                    text(f"{dim.confidence:.0%} confidence")
-
-        if dim.findings:
-            with tag.ul(classes="list-disc list-inside text-xs space-y-0.5 mt-1"):
-                for finding in dim.findings:
-                    with tag.li():
-                        text(finding)
 
 
 class ChecklistMixin:

@@ -1,20 +1,13 @@
 export {
   addressInputCountryValues,
-  appealDecisionValues,
   availableScopeValues,
-  benefitGitHubRepositoryPropertiesPermissionValues,
-  benefitTypeValues,
   checkoutStatusValues,
-  countAggregationFuncValues,
   customFieldTypeValues,
-  meterUnitValues,
   presentmentCurrencyValues,
-  propertyAggregationFuncValues,
   refundReasonValues,
-  stripeAccountCountryValues,
-  taxBehaviorOptionValues,
   timeIntervalValues,
   trialIntervalValues,
-  uniqueAggregationFuncValues,
   webhookEventTypeValues,
 } from './v1'
+
+export const meterUnitValues = ['scalar', 'token', 'custom'] as const

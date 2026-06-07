@@ -9,21 +9,16 @@ from sqlalchemy.orm import contains_eager
 from polar.auth.models import AuthSubject, Customer, Member
 from polar.enums import PaymentProcessor
 from polar.exceptions import PolarError
-from polar.invoice.service import invoice as invoice_service
 from polar.kit.db.postgres import AsyncSession
 from polar.kit.pagination import PaginationParams
 from polar.kit.sorting import Sorting
 from polar.models import Order, Product
 from polar.models.product import ProductBillingType
-from polar.order.service import InvoiceDoesNotExist, ReceiptNotAllocated
 from polar.order.service import order as order_service
-from polar.receipt.service import receipt as receipt_service
 
 from ..repository.order import CustomerOrderRepository
 from ..schemas.order import (
-    CustomerOrderInvoice,
     CustomerOrderPaymentConfirmation,
-    CustomerOrderReceipt,
     CustomerOrderUpdate,
 )
 
@@ -138,28 +133,6 @@ class CustomerOrderService:
         self, session: AsyncSession, order: Order, order_update: CustomerOrderUpdate
     ) -> Order:
         return await order_service.update(session, order, order_update)
-
-    async def trigger_invoice_generation(
-        self, session: AsyncSession, order: Order
-    ) -> None:
-        return await order_service.trigger_invoice_generation(session, order)
-
-    async def get_order_invoice(self, order: Order) -> CustomerOrderInvoice:
-        if order.invoice_path is None:
-            raise InvoiceDoesNotExist(order)
-
-        url, _ = await invoice_service.get_order_invoice_url(order)
-        return CustomerOrderInvoice(url=url)
-
-    async def get_order_receipt(self, order: Order) -> CustomerOrderReceipt | None:
-        if order.receipt_number is None:
-            raise ReceiptNotAllocated(order)
-
-        result = await receipt_service.get_pdf_url_or_status(order)
-        if result is None:
-            return None
-        url, _ = result
-        return CustomerOrderReceipt(url=url)
 
     async def confirm_retry_payment(
         self,

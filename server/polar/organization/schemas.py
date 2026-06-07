@@ -18,7 +18,6 @@ from pydantic.networks import HttpUrl
 
 from polar.auth.permission import OrganizationPermission
 from polar.config import settings
-from polar.enums import SubscriptionProrationBehavior, TaxBehaviorOption
 from polar.kit.address import CountryAlpha2, CountryAlpha2Input
 from polar.kit.currency import PresentmentCurrency
 from polar.kit.email import EmailStrDNS
@@ -35,11 +34,9 @@ from polar.kit.schemas import (
 from polar.models.organization import (
     OrganizationCustomerEmailSettings,
     OrganizationCustomerPortalSettings,
-    OrganizationNotificationSettings,
     OrganizationStatus,
     OrganizationSubscriptionSettings,
 )
-from polar.models.organization_review import OrganizationReview
 from polar.models.user_organization import OrganizationRole
 
 OrganizationID = Annotated[
@@ -97,15 +94,6 @@ class OrganizationSlugAvailability(Schema):
     )
 
 
-def _discard_logo_dev_url(url: HttpUrl) -> HttpUrl | None:
-    if url.host and url.host.endswith("logo.dev"):
-        return None
-    return url
-
-
-AvatarUrl = Annotated[HttpUrlToStr, AfterValidator(_discard_logo_dev_url)]
-
-
 class OrganizationCapabilities(Schema):
     checkout_payments: bool = Field(
         description="Whether the organization can accept new checkout payments."
@@ -126,9 +114,6 @@ class OrganizationCapabilities(Schema):
 class OrganizationFeatureSettings(Schema):
     issue_funding_enabled: bool = Field(
         False, description="If this organization has issue funding enabled"
-    )
-    seat_based_pricing_enabled: bool = Field(
-        False, description="If this organization has seat-based pricing enabled"
     )
     wallets_enabled: bool = Field(
         False, description="If this organization has Wallets enabled"
@@ -226,7 +211,6 @@ class OrganizationSocialPlatforms(StrEnum):
     tiktok = "tiktok"
     linkedin = "linkedin"
     threads = "threads"
-    discord = "discord"
     other = "other"
 
 
@@ -239,7 +223,6 @@ PLATFORM_DOMAINS = {
     "tiktok": ["tiktok.com"],
     "linkedin": ["linkedin.com"],
     "threads": ["threads.net"],
-    "discord": ["discord.gg", "discord.com"],
 }
 
 # Reverse mapping: domain -> platform for auto-detection
@@ -288,12 +271,6 @@ class OrganizationBase(IDSchema, TimestampedSchema):
     )
     slug: str = Field(
         description="Unique organization slug in checkout, customer portal and credit card statements.",
-    )
-    avatar_url: str | None = Field(
-        description="Avatar URL shown in checkout, customer portal, emails etc."
-    )
-    proration_behavior: SubscriptionProrationBehavior = Field(
-        description="Proration behavior applied when customer updates their subscription from the portal.",
     )
     allow_customer_updates: bool = Field(
         description="Whether customers can update their subscriptions from the customer portal.",
@@ -368,7 +345,6 @@ class OrganizationPublicBase(OrganizationBase):
 
     feature_settings: SkipJsonSchema[OrganizationFeatureSettings | None]
     subscription_settings: SkipJsonSchema[OrganizationSubscriptionSettings]
-    notification_settings: SkipJsonSchema[OrganizationNotificationSettings]
     customer_email_settings: SkipJsonSchema[OrganizationCustomerEmailSettings]
 
 
@@ -390,17 +366,11 @@ class Organization(OrganizationBase):
             "if the customer's local currency is not available."
         )
     )
-    default_tax_behavior: TaxBehaviorOption = Field(
-        description="Default tax behavior applied on products."
-    )
     feature_settings: OrganizationFeatureSettings | None = Field(
         description="Organization feature settings",
     )
     subscription_settings: OrganizationSubscriptionSettings = Field(
         description="Settings related to subscriptions management",
-    )
-    notification_settings: OrganizationNotificationSettings = Field(
-        description="Settings related to notifications",
     )
     customer_email_settings: OrganizationCustomerEmailSettings = Field(
         description="Settings related to customer emails",
@@ -472,7 +442,6 @@ OrganizationLegalEntitySchema = Annotated[
 class OrganizationCreate(Schema):
     name: NameInput
     slug: SlugInput
-    avatar_url: AvatarUrl | None = None
     legal_entity: OrganizationLegalEntitySchema | None = None
     email: EmailStrDNS | None = Field(None, description="Public support email.")
     website: HttpUrlToStr | None = Field(
@@ -491,22 +460,16 @@ class OrganizationCreate(Schema):
     )
     feature_settings: OrganizationFeatureSettings | None = None
     subscription_settings: OrganizationSubscriptionSettings | None = None
-    notification_settings: OrganizationNotificationSettings | None = None
     customer_email_settings: OrganizationCustomerEmailSettings | None = None
     customer_portal_settings: OrganizationCustomerPortalSettings | None = None
     default_presentment_currency: PresentmentCurrency = Field(
         PresentmentCurrency.usd,
         description="Default presentment currency for the organization",
     )
-    default_tax_behavior: TaxBehaviorOption = Field(
-        default=TaxBehaviorOption.location,
-        description="Default tax behavior applied on products.",
-    )
 
 
 class OrganizationUpdate(Schema):
     name: NameInput | None = None
-    avatar_url: AvatarUrl | None = None
 
     email: EmailStrDNS | None = Field(None, description="Public support email.")
     website: HttpUrlToStr | None = Field(
@@ -525,42 +488,11 @@ class OrganizationUpdate(Schema):
 
     feature_settings: OrganizationFeatureSettings | None = None
     subscription_settings: OrganizationSubscriptionSettings | None = None
-    notification_settings: OrganizationNotificationSettings | None = None
     customer_email_settings: OrganizationCustomerEmailSettings | None = None
     customer_portal_settings: OrganizationCustomerPortalSettings | None = None
     default_presentment_currency: PresentmentCurrency | None = Field(
         None, description="Default presentment currency for the organization"
     )
-    default_tax_behavior: TaxBehaviorOption | None = Field(
-        None, description="Default tax behavior applied on products."
-    )
-
-
-class OrganizationReviewSubmissionDetails(Schema):
-    product_description: Annotated[
-        str, StringConstraints(strip_whitespace=True, min_length=30)
-    ]
-
-
-def _empty_review_submission_details_to_dict(value: Any) -> Any:
-    if value is None:
-        return {}
-    return value
-
-
-class OrganizationReviewSubmission(Schema):
-    name: Annotated[str, StringConstraints(strip_whitespace=True, min_length=1)]
-    website: Annotated[str, StringConstraints(min_length=1)]
-    email: EmailStrDNS
-    socials: list[OrganizationSocialLink] = Field(min_length=1)
-    details: Annotated[
-        OrganizationReviewSubmissionDetails,
-        BeforeValidator(_empty_review_submission_details_to_dict),
-    ]
-
-
-class OrganizationReviewSubmissionBody(Schema):
-    body: OrganizationReviewSubmission
 
 
 class OrganizationPaymentStatus(Schema):
@@ -570,166 +502,6 @@ class OrganizationPaymentStatus(Schema):
     organization_status: OrganizationStatus = Field(
         description="Current organization status"
     )
-
-
-class OrganizationAppealRequest(Schema):
-    reason: Annotated[
-        str,
-        StringConstraints(min_length=50, max_length=5000),
-        Field(
-            description="Detailed explanation of why this organization should be approved. Minimum 50 characters."
-        ),
-    ]
-
-
-class OrganizationAppealResponse(Schema):
-    success: bool = Field(description="Whether the appeal was successfully submitted")
-    message: str = Field(description="Success or error message")
-    appeal_submitted_at: datetime = Field(description="When the appeal was submitted")
-
-
-class OrganizationReviewStatus(Schema):
-    verdict: Literal["PASS", "FAIL", "UNCERTAIN"] | None = Field(
-        default=None, description="AI validation verdict"
-    )
-    reason: str | None = Field(default=None, description="Reason for the verdict")
-    appeal_submitted_at: datetime | None = Field(
-        default=None, description="When appeal was submitted"
-    )
-    appeal_reason: str | None = Field(default=None, description="Reason for the appeal")
-    appeal_decision: OrganizationReview.AppealDecision | None = Field(
-        default=None, description="Decision on the appeal (approved/rejected)"
-    )
-    appeal_reviewed_at: datetime | None = Field(
-        default=None, description="When appeal was reviewed"
-    )
-
-
-class OrganizationReviewCheckKey(StrEnum):
-    """Stable identifiers for each check. Adding a new key is a coordinated FE+BE change."""
-
-    IDENTITY_EMAIL = "identity.email"
-    IDENTITY_SOCIAL_LINKS = "identity.social_links"
-    IDENTITY_STRIPE_VERIFICATION = "identity.stripe_identity_verification"
-    PRODUCT_DESCRIPTION = "product_description"
-    PRODUCT_URL = "product_url"
-    PAYOUT_ACCOUNT = "payout_account"
-    PRODUCT_CONFIGURATION = "product_configuration"
-    SETUP_READINESS = "setup_readiness"
-
-
-class OrganizationReviewCheckStatus(StrEnum):
-    PASSED = "passed"
-    WARNING = "warning"  # attention flag; does NOT block submission
-    FAILED = "failed"
-    PENDING = "pending"
-
-
-class OrganizationReviewCheckReason(StrEnum):
-    """Reasons explaining a check's status. Scoped reasons are namespaced
-    with the prefix of the check key they apply to."""
-
-    # Universal
-    NOT_STARTED = "not_started"
-    IN_PROGRESS = "in_progress"
-    EXTERNAL_PENDING = "external_pending"
-
-    # Identity
-    IDENTITY_REJECTED = "identity.rejected"
-    IDENTITY_PERSONAL_EMAIL = "identity.personal_email"
-    IDENTITY_DOMAIN_MISMATCH = "identity.domain_mismatch"
-
-    # Product URL
-    PRODUCT_URL_UNREACHABLE = "product_url.unreachable"
-
-    # Payout account
-    PAYOUT_ACCOUNT_REQUIREMENTS_DUE = "payout_account.requirements_due"
-    PAYOUT_ACCOUNT_PAYOUTS_DISABLED = "payout_account.payouts_disabled"
-
-    # Setup readiness
-    SETUP_READINESS_WEBHOOK_MISSING = "setup_readiness.webhook_missing"
-    SETUP_READINESS_CHECKOUT_LINK_NOT_FULFILLABLE = (
-        "setup_readiness.checkout_link_not_fulfillable"
-    )
-
-
-class OrganizationReviewSubCheckKey(StrEnum):
-    """Stable identifiers for nested sub-checks inside a parent check."""
-
-    SETUP_READINESS_CHECKOUT_LINK = "setup_readiness.checkout_link"
-    SETUP_READINESS_ACCESS_TOKEN = "setup_readiness.access_token"
-    SETUP_READINESS_WEBHOOK = "setup_readiness.webhook"
-
-
-class OrganizationReviewSubCheck(Schema):
-    """A nested sub-item that contributes to a parent check's rolled-up status.
-
-    Sub-checks expose the per-component breakdown for aggregate checks (e.g.
-    `setup_readiness`) so the frontend doesn't have to re-derive which path
-    is configured. The parent's `status` is the source of truth for gating;
-    reasons explaining a sub-item live on the sub-check itself.
-    """
-
-    key: OrganizationReviewSubCheckKey
-    status: OrganizationReviewCheckStatus
-    reasons: list[OrganizationReviewCheckReason] = Field(
-        default_factory=list,
-        description="Reasons for the sub-check's current status. Empty when `passed`.",
-    )
-    value: str | None = Field(
-        default=None,
-        description="Optional contextual value associated with the sub-check.",
-    )
-
-
-class OrganizationReviewCheck(Schema):
-    """A single item in the self-review checklist."""
-
-    key: OrganizationReviewCheckKey
-    status: OrganizationReviewCheckStatus
-    reasons: list[OrganizationReviewCheckReason] = Field(
-        default_factory=list,
-        description="Reasons for the current status. Empty when `passed`.",
-    )
-    value: str | None = Field(
-        default=None,
-        description=(
-            "Optional contextual value associated with the check, e.g. the "
-            "product URL for the `product_url` check."
-        ),
-    )
-    sub_checks: list[OrganizationReviewSubCheck] = Field(
-        default_factory=list,
-        description=(
-            "Per-component breakdown, populated only for aggregate checks "
-            "(currently `setup_readiness`). The parent `status` is the "
-            "source of truth for gating."
-        ),
-    )
-
-
-class OrganizationReviewAppeal(Schema):
-    submitted_at: datetime
-    reviewed_at: datetime | None = None
-    decision: OrganizationReview.AppealDecision | None = None
-
-
-OrganizationReviewVerdict = Literal["pass", "fail"]
-
-
-class OrganizationReviewState(Schema):
-    """Merchant self-review checklist. Frozen once `submitted_at` is set."""
-
-    can_submit: bool = Field(
-        description=(
-            "True when `submitted_at` is null AND no preliminary check is "
-            "`failed` or `pending`. Warnings do not block submission."
-        )
-    )
-    submitted_at: datetime | None = None
-    verdict: OrganizationReviewVerdict | None = None
-    appeal: OrganizationReviewAppeal | None = None
-    preliminary_steps: list[OrganizationReviewCheck] = Field(default_factory=list)
 
 
 class OrganizationDeletionBlockedReason(StrEnum):

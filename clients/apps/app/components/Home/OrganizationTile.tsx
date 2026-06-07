@@ -27,10 +27,7 @@ export const OrganizationTile = ({
       <Box flex={1} flexDirection="column" justifyContent="space-between">
         <Avatar
           name={organization.name}
-          image={organization.avatar_url}
-          backgroundColor={
-            organization.avatar_url ? undefined : theme.colors.primary
-          }
+          backgroundColor={theme.colors.primary}
         />
         <Box flexDirection="column" gap="spacing-4">
           <Text

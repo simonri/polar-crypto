@@ -1,14 +1,11 @@
 from datetime import UTC, datetime
 from enum import StrEnum
-from typing import TYPE_CHECKING, Annotated, Any, Literal, NotRequired, Self, TypedDict
-from urllib.parse import urlparse
+from typing import TYPE_CHECKING, Any, Literal, NotRequired, TypedDict
 from uuid import UUID
 
-from pydantic.json_schema import WithJsonSchema
 from sqlalchemy import (
     TIMESTAMP,
     BigInteger,
-    CheckConstraint,
     ColumnElement,
     ForeignKey,
     Integer,
@@ -17,18 +14,12 @@ from sqlalchemy import (
     UniqueConstraint,
     Uuid,
     and_,
-    or_,
 )
 from sqlalchemy.dialects.postgresql import CITEXT, JSONB
 from sqlalchemy.ext.hybrid import hybrid_property
 from sqlalchemy.orm import Mapped, declared_attr, mapped_column, relationship
 
 from polar.config import settings
-from polar.enums import (
-    InvoiceNumbering,
-    SubscriptionProrationBehavior,
-    TaxBehaviorOption,
-)
 from polar.exceptions import PolarError
 from polar.kit.currency import PresentmentCurrency
 from polar.kit.db.models import RateLimitGroupMixin, RecordModel
@@ -39,9 +30,6 @@ from .account import Account
 if TYPE_CHECKING:
     from polar.email.sender import EmailFromReply
 
-    from .organization_agent_review import OrganizationAgentReview
-    from .organization_review import OrganizationReview
-    from .organization_review_feedback import OrganizationReviewFeedback
     from .payout_account import PayoutAccount
     from .product import Product
 
@@ -71,50 +59,12 @@ class OrganizationDetails(TypedDict, total=False):
     previous_annual_revenue: int
 
 
-class OrganizationNotificationSettings(TypedDict):
-    new_order: bool
-    new_subscription: bool
-
-
-_default_notification_settings: OrganizationNotificationSettings = {
-    "new_order": True,
-    "new_subscription": True,
-}
-
-
 class OrganizationSubscriptionSettings(TypedDict):
-    allow_multiple_subscriptions: bool
-    proration_behavior: Annotated[
-        SubscriptionProrationBehavior,
-        WithJsonSchema(
-            {
-                "enum": ["invoice", "prorate", "next_period"],
-                "title": "PublicSubscriptionProrationBehavior",
-                "type": "string",
-            }
-        ),
-    ]
-    benefit_revocation_grace_period: int
-    prevent_trial_abuse: bool
-    # Legacy - to be removed separately
     allow_customer_updates: bool
 
 
 _default_subscription_settings: OrganizationSubscriptionSettings = {
-    "allow_multiple_subscriptions": False,
     "allow_customer_updates": True,
-    "proration_behavior": SubscriptionProrationBehavior.prorate,
-    "benefit_revocation_grace_period": 0,
-    "prevent_trial_abuse": False,
-}
-
-
-class OrganizationOrderSettings(TypedDict):
-    invoice_numbering: InvoiceNumbering
-
-
-_default_order_settings: OrganizationOrderSettings = {
-    "invoice_numbering": InvoiceNumbering.customer,
 }
 
 
@@ -152,7 +102,6 @@ class CustomerPortalUsageSettings(TypedDict):
 
 
 class CustomerPortalSubscriptionSettings(TypedDict):
-    update_seats: bool
     update_plan: bool
 
 
@@ -169,7 +118,6 @@ class OrganizationCustomerPortalSettings(TypedDict):
 _default_customer_portal_settings: OrganizationCustomerPortalSettings = {
     "usage": {"show": True},
     "subscription": {
-        "update_seats": True,
         "update_plan": True,
     },
     "customer": {
@@ -202,6 +150,8 @@ OrganizationLegalEntity = (
 
 
 class OrganizationStatus(StrEnum):
+    # Legacy values kept in enum so existing DB rows load without error.
+    # All new organizations start as ACTIVE; the review workflow is removed.
     CREATED = "created"
     REVIEW = "review"
     SNOOZED = "snoozed"
@@ -219,21 +169,6 @@ class OrganizationStatus(StrEnum):
             OrganizationStatus.ACTIVE: "Active",
             OrganizationStatus.BLOCKED: "Blocked",
             OrganizationStatus.OFFBOARDING: "Offboarding",
-        }[self]
-
-    @classmethod
-    def review_statuses(cls) -> set[Self]:
-        return {cls.REVIEW, cls.SNOOZED}  # pyright: ignore
-
-
-class SnoozeType(StrEnum):
-    TIME_BASED = "time_based"
-    NEXT_SALE = "next_sale"
-
-    def get_display_name(self) -> str:
-        return {
-            SnoozeType.TIME_BASED: "Auto re-review after X days",
-            SnoozeType.NEXT_SALE: "Re-review on next sale after X days",
         }[self]
 
 
@@ -361,107 +296,38 @@ CAPABILITY_METADATA: dict[CapabilityName, tuple[str, str]] = {
 CAPABILITY_NAMES: frozenset[str] = frozenset(CAPABILITY_METADATA.keys())
 
 
-# DENIED → ACTIVE and BLOCKED → ACTIVE additionally require a reason,
-# enforced at the service layer.
 ALLOWED_STATUS_TRANSITIONS: dict[OrganizationStatus, frozenset[OrganizationStatus]] = {
     OrganizationStatus.CREATED: frozenset(
-        {
-            OrganizationStatus.REVIEW,
-            OrganizationStatus.ACTIVE,
-            OrganizationStatus.DENIED,
-            OrganizationStatus.BLOCKED,
-        }
+        {OrganizationStatus.ACTIVE, OrganizationStatus.BLOCKED}
     ),
     OrganizationStatus.REVIEW: frozenset(
-        {
-            OrganizationStatus.ACTIVE,
-            OrganizationStatus.SNOOZED,
-            OrganizationStatus.DENIED,
-            OrganizationStatus.OFFBOARDING,
-            OrganizationStatus.BLOCKED,
-        }
+        {OrganizationStatus.ACTIVE, OrganizationStatus.BLOCKED}
     ),
     OrganizationStatus.SNOOZED: frozenset(
-        {
-            OrganizationStatus.REVIEW,
-            OrganizationStatus.ACTIVE,
-            OrganizationStatus.DENIED,
-            OrganizationStatus.BLOCKED,
-        }
-    ),
-    OrganizationStatus.ACTIVE: frozenset(
-        {
-            OrganizationStatus.REVIEW,
-            OrganizationStatus.DENIED,
-            OrganizationStatus.BLOCKED,
-        }
+        {OrganizationStatus.ACTIVE, OrganizationStatus.BLOCKED}
     ),
     OrganizationStatus.DENIED: frozenset(
-        {
-            OrganizationStatus.CREATED,
-            OrganizationStatus.ACTIVE,
-            OrganizationStatus.BLOCKED,
-        }
+        {OrganizationStatus.ACTIVE, OrganizationStatus.BLOCKED}
     ),
-    OrganizationStatus.OFFBOARDING: frozenset(
-        {
-            OrganizationStatus.DENIED,
-            OrganizationStatus.BLOCKED,
-        }
+    OrganizationStatus.ACTIVE: frozenset(
+        {OrganizationStatus.BLOCKED, OrganizationStatus.OFFBOARDING}
     ),
-    OrganizationStatus.BLOCKED: frozenset(
-        {
-            OrganizationStatus.CREATED,
-            OrganizationStatus.ACTIVE,
-        }
-    ),
+    OrganizationStatus.OFFBOARDING: frozenset({OrganizationStatus.BLOCKED}),
+    OrganizationStatus.BLOCKED: frozenset({OrganizationStatus.ACTIVE}),
 }
-
-# Default `next_review_threshold` (in cents). Used at organization creation,
-# as the fallback when reactivating from DENIED/BLOCKED, and as the upper
-# bound that qualifies an org as still being in its "first review" cycle
-# (alongside `initially_reviewed_at IS NULL` — either condition is enough).
-FIRST_REVIEW_THRESHOLD_CENTS = 1000
 
 
 class Organization(RateLimitGroupMixin, RecordModel):
     __tablename__ = "organizations"
-    __table_args__ = (
-        UniqueConstraint("slug"),
-        CheckConstraint(
-            "next_review_threshold >= 0", name="next_review_threshold_positive"
-        ),
-    )
+    __table_args__ = (UniqueConstraint("slug"),)
 
     name: Mapped[str] = mapped_column(String, nullable=False, index=True)
     slug: Mapped[str] = mapped_column(CITEXT, nullable=False, unique=True)
     slug_history: Mapped[list[dict[str, Any]]] = mapped_column(
         JSONB, nullable=False, default=list, server_default="[]"
     )
-    _avatar_url: Mapped[str | None] = mapped_column(
-        String, name="avatar_url", nullable=True
-    )
-
     email: Mapped[str | None] = mapped_column(String, nullable=True, default=None)
     website: Mapped[str | None] = mapped_column(String, nullable=True, default=None)
-
-    @property
-    def avatar_url(self) -> str | None:
-        if self._avatar_url:
-            return self._avatar_url
-
-        if not self.website or not settings.LOGO_DEV_PUBLISHABLE_KEY:
-            return None
-
-        parsed = urlparse(self.website)
-        domain = parsed.netloc or parsed.path
-        domain = domain.lower().removeprefix("www.")
-
-        return f"https://img.logo.dev/{domain}?size=64&retina=true&token={settings.LOGO_DEV_PUBLISHABLE_KEY}&fallback=404"
-
-    @avatar_url.setter
-    def avatar_url(self, value: str | None) -> None:
-        self._avatar_url = value
 
     socials: Mapped[list[OrganizationSocials]] = mapped_column(
         JSONB, nullable=False, default=list
@@ -473,34 +339,13 @@ class Organization(RateLimitGroupMixin, RecordModel):
         TIMESTAMP(timezone=True)
     )
 
-    customer_invoice_prefix: Mapped[str] = mapped_column(String, nullable=False)
-    customer_invoice_next_number: Mapped[int] = mapped_column(
-        Integer, nullable=False, default=1
-    )
-
     status: Mapped[OrganizationStatus] = mapped_column(
         StringEnum(OrganizationStatus),
         nullable=False,
-        default=OrganizationStatus.CREATED,
-    )
-    next_review_threshold: Mapped[int] = mapped_column(
-        Integer, nullable=False, default=FIRST_REVIEW_THRESHOLD_CENTS
+        default=OrganizationStatus.ACTIVE,
     )
     status_updated_at: Mapped[datetime | None] = mapped_column(
         TIMESTAMP(timezone=True), nullable=True
-    )
-    initially_reviewed_at: Mapped[datetime | None] = mapped_column(
-        TIMESTAMP(timezone=True), nullable=True
-    )
-
-    snooze_count: Mapped[int] = mapped_column(
-        Integer, nullable=False, default=0, server_default="0"
-    )
-    snoozed_until: Mapped[datetime | None] = mapped_column(
-        TIMESTAMP(timezone=True), nullable=True, default=None
-    )
-    snooze_type: Mapped[SnoozeType | None] = mapped_column(
-        StringEnum(SnoozeType), nullable=True, default=None
     )
 
     total_balance: Mapped[int | None] = mapped_column(
@@ -540,7 +385,7 @@ class Organization(RateLimitGroupMixin, RecordModel):
     capabilities: Mapped[OrganizationCapabilities] = mapped_column(
         JSONB,
         nullable=False,
-        default=lambda: {**STATUS_CAPABILITIES[OrganizationStatus.CREATED]},
+        default=lambda: {**STATUS_CAPABILITIES[OrganizationStatus.ACTIVE]},
     )
 
     country: Mapped[str | None] = mapped_column(String(2), nullable=True, default=None)
@@ -551,14 +396,6 @@ class Organization(RateLimitGroupMixin, RecordModel):
 
     subscription_settings: Mapped[OrganizationSubscriptionSettings] = mapped_column(
         JSONB, nullable=False, default=_default_subscription_settings
-    )
-
-    order_settings: Mapped[OrganizationOrderSettings] = mapped_column(
-        JSONB, nullable=False, default=_default_order_settings
-    )
-
-    notification_settings: Mapped[OrganizationNotificationSettings] = mapped_column(
-        JSONB, nullable=False, default=_default_notification_settings
     )
 
     customer_email_settings: Mapped[OrganizationCustomerEmailSettings] = mapped_column(
@@ -593,22 +430,12 @@ class Organization(RateLimitGroupMixin, RecordModel):
     def is_member_model_enabled(self) -> bool:
         return self.feature_settings.get("member_model_enabled", False)
 
-    @property
-    def is_account_review_v2_enabled(self) -> bool:
-        return self.feature_settings.get("account_review_v2_enabled", False)
-
     #
     # Currency and tax settings
     #
     default_presentment_currency: Mapped[PresentmentCurrency] = mapped_column(
         String(3), nullable=False, default="usd"
     )
-    default_tax_behavior: Mapped[TaxBehaviorOption] = mapped_column(
-        StringEnum(TaxBehaviorOption),
-        nullable=False,
-        default=TaxBehaviorOption.location,
-    )
-
     #
     # Fields synced from GitHub
     #
@@ -699,33 +526,6 @@ class Organization(RateLimitGroupMixin, RecordModel):
         self.status_updated_at = datetime.now(UTC)
         self.capabilities = {**STATUS_CAPABILITIES[status]}
 
-    @hybrid_property
-    def is_under_review(self) -> bool:
-        return self.status in OrganizationStatus.review_statuses()
-
-    @is_under_review.inplace.expression
-    @classmethod
-    def _is_under_review_expression(cls) -> ColumnElement[bool]:
-        return cls.status.in_(OrganizationStatus.review_statuses())
-
-    @hybrid_property
-    def is_first_review(self) -> bool:
-        return self.status == OrganizationStatus.REVIEW and (
-            self.initially_reviewed_at is None
-            or self.next_review_threshold <= FIRST_REVIEW_THRESHOLD_CENTS
-        )
-
-    @is_first_review.inplace.expression
-    @classmethod
-    def _is_first_review_expression(cls) -> ColumnElement[bool]:
-        return and_(
-            cls.status == OrganizationStatus.REVIEW,
-            or_(
-                cls.initially_reviewed_at.is_(None),
-                cls.next_review_threshold <= FIRST_REVIEW_THRESHOLD_CENTS,
-            ),
-        )
-
     @property
     def polar_site_url(self) -> str:
         return f"{settings.FRONTEND_BASE_URL}/{self.slug}"
@@ -733,34 +533,6 @@ class Organization(RateLimitGroupMixin, RecordModel):
     @property
     def account_url(self) -> str:
         return f"{settings.FRONTEND_BASE_URL}/dashboard/{self.slug}/finance/account"
-
-    @property
-    def allow_multiple_subscriptions(self) -> bool:
-        return self.subscription_settings["allow_multiple_subscriptions"]
-
-    @property
-    def proration_behavior(self) -> SubscriptionProrationBehavior:
-        return SubscriptionProrationBehavior(
-            self.subscription_settings["proration_behavior"]
-        )
-
-    @property
-    def benefit_revocation_grace_period(self) -> int:
-        return self.subscription_settings["benefit_revocation_grace_period"]
-
-    @property
-    def prevent_trial_abuse(self) -> bool:
-        return self.subscription_settings.get("prevent_trial_abuse", False)
-
-    @property
-    def invoice_numbering(self) -> InvoiceNumbering:
-        return InvoiceNumbering(self.order_settings["invoice_numbering"])
-
-    @property
-    def customer_portal_subscription_update_seats(self) -> bool:
-        return self.customer_portal_settings.get("subscription", {}).get(
-            "update_seats", True
-        )
 
     @property
     def customer_portal_subscription_update_plan(self) -> bool:
@@ -790,34 +562,6 @@ class Organization(RateLimitGroupMixin, RecordModel):
             viewonly=True,
         )
 
-    @declared_attr
-    def review(cls) -> Mapped["OrganizationReview | None"]:
-        return relationship(
-            "OrganizationReview",
-            lazy="raise",
-            back_populates="organization",
-            cascade="delete, delete-orphan",
-            uselist=False,  # This makes it a one-to-one relationship
-        )
-
-    @declared_attr
-    def agent_reviews(cls) -> Mapped[list["OrganizationAgentReview"]]:
-        return relationship(
-            "OrganizationAgentReview",
-            lazy="raise",
-            back_populates="organization",
-        )
-
-    @declared_attr
-    def review_feedbacks(
-        cls,
-    ) -> Mapped[list["OrganizationReviewFeedback"]]:
-        return relationship(
-            "OrganizationReviewFeedback",
-            lazy="raise",
-            back_populates="organization",
-        )
-
     def is_blocked(self) -> bool:
         return self.status == OrganizationStatus.BLOCKED
 
@@ -825,16 +569,11 @@ class Organization(RateLimitGroupMixin, RecordModel):
         return self.status == OrganizationStatus.ACTIVE
 
     def statement_descriptor(self, suffix: str = "") -> str:
-        max_length = settings.stripe_descriptor_suffix_max_length
+        max_length = 22
         if suffix:
             space_for_slug = max_length - len(suffix)
             return self.slug[:space_for_slug] + suffix
         return self.slug[:max_length]
-
-    @property
-    def statement_descriptor_prefixed(self) -> str:
-        # Cannot use *. Setting separator to # instead.
-        return f"{settings.STRIPE_STATEMENT_DESCRIPTOR}# {self.statement_descriptor()}"
 
     @property
     def email_from_reply(self) -> "EmailFromReply":

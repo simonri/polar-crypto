@@ -7,7 +7,7 @@ Open source payment infrastructure platform for developers. Monorepo with Python
 ```bash
 # Backend (http://127.0.0.1:8000)
 cd server
-docker compose up -d          # Start PostgreSQL, Redis, Minio
+docker compose up -d          # Start PostgreSQL, Redis
 uv sync && uv run task api    # Install deps & start API
 
 # Frontend (http://127.0.0.1:3000)
@@ -88,6 +88,5 @@ For Stripe, add to `server/.env`:
 
 - **Stripe**: Payment processing
 - **GitHub**: Authentication and repository features
-- **S3/Minio**: File storage
 - **Redis**: Cache and job queue
 - **PostgreSQL**: Primary database

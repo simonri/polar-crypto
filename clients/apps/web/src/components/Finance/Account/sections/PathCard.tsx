@@ -1,8 +1,8 @@
 'use client'
 
-import { schemas } from '@polar-sh/client'
 import { Text } from '@polar-sh/orbit'
 import { Box } from '@polar-sh/orbit/Box'
+import type { OrganizationReviewCheckStatus } from './index'
 import Pill from '@polar-sh/ui/components/atoms/Pill'
 import { ExternalLinkIcon } from 'lucide-react'
 import Link from 'next/link'
@@ -15,13 +15,13 @@ export interface PathCardProps {
   onClick?: () => void
   recommended?: boolean
   required?: boolean
-  status?: schemas['OrganizationReviewCheckStatus']
+  status?: OrganizationReviewCheckStatus
   docsUrl?: string
   extra?: ReactNode
 }
 
 interface BadgeProps {
-  status?: schemas['OrganizationReviewCheckStatus']
+  status?: OrganizationReviewCheckStatus
   required?: boolean
   recommended?: boolean
 }
@@ -71,7 +71,7 @@ interface InnerProps {
   title: string
   description: string
   docsUrl?: string
-  status?: schemas['OrganizationReviewCheckStatus']
+  status?: OrganizationReviewCheckStatus
   required?: boolean
   recommended?: boolean
 }

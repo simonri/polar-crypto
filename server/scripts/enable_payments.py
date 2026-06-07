@@ -11,7 +11,6 @@ from polar.kit.db.postgres import create_async_sessionmaker
 from polar.kit.utils import utc_now
 from polar.models.organization import Organization, OrganizationStatus
 from polar.models.organization_review import OrganizationReview
-from polar.models.user import IdentityVerificationStatus
 from polar.models.user_organization import UserOrganization
 from polar.postgres import create_async_engine
 from polar.redis import create_redis
@@ -50,15 +49,6 @@ def enable_payments(slug: str) -> None:
                 user_repository = UserRepository.from_session(session)
                 user = await user_repository.get_by_id(user_id)
                 assert user is not None
-                await user_repository.update(
-                    user,
-                    update_dict={
-                        "identity_verification_status": IdentityVerificationStatus.verified,
-                        "identity_verification_id": f"vs_{slug}_dev",
-                    },
-                )
-                typer.echo(f"Verified identity for user {user.email}")
-
                 if not organization.details:
                     organization.details = {
                         "about": "Dev organization",

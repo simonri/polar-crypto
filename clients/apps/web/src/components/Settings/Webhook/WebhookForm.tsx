@@ -129,9 +129,7 @@ export const FieldFormat = () => {
     if (!url) {
       return
     }
-    if (url.startsWith('https://discord.com/api/webhooks')) {
-      setValue('format', 'discord')
-    } else if (url.startsWith('https://hooks.slack.com/services/')) {
+    if (url.startsWith('https://hooks.slack.com/services/')) {
       setValue('format', 'slack')
     }
   }, [url, setValue])
@@ -159,7 +157,6 @@ export const FieldFormat = () => {
               </SelectTrigger>
               <SelectContent>
                 <SelectItem value="raw">Raw</SelectItem>
-                <SelectItem value="discord">Discord</SelectItem>
                 <SelectItem value="slack">Slack</SelectItem>
               </SelectContent>
             </Select>

@@ -2,7 +2,6 @@ import ArrowOutwardOutlined from '@mui/icons-material/ArrowOutwardOutlined'
 import Link from 'next/link'
 import { PropsWithChildren } from 'react'
 import { PolarLogotype } from '../Layout/Public/PolarLogotype'
-import { CookiePreferencesButton } from '../Privacy/CookiePreferencesButton'
 
 const Footer = () => {
   return (
@@ -34,14 +33,9 @@ const Footer = () => {
           <div className="flex flex-col gap-y-4 text-sm">
             <h3 className="dark:text-polar-500 text-gray-500">Features</h3>
             <div className="flex flex-col gap-y-3">
-              <FooterLink href="/features/usage-billing">
-                Usage Billing
-              </FooterLink>
               <FooterLink href="/features/subscriptions">
                 Subscriptions
               </FooterLink>
-              <FooterLink href="/features/seats">Seats</FooterLink>
-              <FooterLink href="/features/credits">Credits</FooterLink>
               <FooterLink href="/features/trials">Trials</FooterLink>
               <FooterLink href="/features/discounts">Discounts</FooterLink>
               <FooterLink href="/features/cost-insights">
@@ -76,7 +70,6 @@ const Footer = () => {
                 Brand Assets
               </FooterLink>
               <FooterLink href="https://polar.sh/legal">Legal</FooterLink>
-              <CookiePreferencesButton />
             </div>
           </div>
           <div className="flex flex-col gap-y-4 text-sm">

@@ -1,53 +1,35 @@
-import builtins
 import contextlib
 import uuid
 from collections.abc import Generator
 from datetime import UTC, datetime
-from typing import Annotated, Any, Literal, override
+from typing import Annotated, Any, override
 
-import stripe as stripe_lib
 import structlog
 from fastapi import APIRouter, Depends, HTTPException, Query, Request
 from fastapi.responses import HTMLResponse, RedirectResponse
 from pydantic import UUID4, BeforeValidator, ValidationError
 from pydantic_core import PydanticCustomError
-from sqlalchemy import or_, select
+from sqlalchemy import or_
 from sqlalchemy.orm import contains_eager, joinedload
 from sse_starlette.sse import EventSourceResponse
 from tagflow import classes, document, tag, text
 
-from polar.file.repository import FileRepository
-from polar.file.service import file as file_service
-from polar.file.sorting import FileSortProperty
 from polar.integrations.plain.service import plain as plain_service
 from polar.integrations.polar.service import polar_self as polar_self_service
-from polar.integrations.stripe.service import stripe as stripe_service
 from polar.kit.currency import format_currency
 from polar.kit.pagination import PaginationParams
-from polar.kit.schemas import empty_str_to_none
-from polar.kit.sorting import Sorting
 from polar.models import (
     Account,
-    File,
     Organization,
-    User,
-    UserOrganization,
 )
-from polar.models.file import FileServiceTypes
 from polar.models.organization import OrganizationStatus
-from polar.models.organization_review import OrganizationReview
-from polar.models.transaction import TransactionType
-from polar.models.user import IdentityVerificationStatus
 from polar.models.user_session import UserSession
 from polar.organization import sorting
 from polar.organization.repository import OrganizationRepository
 from polar.organization.schemas import OrganizationFeatureSettings
 from polar.organization.service import organization as organization_service
 from polar.organization.sorting import OrganizationSortProperty
-from polar.organization_review.repository import OrganizationReviewRepository
-from polar.organization_review.schemas import DecisionType, ReviewContext, ReviewVerdict
 from polar.postgres import AsyncSession, get_db_read_session, get_db_session
-from polar.transaction.service.transaction import transaction as transaction_service
 from polar.user.repository import UserRepository
 from polar.user_organization.service import (
     CannotRemoveOrganizationOwner,
@@ -60,29 +42,19 @@ from polar.user_organization.service import (
     user_organization as user_organization_service,
 )
 
-from .. import formatters
 from ..components import accordion, button, datatable, description_list, input, modal
 from ..dependencies import get_admin
 from ..layout import layout
 from ..responses import HXRedirectResponse
 from ..toast import add_toast
-from .account_review._ai_review import AIReviewVerdict
-from .account_review._payment_verdict import PaymentVerdict
-from .account_review._setup_verdict import SetupVerdict
-from .analytics import (
-    OrganizationSetupAnalyticsService,
-    PaymentAnalyticsService,
-)
 from .forms import (
     AddPaymentMethodDomainForm,
     OrganizationOrdersImportForm,
-    OrganizationStatusFormAdapter,
     UpdateOrganizationDetailsForm,
     UpdateOrganizationForm,
     UpdateOrganizationInternalNotesForm,
 )
 from .orders_import import orders_import_sse
-from .schemas import PaymentStatistics, SetupVerdictData
 
 router = APIRouter()
 
@@ -113,10 +85,9 @@ def organization_badge(organization: Organization) -> Generator[None]:
     with tag.div(classes="badge"):
         if organization.status == OrganizationStatus.ACTIVE:
             classes("badge-success")
-        elif (
-            organization.is_under_review
-            or organization.status == OrganizationStatus.DENIED
-            or organization.status == OrganizationStatus.OFFBOARDING
+        elif organization.status in (
+            OrganizationStatus.DENIED,
+            OrganizationStatus.OFFBOARDING,
         ):
             classes("badge-warning")
         else:
@@ -134,16 +105,6 @@ class OrganizationStatusColumn(
         return None
 
 
-class NextReviewThresholdColumn(
-    datatable.DatatableAttrColumn[Organization, OrganizationSortProperty]
-):
-    def render(self, request: Request, item: Organization) -> Generator[None] | None:
-        from babel.numbers import format_currency
-
-        text(format_currency(item.next_review_threshold, "usd"))
-        return None
-
-
 class DaysInStatusColumn(
     datatable.DatatableAttrColumn[Organization, OrganizationSortProperty]
 ):
@@ -155,117 +116,8 @@ class DaysInStatusColumn(
             delta = datetime.now(UTC) - item.created_at
             days = delta.days
 
-        if item.is_under_review:
-            text(f"{days} days in review")
-        else:
-            text(f"{days} days since review")
+        text(f"{days} days in status")
         return None
-
-
-async def get_payment_statistics(
-    session: AsyncSession, organization_id: UUID4
-) -> PaymentStatistics:
-    """Get all-time payment statistics for an organization."""
-
-    analytics_service = PaymentAnalyticsService(session)
-
-    # Get account ID for the organization
-    account_id = await analytics_service.get_organization_account_id(organization_id)
-
-    # Get payment statistics
-    (
-        payment_count,
-        total_payment_amount,
-    ) = await analytics_service.get_succeeded_payments_stats(organization_id)
-
-    # Calculate risk percentiles and level
-    risk_scores = await analytics_service.get_risk_scores(organization_id)
-    p50_risk, p90_risk = analytics_service.calculate_risk_percentiles(risk_scores)
-
-    # Get refund statistics
-    refunds_count, refunds_amount = await analytics_service.get_refund_stats(
-        organization_id
-    )
-
-    if account_id:
-        # Get transfer sum (used for review threshold checking)
-        transfer_sum = await transaction_service.get_transactions_sum(
-            session, account_id, type=TransactionType.balance
-        )
-    else:
-        transfer_sum = 0
-
-    return PaymentStatistics(
-        payment_count=payment_count,
-        p50_risk=p50_risk,
-        p90_risk=p90_risk,
-        refunds_count=refunds_count,
-        transfer_sum=transfer_sum,
-        refunds_amount=refunds_amount,
-        total_payment_amount=total_payment_amount,
-    )
-
-
-async def get_setup_verdict_data(
-    organization: Organization, session: AsyncSession
-) -> SetupVerdictData:
-    """Get enhanced setup verdict for an organization."""
-
-    analytics_service = OrganizationSetupAnalyticsService(session)
-
-    # Get all setup metrics using helper methods
-    checkout_links_count = await analytics_service.get_checkout_links_count(
-        organization.id
-    )
-    webhooks_count = await analytics_service.get_webhooks_count(organization.id)
-    org_tokens_count = await analytics_service.get_organization_tokens_count(
-        organization.id
-    )
-    products_count = await analytics_service.get_products_count(organization.id)
-    benefits_count = await analytics_service.get_benefits_count(organization.id)
-
-    # Check user verification status (get the first user as owner)
-    user_verified_result = await session.execute(
-        select(User.identity_verification_status)
-        .join(UserOrganization, User.id == UserOrganization.user_id)
-        .where(UserOrganization.organization_id == organization.id)
-        .limit(1)
-    )
-    user_verified_row = user_verified_result.first()
-    user_verified = (
-        user_verified_row[0] == IdentityVerificationStatus.verified
-        if user_verified_row
-        else False
-    )
-
-    # Check account charges and payouts enabled
-    payouts_enabled = await analytics_service.check_payout_account_enabled(organization)
-
-    # Calculate setup score using helper
-    setup_score = analytics_service.calculate_setup_score(
-        checkout_links_count=checkout_links_count,
-        webhooks_count=webhooks_count,
-        org_tokens_count=org_tokens_count,
-        products_count=products_count,
-        benefits_count=benefits_count,
-        user_verified=user_verified,
-        payouts_enabled=payouts_enabled,
-    )
-
-    return SetupVerdictData(
-        checkout_links_count=checkout_links_count,
-        webhooks_count=webhooks_count,
-        api_keys_count=org_tokens_count,  # Only organization tokens now
-        products_count=products_count,
-        benefits_count=benefits_count,
-        user_verified=user_verified,
-        payouts_enabled=payouts_enabled,
-        setup_score=setup_score,
-        benefits_configured=benefits_count > 0,
-        webhooks_configured=webhooks_count > 0,
-        products_configured=products_count > 0,
-        api_keys_created=org_tokens_count > 0,
-    )
 
 
 @router.get("/", name="organizations-classic:list")
@@ -279,14 +131,6 @@ async def list(
     organization_status: Annotated[
         OrganizationStatus | None,
         BeforeValidator(empty_str_to_none_before_enum),
-        Query(),
-    ] = None,
-    has_appealed: Annotated[
-        bool | None, BeforeValidator(empty_str_to_none_before_bool), Query()
-    ] = None,
-    review_cycle: Annotated[
-        Literal["first", "subsequent"] | None,
-        BeforeValidator(empty_str_to_none),
         Query(),
     ] = None,
 ) -> None:
@@ -313,37 +157,6 @@ async def list(
             )
     if organization_status:
         statement = statement.where(Organization.status == organization_status)
-
-    # Add appeal filter
-    if has_appealed is not None:
-        if has_appealed:
-            statement = statement.join(
-                OrganizationReview,
-                Organization.id == OrganizationReview.organization_id,
-            ).where(OrganizationReview.appeal_submitted_at.is_not(None))
-        else:
-            statement = statement.outerjoin(
-                OrganizationReview,
-                Organization.id == OrganizationReview.organization_id,
-            ).where(
-                or_(
-                    OrganizationReview.id.is_(None),
-                    OrganizationReview.appeal_submitted_at.is_(None),
-                )
-            )
-
-    # Add review cycle filter
-    if review_cycle:
-        statement = statement.where(Organization.status == OrganizationStatus.REVIEW)
-        match review_cycle:
-            case "first":
-                statement = statement.where(
-                    Organization.initially_reviewed_at.is_(None)
-                )
-            case "subsequent":
-                statement = statement.where(
-                    Organization.initially_reviewed_at.is_not(None)
-                )
 
     statement = repository.apply_sorting(statement, sorting)
     items, count = await repository.paginate(
@@ -382,28 +195,6 @@ async def list(
                         name="organization_status",
                     ):
                         pass
-                    with input.select(
-                        [
-                            ("All Appeal Statuses", ""),
-                            ("Has Appealed", "true"),
-                            ("Has Not Appealed", "false"),
-                        ],
-                        "true"
-                        if has_appealed is True
-                        else ("false" if has_appealed is False else ""),
-                        name="has_appealed",
-                    ):
-                        pass
-                    with input.select(
-                        [
-                            ("All Review Cycles", ""),
-                            ("First Review", "first"),
-                            ("Subsequent Review", "subsequent"),
-                        ],
-                        review_cycle or "",
-                        name="review_cycle",
-                    ):
-                        pass
                 with tag.div(classes="flex flex-row gap-2"):
                     with input.select(
                         [
@@ -440,11 +231,6 @@ async def list(
                     "Slug",
                     sorting=OrganizationSortProperty.slug,
                     clipboard=True,
-                ),
-                NextReviewThresholdColumn(
-                    "next_review_threshold",
-                    "Next Review Threshold",
-                    sorting=OrganizationSortProperty.next_review_threshold,
                 ),
                 DaysInStatusColumn(
                     "status_updated_at",
@@ -558,7 +344,6 @@ async def update(
     form_data = {
         "name": organization.name,
         "slug": organization.slug,
-        "customer_invoice_prefix": organization.customer_invoice_prefix,
         "feature_flags": {
             field_name: organization.feature_settings.get(field_name, False)
             for field_name in OrganizationFeatureSettings.model_fields.keys()
@@ -979,39 +764,10 @@ async def create_plain_thread(
         )
 
 
-class FileDownloadLinkColumn(datatable.DatatableColumn[File]):
-    """A column that displays a download link for a file."""
-
-    def __init__(self, label: str = "Download"):
-        super().__init__(label)
-
-    def render(self, request: Request, item: File) -> Generator[None]:
-        """Render a download link for the file."""
-        url, _ = file_service.generate_download_url(item)
-        with tag.a(
-            href=url, classes="btn btn-sm", target="_blank", rel="noopener noreferrer"
-        ):
-            with tag.div(classes="icon-download"):
-                pass
-            text("Download")
-        yield
-
-
-class FileSizeColumn(datatable.DatatableAttrColumn[File, FileSortProperty]):
-    """A column that displays file size with proper formatting."""
-
-    @override
-    def get_value(self, item: File) -> str | None:
-        raw_value: int | None = self.get_raw_value(item)
-        return formatters.file_size(raw_value) if raw_value is not None else None
-
-
 @router.api_route("/{id}", name="organizations-classic:get", methods=["GET", "POST"])
 async def get(
     request: Request,
     id: UUID4,
-    files_page: int = Query(1, ge=1),
-    files_limit: int = Query(10, ge=1, le=100),
     session: AsyncSession = Depends(get_db_session),
     user_session: UserSession = Depends(get_admin),
 ) -> Any:
@@ -1021,7 +777,6 @@ async def get(
         options=(
             joinedload(Organization.account),
             joinedload(Organization.payout_account),
-            joinedload(Organization.review),
         ),
         include_deleted=True,
         include_blocked=True,
@@ -1032,132 +787,6 @@ async def get(
 
     user_repository = UserRepository.from_session(session)
     users = await user_repository.get_all_by_organization(organization.id)
-
-    # Get setup, payment, and organization verdicts for account review sections
-    setup_verdict_data = await get_setup_verdict_data(organization, session)
-    payment_stats = await get_payment_statistics(session, organization.id)
-    setup_verdict = SetupVerdict(setup_verdict_data, organization)
-
-    validation_error: ValidationError | None = None
-    # Always show actions in the payment section (context-sensitive based on status)
-    show_actions = True
-    if request.method == "POST":
-        # This part handles the "Approve" action
-        # It's a POST to the current page URL, not the status update URL
-        data = await request.form()
-        try:
-            account_status = OrganizationStatusFormAdapter.validate_python(data)
-            review_repo = OrganizationReviewRepository.from_session(session)
-
-            # Fetch the AI verdict to determine if this is an override
-            agent_review = await review_repo.get_latest_agent_review(id)
-            ai_verdict: str | None = None
-            if agent_review:
-                parsed = agent_review.parsed_report
-                ai_verdict = parsed.report.verdict.value
-
-            reason = getattr(account_status, "reason", None)
-            reason = reason.strip() if reason else None
-
-            def _is_override(human_decision: DecisionType) -> bool:
-                """Check if the human decision contradicts the AI verdict."""
-                if ai_verdict is None:
-                    return False
-                return (
-                    human_decision == DecisionType.APPROVE
-                    and ai_verdict == ReviewVerdict.DENY.value
-                ) or (
-                    human_decision == DecisionType.DENY
-                    and ai_verdict == ReviewVerdict.APPROVE.value
-                )
-
-            if account_status.action == "approve":
-                if _is_override(DecisionType.APPROVE) and not reason:
-                    raise PydanticCustomError(
-                        "override_reason_required",
-                        "A reason is required when overriding the AI recommendation.",
-                    )
-                await review_repo.record_human_decision(
-                    organization_id=id,
-                    reviewer_id=user_session.user.id,
-                    decision=DecisionType.APPROVE,
-                    reason=reason,
-                )
-                await organization_service.confirm_organization_reviewed(
-                    session, organization, account_status.next_review_threshold
-                )
-            elif account_status.action == "deny":
-                if _is_override(DecisionType.DENY) and not reason:
-                    raise PydanticCustomError(
-                        "override_reason_required",
-                        "A reason is required when overriding the AI recommendation.",
-                    )
-                await review_repo.record_human_decision(
-                    organization_id=id,
-                    reviewer_id=user_session.user.id,
-                    decision=DecisionType.DENY,
-                    reason=reason,
-                )
-                await organization_service.deny_organization(session, organization)
-            elif account_status.action == "under_review":
-                await organization_service.set_organization_under_review(
-                    session, organization
-                )
-            elif account_status.action == "approve_appeal":
-                if _is_override(DecisionType.APPROVE) and not reason:
-                    raise PydanticCustomError(
-                        "override_reason_required",
-                        "A reason is required when overriding the AI recommendation.",
-                    )
-                await review_repo.record_human_decision(
-                    organization_id=id,
-                    reviewer_id=user_session.user.id,
-                    decision=DecisionType.APPROVE,
-                    review_context=ReviewContext.APPEAL,
-                    reason=reason,
-                )
-                await organization_service.approve_appeal(session, organization)
-            elif account_status.action == "deny_appeal":
-                if _is_override(DecisionType.DENY) and not reason:
-                    raise PydanticCustomError(
-                        "override_reason_required",
-                        "A reason is required when overriding the AI recommendation.",
-                    )
-                await review_repo.record_human_decision(
-                    organization_id=id,
-                    reviewer_id=user_session.user.id,
-                    decision=DecisionType.DENY,
-                    review_context=ReviewContext.APPEAL,
-                    reason=reason,
-                )
-                await organization_service.deny_appeal(session, organization)
-            elif account_status.action == "offboard":
-                await review_repo.record_human_decision(
-                    organization_id=id,
-                    reviewer_id=user_session.user.id,
-                    decision=DecisionType.DENY,
-                    reason=reason,
-                )
-                await organization_service.set_organization_offboarding(
-                    session, organization, reason=reason
-                )
-            return HXRedirectResponse(request, request.url, 303)
-        except PydanticCustomError as e:
-            await add_toast(request, str(e.message_template), variant="error")
-        except ValidationError as e:
-            validation_error = e
-
-    # Create payment verdict after validation_error is potentially set
-    payment_verdict = PaymentVerdict(
-        payment_stats,
-        organization,
-        show_actions,
-        request,
-        validation_error,
-    )
-
-    # Create AI review verdict
-    ai_review_verdict = AIReviewVerdict(organization.review, organization, request)
 
     with layout(
         request,
@@ -1484,61 +1113,6 @@ async def get(
                             with tag.p(classes="text-gray-400"):
                                 text("No internal notes yet")
 
-            # Organization Review Section
-            with tag.div(classes="mt-8"):
-                with tag.div(classes="flex items-center gap-4 mb-4"):
-                    with tag.h2(classes="text-2xl font-bold"):
-                        text("Organization Review")
-                    with organization_badge(organization):
-                        pass
-
-                with tag.div(
-                    classes="grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-3 gap-4"
-                ):
-                    with tag.div(classes="card card-border w-full shadow-sm"):
-                        with ai_review_verdict.render():
-                            pass
-
-                    with tag.div(classes="card card-border w-full shadow-sm"):
-                        with setup_verdict.render():
-                            pass
-
-                    with tag.div(classes="card card-border w-full shadow-sm"):
-                        with payment_verdict.render():
-                            pass
-
-            # Organization Files Section
-            with tag.div(classes="mt-8 flex flex-col gap-4", id="files"):
-                with tag.div(classes="flex items-center gap-4 mb-4"):
-                    with tag.h2(classes="text-2xl font-bold"):
-                        text("Downloadable Files")
-
-                sorting: builtins.list[Sorting[FileSortProperty]] = [
-                    (FileSortProperty.created_at, True)
-                ]
-                file_repository = FileRepository.from_session(session)
-                files, files_count = await file_repository.paginate_by_organization(
-                    organization.id,
-                    service=FileServiceTypes.downloadable,
-                    sorting=sorting,
-                    limit=files_limit,
-                    page=files_page,
-                )
-
-                with datatable.Datatable[File, FileSortProperty](
-                    datatable.DatatableAttrColumn("name", "Name"),
-                    datatable.DatatableDateTimeColumn("created_at", "Created At"),
-                    datatable.DatatableAttrColumn("mime_type", "MIME Type"),
-                    FileSizeColumn("size", "Size"),
-                    FileDownloadLinkColumn(),
-                    empty_message="No downloadable files found",
-                ).render(request, files, sorting=sorting):
-                    pass
-
-                with datatable.pagination(
-                    request, PaginationParams(files_page, files_limit), files_count
-                ):
-                    pass
 
 
 @router.get("/{id}/plain_search_url", name="organizations-classic:plain_search_url")
@@ -1678,7 +1252,6 @@ async def import_orders(
                     session,
                     organization,
                     form.file,
-                    invoice_number_prefix=form.invoice_number_prefix,
                 )
             )
         except ValidationError as e:
@@ -1686,7 +1259,7 @@ async def import_orders(
 
     with modal("Import Orders", open=True):
         with OrganizationOrdersImportForm.render(
-            {"invoice_number_prefix": "IMPORTED-"},
+            {},
             action=str(request.url),
             method="POST",
             classes="flex flex-col",
@@ -1728,26 +1301,15 @@ async def add_payment_method_domain(
         try:
             form = AddPaymentMethodDomainForm.model_validate_form(data)
 
-            # Create the payment method domain in Stripe
-            await stripe_service.create_payment_method_domain(form.domain_name)
-
             await add_toast(
                 request,
-                f"Successfully added {form.domain_name} to allowlist",
-                variant="success",
+                "Payment method domain allowlist not available (Stripe removed).",
+                variant="error",
             )
             return
 
         except ValidationError as e:
             validation_error = e
-        except stripe_lib.InvalidRequestError as e:
-            logger.error(
-                "Invalid request to Stripe API",
-                organization_id=id,
-                domain=data.get("domain_name"),
-                error=str(e),
-                error_code=e.code if hasattr(e, "code") else None,
-            )
             error_message = (
                 "Unable to add domain to allowlist. "
                 "Please verify the domain and try again."

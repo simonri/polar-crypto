@@ -61,12 +61,9 @@ const UpdateProduct = ({
 }) => {
   const updateSubscription = useUpdateSubscription(subscription.id)
 
-  const defaultProrationBehavior =
-    organization.subscription_settings.proration_behavior
-
   const form = useForm<schemas['SubscriptionUpdateProduct']>({
     defaultValues: {
-      proration_behavior: defaultProrationBehavior,
+      proration_behavior: 'prorate',
     },
   })
   const { control, handleSubmit, setError, watch } = form
@@ -209,7 +206,7 @@ const UpdateProduct = ({
                       {/* We need an extra div or the space-y-2 from FormItem adds spacing between the Radix select button & the hidden select */}
                       <ProrationBehavior
                         organization={organization}
-                        value={field.value || defaultProrationBehavior}
+                        value={field.value || 'prorate'}
                         onValueChange={field.onChange}
                       />
                     </div>
@@ -264,15 +261,16 @@ const UpdateProduct = ({
                   </p>
                 )}
                 <p className="text-sm text-yellow-700">
-                  By updating this subscription, the customer will get access to{' '}
-                  <strong className="font-medium">
-                    {selectedProduct.name}
-                  </strong>{' '}
-                  benefits, and lose access to{' '}
+                  By updating this subscription, the customer will be switched
+                  from{' '}
                   <strong className="font-medium">
                     {subscription.product.name}
                   </strong>{' '}
-                  benefits.
+                  to{' '}
+                  <strong className="font-medium">
+                    {selectedProduct.name}
+                  </strong>
+                  .
                 </p>
               </Box>
             )}

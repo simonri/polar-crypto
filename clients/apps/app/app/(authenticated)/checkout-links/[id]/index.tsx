@@ -36,7 +36,6 @@ type CheckoutLinkUpdateForm = {
   label: string
   success_url: string
   allow_discount_codes: boolean
-  require_billing_address: boolean
   metadata: { key: string; value: string }[]
 }
 
@@ -74,7 +73,6 @@ export default function CheckoutLinkDetails() {
       label: checkoutLink?.label ?? '',
       success_url: checkoutLink?.success_url ?? '',
       allow_discount_codes: checkoutLink?.allow_discount_codes ?? true,
-      require_billing_address: checkoutLink?.require_billing_address ?? false,
       metadata: Object.entries(checkoutLink?.metadata ?? {}).map(
         ([key, value]) => ({
           key,
@@ -143,7 +141,6 @@ export default function CheckoutLinkDetails() {
           label: data.label || null,
           success_url: data.success_url || null,
           allow_discount_codes: data.allow_discount_codes,
-          require_billing_address: data.require_billing_address,
           products: selectedProductIds,
           discount_id: selectedDiscountId,
           metadata: metadataFields.reduce(

@@ -3,7 +3,6 @@ from datetime import timedelta
 from unittest.mock import MagicMock
 
 import pytest
-import stripe as stripe_lib
 from dramatiq import Retry
 from pytest_mock import MockerFixture
 

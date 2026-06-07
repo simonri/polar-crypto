@@ -21,7 +21,6 @@ const ClientPage = ({
     <CustomerPortalOrder
       api={api}
       order={order}
-      customerSessionToken={customerSessionToken}
       themingPreset={themingPreset}
     />
   )

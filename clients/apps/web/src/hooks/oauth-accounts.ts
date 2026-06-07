@@ -20,9 +20,6 @@ const usePlatformOAuthAccount = (
   )
 }
 
-export const useGitHubAccount = (): schemas['OAuthAccountRead'] | undefined =>
-  usePlatformOAuthAccount('github')
-
 export const useGoogleAccount = (): schemas['OAuthAccountRead'] | undefined =>
   usePlatformOAuthAccount('google')
 

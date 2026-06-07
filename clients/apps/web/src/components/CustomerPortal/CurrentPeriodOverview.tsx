@@ -37,7 +37,6 @@ export const CurrentPeriodOverview = ({
     return null
   }
 
-  const hasMeters = subscription.meters.length > 0
   const hasTaxes = subscriptionPreview && subscriptionPreview.tax_amount > 0
   const hasDiscount =
     subscriptionPreview && subscriptionPreview.discount_amount > 0
@@ -46,13 +45,11 @@ export const CurrentPeriodOverview = ({
     (price) => price.amount_type === 'free',
   )
 
-  // For subscriptions set to cancel, only show if there are meters
-  if (isCancelingAtPeriodEnd && !hasMeters) {
+  if (isCancelingAtPeriodEnd) {
     return null
   }
 
-  // Don't show for free subscriptions with no meters
-  const hasNextInvoice = !isFreeProduct || hasMeters
+  const hasNextInvoice = !isFreeProduct
   if (!hasNextInvoice) {
     return null
   }
@@ -110,26 +107,6 @@ export const CurrentPeriodOverview = ({
           </div>
         )}
 
-        {hasMeters && (
-          <>
-            <span className="font-medium">Metered Charges</span>
-
-            {subscription.meters.map((meter) => (
-              <div key={meter.id} className="flex items-center justify-between">
-                <span className="dark:text-polar-400 text-gray-600">
-                  {meter.meter.name}
-                </span>
-                <span className="font-medium">
-                  {formatCurrency('compact')(
-                    meter.amount,
-                    subscription.currency,
-                  )}
-                </span>
-              </div>
-            ))}
-          </>
-        )}
-
         <div className="dark:border-polar-700 mt-2 border-t border-gray-200 pt-2">
           {(hasTaxes || hasDiscount) && (
             <div className="dark:text-polar-500 mb-1.5 flex items-center justify-between text-gray-500">
@@ -168,9 +145,7 @@ export const CurrentPeriodOverview = ({
           )}
 
           <div className="flex items-center justify-between">
-            <span className="font-medium">
-              {hasMeters ? 'Estimated Total' : 'Total'}
-            </span>
+            <span className="font-medium">Total</span>
             <span className="text-lg font-medium">
               {subscriptionPreview ? (
                 formatCurrency('compact')(
@@ -188,18 +163,6 @@ export const CurrentPeriodOverview = ({
           {isCancelingAtPeriodEnd && (
             <p className="max-w-sm text-xs text-gray-500">
               This will be the final charge before the subscription ends.
-              {hasMeters &&
-                ' Final amount may vary based on usage until the end of the billing period.'}
-            </p>
-          )}
-
-          {!isCancelingAtPeriodEnd && hasMeters && (
-            <p className="max-w-sm text-xs text-gray-500">
-              {isActive
-                ? 'Final charges may vary based on usage until the end of the billing period.'
-                : isTrialing
-                  ? 'Final charges may vary based on usage during the trial period.'
-                  : 'Final charges may vary.'}
             </p>
           )}
         </div>

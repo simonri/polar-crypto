@@ -1,5 +1,4 @@
 import uuid
-from datetime import UTC, datetime
 from unittest.mock import AsyncMock
 
 import pytest
@@ -143,8 +142,6 @@ class TestGetOrder:
 
         json = response.json()
         assert json["id"] == str(orders[0].id)
-        assert "receipt_number" in json
-        assert json["receipt_number"] is None
 
     @pytest.mark.auth(
         AuthSubjectFixture(subject="organization", scopes={Scope.orders_read}),
@@ -206,7 +203,7 @@ class TestExportOrders:
         assert len(csv_lines) == 1
         assert (
             csv_lines[0]
-            == "Email,Created At,Product,Amount,Currency,Status,Invoice number"
+            == "Email,Created At,Product,Amount,Currency,Status"
         )
 
     @pytest.mark.auth(
@@ -233,7 +230,7 @@ class TestExportOrders:
         # Verify header
         assert (
             csv_lines[0]
-            == "Email,Created At,Product,Amount,Currency,Status,Invoice number"
+            == "Email,Created At,Product,Amount,Currency,Status"
         )
 
         # Verify data row contains expected fields
@@ -289,11 +286,8 @@ class TestExportOrders:
         csv_lines = response.text.strip().split("\r\n")
         assert len(csv_lines) == 2  # Header + 1 order
 
-        # Verify only the filtered order is in the export by checking invoice numbers
-        assert order1.invoice_number is not None
-        assert order2.invoice_number is not None
-        assert order1.invoice_number in csv_lines[1]
-        assert order2.invoice_number not in response.text
+        # Verify the filtered order is in the export (only 1 row for order1's product)
+        assert len(csv_lines) == 2
 
 
 @pytest.mark.asyncio
@@ -348,126 +342,6 @@ class TestUpdateOrder:
         )
 
         assert response.status_code == 404
-
-
-@pytest.mark.asyncio
-class TestGenerateOrderInvoice:
-    async def test_anonymous(self, client: AsyncClient) -> None:
-        response = await client.post(f"/v1/orders/{uuid.uuid4()}/invoice")
-
-        assert response.status_code == 401
-
-    @pytest.mark.auth
-    async def test_user_cannot_access_other_organization_order(
-        self,
-        client: AsyncClient,
-        user_organization: UserOrganization,
-        order_organization_second: Order,
-    ) -> None:
-        response = await client.post(
-            f"/v1/orders/{order_organization_second.id}/invoice"
-        )
-
-        assert response.status_code == 404
-
-
-@pytest.mark.asyncio
-class TestGetOrderInvoice:
-    async def test_anonymous(self, client: AsyncClient) -> None:
-        response = await client.get(f"/v1/orders/{uuid.uuid4()}/invoice")
-
-        assert response.status_code == 401
-
-    @pytest.mark.auth
-    async def test_user_cannot_access_other_organization_order(
-        self,
-        client: AsyncClient,
-        user_organization: UserOrganization,
-        order_organization_second: Order,
-    ) -> None:
-        response = await client.get(
-            f"/v1/orders/{order_organization_second.id}/invoice"
-        )
-
-        assert response.status_code == 404
-
-
-@pytest.mark.asyncio
-class TestGetOrderReceipt:
-    async def test_anonymous(self, client: AsyncClient) -> None:
-        response = await client.get(f"/v1/orders/{uuid.uuid4()}/receipt")
-
-        assert response.status_code == 401
-
-    @pytest.mark.auth
-    async def test_user_cannot_access_other_organization_order(
-        self,
-        client: AsyncClient,
-        user_organization: UserOrganization,
-        order_organization_second: Order,
-    ) -> None:
-        response = await client.get(
-            f"/v1/orders/{order_organization_second.id}/receipt"
-        )
-
-        assert response.status_code == 404
-
-    @pytest.mark.auth(AuthSubjectFixture(scopes={Scope.orders_read}))
-    async def test_404_when_no_receipt_number(
-        self,
-        client: AsyncClient,
-        user_organization: UserOrganization,
-        orders: list[Order],
-    ) -> None:
-        order = orders[0]
-        response = await client.get(f"/v1/orders/{order.id}/receipt")
-
-        assert response.status_code == 404
-
-    @pytest.mark.auth(AuthSubjectFixture(scopes={Scope.orders_read}))
-    async def test_202_when_pending_render(
-        self,
-        client: AsyncClient,
-        save_fixture: SaveFixture,
-        mocker: MockerFixture,
-        user_organization: UserOrganization,
-        orders: list[Order],
-    ) -> None:
-        order = orders[0]
-        order.receipt_number = "RCPT-FOO-0001"
-        await save_fixture(order)
-
-        enqueue_mock = mocker.patch("polar.receipt.service.enqueue_job")
-
-        response = await client.get(f"/v1/orders/{order.id}/receipt")
-
-        assert response.status_code == 202
-        enqueue_mock.assert_called_once_with("receipt.render", order_id=order.id)
-
-    @pytest.mark.auth(AuthSubjectFixture(scopes={Scope.orders_read}))
-    async def test_200_when_receipt_ready(
-        self,
-        client: AsyncClient,
-        save_fixture: SaveFixture,
-        mocker: MockerFixture,
-        user_organization: UserOrganization,
-        orders: list[Order],
-    ) -> None:
-        order = orders[0]
-        order.receipt_number = "RCPT-FOO-0001"
-        order.receipt_path = f"{order.organization_id}/{order.id}/receipt.pdf"
-        await save_fixture(order)
-
-        s3_mock = mocker.patch("polar.receipt.service.S3Service")
-        s3_mock.return_value.generate_presigned_download_url.return_value = (
-            "https://example.com/signed-url",
-            datetime(2030, 1, 1, tzinfo=UTC),
-        )
-
-        response = await client.get(f"/v1/orders/{order.id}/receipt")
-
-        assert response.status_code == 200
-        assert response.json() == {"url": "https://example.com/signed-url"}
 
 
 @pytest_asyncio.fixture
@@ -547,7 +421,6 @@ class TestCreateOrder:
         assert response.status_code == 201
         body = response.json()
         assert body["status"] == OrderStatus.draft
-        assert body["invoice_number"] is None
         assert body["customer_id"] == str(customer.id)
         assert body["product_id"] == str(product_one_time.id)
 

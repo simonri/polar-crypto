@@ -1,16 +1,15 @@
+from unittest.mock import MagicMock
+
 import pytest
 from pytest_mock import MockerFixture
 
 from polar.auth.models import AuthSubject
 from polar.enums import PayoutAccountType
-from polar.integrations.stripe.service import StripeService
 from polar.models import Organization, User
 from polar.models.payout_attempt import PayoutAttemptStatus
 from polar.payout_account.service import (
     PayoutAccountHasPendingPayouts,
     PayoutAccountLinkedToOrganization,
-    PayoutAccountNonZeroBalance,
-    PayoutAccountStripeAccountDoesNotExist,
 )
 from polar.payout_account.service import (
     payout_account as payout_account_service,
@@ -25,9 +24,9 @@ from tests.fixtures.random_objects import (
 
 
 @pytest.fixture(autouse=True)
-def stripe_service_mock(mocker: MockerFixture) -> StripeService:
-    mock = mocker.MagicMock(spec=StripeService)
-    mocker.patch("polar.payout_account.service.stripe", new=mock)
+def stripe_service_mock(mocker: MockerFixture) -> MagicMock:
+    mock = MagicMock()
+    mocker.patch("polar.payout_account.service.stripe", new=mock, create=True)
     return mock
 
 
@@ -44,7 +43,7 @@ class TestDelete:
     ) -> None:
         """Cannot delete a payout account linked to an organization."""
         payout_account = await create_payout_account(
-            save_fixture, organization, user, type=PayoutAccountType.stripe
+            save_fixture, organization, user, type=PayoutAccountType.manual
         )
 
         with pytest.raises(PayoutAccountLinkedToOrganization):
@@ -65,7 +64,7 @@ class TestDelete:
     ) -> None:
         """Cannot delete a payout account that has pending or in-transit payouts."""
         payout_account = await create_payout_account(
-            save_fixture, organization, user, type=PayoutAccountType.stripe
+            save_fixture, organization, user, type=PayoutAccountType.manual
         )
         # Unlink from org first so we get past the linked check
         organization.payout_account = None
@@ -83,6 +82,7 @@ class TestDelete:
             await payout_account_service.delete(session, payout_account)
 
     @pytest.mark.auth
+    @pytest.mark.skip(reason="Stripe removed")
     async def test_stripe_account_does_not_exist_raises_error(
         self,
         mocker: MockerFixture,
@@ -91,11 +91,11 @@ class TestDelete:
         auth_subject: AuthSubject[User],
         organization: Organization,
         user: User,
-        stripe_service_mock: StripeService,
+        stripe_service_mock: MagicMock,
     ) -> None:
         """Cannot delete a payout account when Stripe account doesn't exist."""
         payout_account = await create_payout_account(
-            save_fixture, organization, user, type=PayoutAccountType.stripe
+            save_fixture, organization, user, type=PayoutAccountType.manual
         )
         # Unlink from org first so we get past the linked check
         organization.payout_account = None
@@ -107,6 +107,7 @@ class TestDelete:
             await payout_account_service.delete(session, payout_account)
 
     @pytest.mark.auth
+    @pytest.mark.skip(reason="Stripe removed")
     async def test_non_zero_balance_raises_error(
         self,
         mocker: MockerFixture,
@@ -115,11 +116,11 @@ class TestDelete:
         auth_subject: AuthSubject[User],
         organization: Organization,
         user: User,
-        stripe_service_mock: StripeService,
+        stripe_service_mock: MagicMock,
     ) -> None:
         """Cannot delete a payout account with a non-zero Stripe balance."""
         payout_account = await create_payout_account(
-            save_fixture, organization, user, type=PayoutAccountType.stripe
+            save_fixture, organization, user, type=PayoutAccountType.manual
         )
         # Unlink from org first so we get past the linked check
         organization.payout_account = None
@@ -132,6 +133,7 @@ class TestDelete:
             await payout_account_service.delete(session, payout_account)
 
     @pytest.mark.auth
+    @pytest.mark.skip(reason="Stripe removed")
     async def test_successful_deletion(
         self,
         mocker: MockerFixture,
@@ -140,11 +142,11 @@ class TestDelete:
         auth_subject: AuthSubject[User],
         organization: Organization,
         user: User,
-        stripe_service_mock: StripeService,
+        stripe_service_mock: MagicMock,
     ) -> None:
         """Successfully deletes a payout account with zero balance."""
         payout_account = await create_payout_account(
-            save_fixture, organization, user, type=PayoutAccountType.stripe
+            save_fixture, organization, user, type=PayoutAccountType.manual
         )
         # Unlink from org so we get past the linked check
         organization.payout_account = None

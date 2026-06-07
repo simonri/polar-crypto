@@ -252,24 +252,9 @@ const LandingPageDesktopNavigation = () => {
     {
       items: [
         {
-          href: '/features/usage-billing',
-          label: 'Usage Billing',
-          subtitle: 'Meter and bill any event',
-        },
-        {
           href: '/features/subscriptions',
           label: 'Subscriptions',
           subtitle: 'Recurring revenue on autopilot',
-        },
-        {
-          href: '/features/seats',
-          label: 'Seats',
-          subtitle: 'Pricing that scales with teams',
-        },
-        {
-          href: '/features/credits',
-          label: 'Credits',
-          subtitle: 'Prepay and draw down over time',
         },
         {
           href: '/features/trials',
@@ -351,11 +336,6 @@ const LandingPageDesktopNavigation = () => {
           target: '_blank',
           label: 'Checkouts',
           subtitle: 'Checkout Links & Embeds',
-        },
-        {
-          href: '/docs/features/usage-based-billing/introduction',
-          label: 'Usage Billing',
-          subtitle: 'Ingestion-based Billing',
         },
         {
           href: '/docs/features/benefits',

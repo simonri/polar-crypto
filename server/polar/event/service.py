@@ -5,19 +5,16 @@ from decimal import Decimal
 from typing import Any
 from zoneinfo import ZoneInfo
 
-import logfire
 import structlog
 from opentelemetry import trace
 from sqlalchemy import or_, select
-from sqlalchemy.dialects.postgresql import insert
-from sqlalchemy.orm import contains_eager
 
 from polar.auth.models import AuthSubject, is_organization, is_user
 from polar.auth.permission import OrganizationPermission
 from polar.authz.service import get_accessible_org_ids
 from polar.authz.types import AccessibleOrganizationID
 from polar.customer.repository import CustomerRepository
-from polar.customer_meter.repository import CustomerMeterRepository
+from polar.event.filter import Filter
 from polar.event.tinybird_repository import TinybirdEventRepository
 from polar.event_type.repository import EventTypeRepository
 from polar.exceptions import PolarError, PolarRequestValidationError, ValidationError
@@ -29,22 +26,9 @@ from polar.kit.metadata import MetadataQuery
 from polar.kit.pagination import PaginationParams
 from polar.kit.sorting import Sorting
 from polar.kit.time_queries import TimeInterval
-from polar.kit.utils import generate_uuid, utc_now
+from polar.kit.utils import generate_uuid
 from polar.logging import Logger
-from polar.meter.aggregation import PropertyAggregation
-from polar.meter.filter import Filter
-from polar.meter.repository import MeterRepository
-from polar.models import (
-    Customer,
-    CustomerMeter,
-    Event,
-    Member,
-    Meter,
-    MeterEvent,
-    Organization,
-    User,
-    UserOrganization,
-)
+from polar.models import Customer, Event, Member, Organization, User, UserOrganization
 from polar.models.event import EventSource
 from polar.postgres import AsyncSession
 from polar.worker import enqueue_events, enqueue_job
@@ -66,7 +50,6 @@ from .schemas import (
     VarianceEvent,
 )
 from .sorting import EventNamesSortProperty, EventSortProperty
-from .system import SystemEvent
 
 log: Logger = structlog.get_logger()
 
@@ -92,7 +75,6 @@ class EventService:
         organization_id: Sequence[uuid.UUID] | None = None,
         customer_id: Sequence[uuid.UUID] | None = None,
         external_customer_id: Sequence[str] | None = None,
-        meter_id: uuid.UUID | None = None,
         name: Sequence[str] | None = None,
         source: Sequence[EventSource] | None = None,
         event_type_id: uuid.UUID | None = None,
@@ -123,7 +105,6 @@ class EventService:
             auth_subject,
             organization_ids,
             filter=filter,
-            meter_id=meter_id,
             query=query,
         )
 
@@ -295,7 +276,6 @@ class EventService:
         organization_id: Sequence[uuid.UUID] | None = None,
         customer_id: Sequence[uuid.UUID] | None = None,
         external_customer_id: Sequence[str] | None = None,
-        meter_id: uuid.UUID | None = None,
         name: Sequence[str] | None = None,
         source: Sequence[EventSource] | None = None,
         event_type_id: uuid.UUID | None = None,
@@ -330,7 +310,6 @@ class EventService:
             auth_subject,
             organization_ids,
             filter=filter,
-            meter_id=meter_id,
             query=query,
         )
 
@@ -818,7 +797,6 @@ class EventService:
         organization_ids: set[AccessibleOrganizationID],
         *,
         filter: Filter | None = None,
-        meter_id: uuid.UUID | None = None,
         query: str | None = None,
     ) -> tuple[
         Sequence[Filter],
@@ -829,29 +807,6 @@ class EventService:
         query_filters: list[Filter] = []
         if filter is not None:
             query_filters.append(filter)
-
-        numeric_metadata_property: str | None = None
-        if meter_id is not None:
-            meter_repository = MeterRepository.from_session(session)
-            meter = await meter_repository.get_readable_by_id(
-                meter_id, organization_ids
-            )
-            if meter is None:
-                raise PolarRequestValidationError(
-                    [
-                        {
-                            "type": "meter_id",
-                            "msg": "Meter not found.",
-                            "loc": ("query", "meter_id"),
-                            "input": meter_id,
-                        }
-                    ]
-                )
-            query_filters.append(meter.filter)
-            if isinstance(meter.aggregation, PropertyAggregation):
-                prop = meter.aggregation.property
-                if prop not in Event._filterable_fields:
-                    numeric_metadata_property = prop
 
         matching_cust_ids: list[uuid.UUID] | None = None
         matching_ext_ids: list[str] | None = None
@@ -866,7 +821,7 @@ class EventService:
             query_filters,
             matching_cust_ids,
             matching_ext_ids,
-            numeric_metadata_property,
+            None,
         )
 
     async def ingest(
@@ -937,14 +892,6 @@ class EventService:
         repository = EventRepository.from_session(session)
         event_ids, duplicates_count = await repository.insert_batch(events)
 
-        # Temporarily: fetch inserted events and create meter_events
-        with logfire.span("create_meter_events", event_count=len(event_ids)):
-            if event_ids:
-                inserted_events = await repository.get_all(
-                    repository.get_base_statement().where(Event.id.in_(event_ids))
-                )
-                await self._create_meter_events(session, inserted_events)
-
         # Parent resolution and root_id propagation run out-of-band in the
         # `event.ingested` task — they're not needed on the request path and
         # can be slow under contention.
@@ -965,9 +912,6 @@ class EventService:
                 event.id = generate_uuid()
             event.root_id = event.id
         event = await repository.create(event, flush=True)
-        # Temporarily
-        await self._create_meter_events(session, [event])
-
         enqueue_events(event.id)
 
         log.debug(
@@ -1000,7 +944,7 @@ class EventService:
             return
 
         # Only process events whose chain is complete (root_id set). Events
-        # still pending a parent stay out of Tinybird/meters until a future
+        # still pending a parent stay out of Tinybird until a future
         # batch resolves their root.
         statement = (
             repository.get_base_statement()
@@ -1026,125 +970,8 @@ class EventService:
             "organization_ids", [str(org_id) for org_id in organization_ids]
         )
 
-        # Temporarily do this sync on ingestion instead
-        # await self._create_meter_events(session, events)
-
-        await self._activate_matching_customer_meters(
-            session, repository, complete_ids, customers
-        )
-
-        for customer in customers:
-            enqueue_job("customer_meter.update_customer", customer.id)
-
         tinybird_events = events_to_tinybird(events, ancestors_by_event)
         enqueue_job("tinybird.ingest", tinybird_events)
-
-    async def _create_meter_events(
-        self, session: AsyncSession, events: Sequence[Event]
-    ) -> None:
-        if not events:
-            return
-
-        with logfire.span("group_events_by_org"):
-            events_by_org: dict[uuid.UUID, list[Event]] = {}
-            for event in events:
-                events_by_org.setdefault(event.organization_id, []).append(event)
-
-        meter_repository = MeterRepository.from_session(session)
-        meter_event_rows: list[dict[str, Any]] = []
-
-        for org_id, org_events in events_by_org.items():
-            meters = await meter_repository.get_all(
-                meter_repository.get_base_statement().where(
-                    Meter.organization_id == org_id,
-                    Meter.archived_at.is_(None),
-                )
-            )
-
-            with logfire.span(
-                "match_meters",
-                org_id=str(org_id),
-                event_count=len(org_events),
-                meter_count=len(meters),
-            ):
-                for event in org_events:
-                    for meter in meters:
-                        if self._event_matches_meter(event, meter):
-                            meter_event_rows.append(
-                                {
-                                    "meter_id": meter.id,
-                                    "event_id": event.id,
-                                    "customer_id": event.customer_id,
-                                    "external_customer_id": event.external_customer_id,
-                                    "organization_id": event.organization_id,
-                                    "ingested_at": event.ingested_at,
-                                    "timestamp": event.timestamp,
-                                }
-                            )
-
-        if meter_event_rows:
-            await session.execute(
-                insert(MeterEvent).values(meter_event_rows).on_conflict_do_nothing()
-            )
-
-    def _event_matches_meter(self, event: Event, meter: Meter) -> bool:
-        if (
-            event.source == EventSource.system
-            and event.name in (SystemEvent.meter_credited, SystemEvent.meter_reset)
-            and event.user_metadata.get("meter_id") == str(meter.id)
-        ):
-            return True
-
-        return meter.filter.matches(event) and meter.aggregation.matches(event)
-
-    async def _activate_matching_customer_meters(
-        self,
-        session: AsyncSession,
-        event_repository: EventRepository,
-        event_ids: Sequence[uuid.UUID],
-        customers: set[Customer],
-    ) -> None:
-        if not customers:
-            return
-
-        customer_meter_repository = CustomerMeterRepository.from_session(session)
-        customer_ids = [c.id for c in customers]
-
-        statement = (
-            customer_meter_repository.get_base_statement()
-            .join(CustomerMeter.meter)
-            .join(CustomerMeter.customer)
-            .options(
-                contains_eager(CustomerMeter.meter),
-                contains_eager(CustomerMeter.customer),
-            )
-            .where(
-                CustomerMeter.customer_id.in_(customer_ids),
-                CustomerMeter.activated_at.is_(None),
-            )
-        )
-        unactivated_meters = await customer_meter_repository.get_all(statement)
-
-        for cm in unactivated_meters:
-            customer_clause = or_(
-                Event.customer_id == cm.customer_id,
-                Event.external_customer_id == cm.customer.external_id,
-            )
-
-            matching_statement = (
-                event_repository.get_base_statement()
-                .where(
-                    Event.id.in_(event_ids),
-                    Event.organization_id == cm.meter.organization_id,
-                    customer_clause,
-                    event_repository.get_meter_clause(cm.meter),
-                )
-                .limit(1)
-            )
-            if await event_repository.get_one_or_none(matching_statement) is not None:
-                cm.activated_at = utc_now()
-                session.add(cm)
-        await session.flush()
 
     async def _get_organization_validation_function(
         self, session: AsyncSession, auth_subject: AuthSubject[User | Organization]

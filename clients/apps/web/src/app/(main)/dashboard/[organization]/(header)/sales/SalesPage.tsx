@@ -18,7 +18,6 @@ import FileDownloadOutlined from '@mui/icons-material/FileDownloadOutlined'
 import { schemas } from '@polar-sh/client'
 import { formatCurrency } from '@polar-sh/currency'
 import { Truncated } from '@polar-sh/orbit'
-import { Avatar } from '@polar-sh/orbit'
 import { Button } from '@polar-sh/orbit'
 import {
   DataTable,
@@ -136,14 +135,7 @@ const ClientPage: React.FC<ClientPageProps> = ({
       cell: (props) => {
         const customer = props.getValue() as schemas['OrderCustomer']
         return (
-          <div className="flex flex-row items-center gap-2">
-            <Avatar
-              className="h-8 w-8"
-              avatar_url={customer.avatar_url}
-              name={customer.email ?? customer.name ?? '—'}
-            />
-            <Truncated>{customer.name || customer.email || '—'}</Truncated>
-          </div>
+          <Truncated>{customer.name || customer.email || '—'}</Truncated>
         )
       },
     },

@@ -1,9 +1,7 @@
 from enum import StrEnum
-from typing import TypedDict
 from uuid import UUID
 
 from sqlalchemy import ForeignKey, Index, Uuid
-from sqlalchemy.dialects.postgresql import JSONB
 from sqlalchemy.orm import Mapped, declared_attr, mapped_column, relationship
 
 from polar.kit.db.models import TimestampedModel
@@ -16,18 +14,6 @@ class OrganizationRole(StrEnum):
     owner = "owner"
     admin = "admin"
     member = "member"
-
-
-# duplicated from Organization.notification_settings, (will be cleaned up in a future PR)
-class OrganizationNotificationSettings(TypedDict):
-    new_order: bool
-    new_subscription: bool
-
-
-_default_notification_settings: OrganizationNotificationSettings = {
-    "new_order": True,
-    "new_subscription": True,
-}
 
 
 class UserOrganization(TimestampedModel):
@@ -59,10 +45,6 @@ class UserOrganization(TimestampedModel):
         StringEnum(OrganizationRole),
         nullable=False,
         default=OrganizationRole.member,
-    )
-
-    notification_settings: Mapped[OrganizationNotificationSettings] = mapped_column(
-        JSONB, nullable=True, default=_default_notification_settings
     )
 
     @declared_attr

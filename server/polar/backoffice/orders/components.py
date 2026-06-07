@@ -4,7 +4,6 @@ from collections.abc import Generator, Sequence
 from fastapi import Request
 from tagflow import attr, classes, tag, text
 
-from polar.enums import PaymentProcessor
 from polar.kit.sorting import Sorting
 from polar.models import Order, Payment
 from polar.models.order import OrderStatus
@@ -76,9 +75,9 @@ class PaymentProcessorIdColumn(
         super().__init__("processor_id", "Processor ID", clipboard=True)
 
     def render(self, request: Request, item: Payment) -> Generator[None] | None:
-        if item.processor == PaymentProcessor.stripe:
+        if False:  # Stripe payments removed
             with tag.a(
-                href=f"https://dashboard.stripe.com/payments/{item.processor_id}",
+                href="#",
                 classes="link flex flex-row gap-1 items-center",
             ):
                 attr("target", "_blank")
@@ -107,11 +106,6 @@ def orders_datatable(
         StatusColumn("Status"),
         datatable.DatatableAttrColumn(
             "customer.email", "Customer", sorting=OrderSortProperty.customer
-        ),
-        datatable.DatatableAttrColumn(
-            "invoice_number",
-            "Invoice",
-            sorting=OrderSortProperty.invoice_number,
         ),
         datatable.DatatableCurrencyColumn(
             "net_amount", "Net Amount", sorting=OrderSortProperty.net_amount

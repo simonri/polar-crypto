@@ -11,9 +11,6 @@ NAVIGATION = [
         "Customers", "customers:list", active_route_name_prefix="customers:"
     ),
     navigation.NavigationItem(
-        "Benefits", "benefits:list", active_route_name_prefix="benefits:"
-    ),
-    navigation.NavigationItem(
         "Products", "products:list", active_route_name_prefix="products:"
     ),
     navigation.NavigationItem(
@@ -36,8 +33,5 @@ NAVIGATION = [
     navigation.NavigationItem("Tasks", "tasks:list", active_route_name_prefix="tasks:"),
     navigation.NavigationItem(
         "Webhooks", "webhooks:list", active_route_name_prefix="webhooks:"
-    ),
-    navigation.NavigationItem(
-        "Feedback", "feedbacks:list", active_route_name_prefix="feedbacks:"
     ),
 ]

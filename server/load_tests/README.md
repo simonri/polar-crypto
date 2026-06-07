@@ -35,7 +35,7 @@ uv sync  # Installs Locust and dependencies
 
 ```bash
 # 1. Start local services (if testing locally)
-docker compose up -d  # Start PostgreSQL, Redis, MinIO
+docker compose up -d  # Start PostgreSQL, Redis
 uv run task api       # Start API server
 uv run task worker    # Start background worker
 

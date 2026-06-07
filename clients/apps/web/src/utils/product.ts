@@ -1,4 +1,3 @@
-import { ProductFullMediasMixin } from '@/components/Products/ProductForm/ProductForm'
 import { Client, schemas, unwrap } from '@polar-sh/client'
 import { notFound } from 'next/navigation'
 import { cache } from 'react'
@@ -18,19 +17,8 @@ export const isStaticPrice = (
 ): price is
   | schemas['ProductPriceFixed']
   | schemas['ProductPriceCustom']
-  | schemas['ProductPriceFree']
-  | schemas['ProductPriceSeatBased'] =>
-  ['fixed', 'custom', 'free', 'seat_based'].includes(price.amount_type)
-
-export const isMeteredPrice = (
-  price: schemas['ProductPrice'] | schemas['LegacyRecurringProductPrice'],
-): price is schemas['ProductPriceMeteredUnit'] =>
-  price.amount_type === 'metered_unit'
-
-export const isSeatBasedPrice = (
-  price: schemas['ProductPrice'],
-): price is schemas['ProductPriceSeatBased'] =>
-  price.amount_type === 'seat_based'
+  | schemas['ProductPriceFree'] =>
+  ['fixed', 'custom', 'free'].includes(price.amount_type)
 
 const _getProductById = async (
   api: Client,
@@ -57,10 +45,9 @@ export const getProductById = cache(_getProductById)
 export type ProductEditOrCreateForm = Omit<
   schemas['ProductCreate'],
   'metadata'
-> &
-  ProductFullMediasMixin & {
-    metadata: { key: string; value: string | number | boolean }[]
-  }
+> & {
+  metadata: { key: string; value: string | number | boolean }[]
+}
 
 export const productToCreateForm = (
   product: schemas['Product'],
@@ -75,7 +62,6 @@ export const productToCreateForm = (
     modified_at,
     is_archived,
     is_recurring,
-    benefits,
     medias,
     prices,
     attached_custom_fields,
@@ -87,7 +73,7 @@ export const productToCreateForm = (
   return {
     ...productBase,
     name: `Copy of ${product.name}`,
-    full_medias: product.medias.map((media) => ({ ...media })),
+    medias: [],
     prices: product.prices.map((price) => {
       /* eslint-disable @typescript-eslint/no-unused-vars */
       const {

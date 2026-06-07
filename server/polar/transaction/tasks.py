@@ -27,11 +27,11 @@ class PaymentTransactionDoesNotExist(TransactionTaskError):
 
 
 @actor(
-    actor_name="processor_fee.sync_stripe_fees",
+    actor_name="processor_fee.sync_fees",
     cron_trigger=CronTrigger(hour=0, minute=0),
     priority=TaskPriority.LOW,
 )
-async def sync_stripe_fees() -> None:
+async def sync_fees() -> None:
     async with AsyncSessionMaker() as session:
         await processor_fee_transaction_service.sync_stripe_fees(session)
 

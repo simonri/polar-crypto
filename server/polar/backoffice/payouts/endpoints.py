@@ -6,8 +6,8 @@ from typing import Annotated
 from fastapi import APIRouter, Depends, HTTPException, Query, Request
 from pydantic import UUID4, BeforeValidator, ValidationError
 from pydantic_core import PydanticCustomError
-from sqlalchemy import func, or_, select
-from sqlalchemy.orm import joinedload, selectinload
+from sqlalchemy import or_, select
+from sqlalchemy.orm import joinedload
 from tagflow import attr, classes, tag, text
 
 from polar.enums import PayoutAccountType
@@ -78,14 +78,14 @@ class PayoutAccountProcessorIdListItem(description_list.DescriptionListItem[Payo
 
     def render(self, request: Request, item: Payout) -> Generator[None] | None:
         payout_account = item.payout_account
-        if payout_account.stripe_id and payout_account.type == PayoutAccountType.stripe:
+        if False:  # Stripe removed
             with tag.a(
-                href=f"https://dashboard.stripe.com/connect/accounts/{payout_account.stripe_id}",
+                href="#",
                 classes="link flex flex-row gap-1 items-center",
             ):
                 attr("target", "_blank")
                 attr("rel", "noopener noreferrer")
-                text(payout_account.stripe_id)
+                text("(removed)")
                 with tag.div(classes="icon-external-link"):
                     pass
         return None
@@ -127,7 +127,7 @@ class PayoutAttemptProcessorIdColumn(
             text("N/A")
             return None
 
-        if item.processor == PayoutAccountType.stripe:
+        if item.processor == PayoutAccountType.crypto:
             with tag.a(
                 href=f"https://dashboard.stripe.com/payouts/{item.processor_id}",
                 classes="link flex flex-row gap-1 items-center",
@@ -189,7 +189,6 @@ async def list(
                             PayoutAttempt.processor_id.ilike(f"%{query_lower}%")
                         )
                     ),
-                    func.lower(Payout.invoice_number).ilike(f"%{query_lower}%"),
                 )
             )
 
@@ -333,9 +332,6 @@ async def get(
                         ),
                         description_list.DescriptionListAttrItem(
                             "processor", "Processor"
-                        ),
-                        description_list.DescriptionListAttrItem(
-                            "invoice_number", "Invoice Number"
                         ),
                     ).render(request, payout):
                         pass

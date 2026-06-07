@@ -8,7 +8,7 @@ from polar_sdk import Polar
 
 from polar.auth.scope import Scope
 from polar.kit.utils import utc_now
-from polar.models import Benefit, Customer, Organization, Product, UserOrganization
+from polar.models import Customer, Organization, Product, UserOrganization
 from tests.fixtures.auth import AuthSubjectFixture
 from tests.fixtures.database import SaveFixture
 from tests.fixtures.random_objects import (
@@ -56,14 +56,6 @@ class TestSDK:
         assert response is not None
 
         assert len(response.result.items) == len(products)
-
-    async def test_list_benefits(
-        self, polar: Polar, benefits: list[Benefit], user_organization: UserOrganization
-    ) -> None:
-        response = await polar.benefits.list_async()
-        assert response is not None
-
-        assert len(response.result.items) == len(benefits)
 
     async def test_list_orders(
         self,

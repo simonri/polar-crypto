@@ -24,7 +24,6 @@ from polar.auth.exceptions import (
     PolarAuthRedirectionError,
     UnavailableFactorError,
 )
-from polar.auth.oauth2.github import get_github_factor
 from polar.auth.oauth2.google import get_google_factor
 from polar.authz.dependencies import AuthorizeWebUserRead, AuthorizeWebUserWrite
 from polar.exceptions import NotPermitted, ResourceNotFound
@@ -49,7 +48,6 @@ from .factors import (
     get_email_otp_factor,
     get_totp_factor,
 )
-from .oauth2.apple import get_apple_factor
 from .oauth2.router import get_oauth_link_router, get_oauth_login_router
 from .schemas import AuthenticationSession as AuthenticationSessionSchema
 from .schemas import (
@@ -67,11 +65,6 @@ from .schemas import (
 from .service import auth as auth_service
 
 router = APIRouter(prefix="/auth", tags=["auth", APITag.private])
-router.include_router(
-    get_oauth_login_router(get_apple_factor, "apple", callback_method="POST")
-)
-router.include_router(get_oauth_login_router(get_github_factor, "github"))
-router.include_router(get_oauth_link_router(get_github_factor, "github"))
 router.include_router(get_oauth_login_router(get_google_factor, "google"))
 router.include_router(get_oauth_link_router(get_google_factor, "google"))
 

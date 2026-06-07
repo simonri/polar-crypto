@@ -5,7 +5,6 @@ import {
   createCheckout,
   createCustomPrice,
   createFreePrice,
-  createSeatBasedPrice,
 } from '../test-utils/makeCheckout'
 import CheckoutHeroPrice from './CheckoutHeroPrice'
 
@@ -16,7 +15,6 @@ describe('CheckoutHeroPrice', () => {
         amount: 999,
         net_amount: 999,
         total_amount: 999,
-        tax_amount: null,
       })
 
       render(<CheckoutHeroPrice checkout={checkout} locale="en" />)
@@ -30,7 +28,6 @@ describe('CheckoutHeroPrice', () => {
       const checkout = createCheckout({
         amount: 999,
         net_amount: 999,
-        tax_amount: 250,
         total_amount: 1249,
       })
 
@@ -46,7 +43,6 @@ describe('CheckoutHeroPrice', () => {
         amount: 1999,
         discount_amount: 400,
         net_amount: 1599,
-        tax_amount: null,
         total_amount: 1599,
         discount: {
           id: 'disc_1',
@@ -70,7 +66,6 @@ describe('CheckoutHeroPrice', () => {
         amount: 1999,
         discount_amount: 400,
         net_amount: 1599,
-        tax_amount: 400,
         total_amount: 1999,
         discount: {
           id: 'disc_1',
@@ -100,22 +95,6 @@ describe('CheckoutHeroPrice', () => {
       render(<CheckoutHeroPrice checkout={checkout} locale="en" />)
 
       expect(screen.getByText('$15.50')).toBeInTheDocument()
-    })
-  })
-
-  describe('seat-based pricing', () => {
-    it('renders total_amount', () => {
-      const checkout = createCheckout({
-        amount: 3147,
-        net_amount: 3147,
-        tax_amount: null,
-        total_amount: 3147,
-        product_price: createSeatBasedPrice(),
-      })
-
-      render(<CheckoutHeroPrice checkout={checkout} locale="en" />)
-
-      expect(screen.getByText('$31.47')).toBeInTheDocument()
     })
   })
 
@@ -154,7 +133,6 @@ describe('CheckoutHeroPrice', () => {
           trial_interval_count: 1,
           visibility: 'public',
           prices: [],
-          benefits: [],
           medias: [],
           description: null,
           is_archived: false,

@@ -4,11 +4,7 @@ import LegacyRecurringProductPrices from '@/components/Products/LegacyRecurringP
 import ProductPriceLabel from '@/components/Products/ProductPriceLabel'
 import { toast } from '@/components/Toast/use-toast'
 import { useUpdateProduct } from '@/hooks/queries/products'
-import {
-  hasLegacyRecurringPrices,
-  isMeteredPrice,
-  isSeatBasedPrice,
-} from '@/utils/product'
+import { hasLegacyRecurringPrices } from '@/utils/product'
 import MoreVertOutlined from '@mui/icons-material/MoreVertOutlined'
 import { schemas } from '@polar-sh/client'
 import { Button } from '@polar-sh/orbit'
@@ -81,14 +77,6 @@ export const ProductListItem = ({
     }
   }, [updateProduct, product])
 
-  const isUsageBasedProduct = product.prices.some((price) =>
-    isMeteredPrice(price),
-  )
-
-  const isSeatBasedProduct = product.prices.some((price) =>
-    isSeatBasedPrice(price),
-  )
-
   return (
     <>
       <Link href={`/dashboard/${organization.slug}/products/${product.id}`}>
@@ -118,16 +106,6 @@ export const ProductListItem = ({
               </Tooltip>
             ) : (
               <>
-                {isUsageBasedProduct && (
-                  <Pill color="green" className="px-3 py-1 text-xs">
-                    Metered Pricing
-                  </Pill>
-                )}
-                {isSeatBasedProduct && (
-                  <Pill color="blue" className="px-3 py-1 text-xs">
-                    Seat Pricing
-                  </Pill>
-                )}
                 <span className="text-sm leading-snug">
                   {hasLegacyRecurringPrices(product) ? (
                     <LegacyRecurringProductPrices product={product} />

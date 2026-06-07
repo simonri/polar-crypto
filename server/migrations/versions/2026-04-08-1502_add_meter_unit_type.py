@@ -9,11 +9,6 @@ Create Date: 2026-04-08 15:02:59.015229
 import sqlalchemy as sa
 from alembic import op
 
-from polar.kit.extensions.sqlalchemy.types import StringEnum
-from polar.meter.unit import MeterUnit
-
-# Polar Custom Imports
-
 # revision identifiers, used by Alembic.
 revision = "2807c21e5dea"
 down_revision = "05d61ed2c4ee"
@@ -27,9 +22,9 @@ def upgrade() -> None:
         "meters",
         sa.Column(
             "unit",
-            StringEnum(MeterUnit),
+            sa.String(),
             nullable=False,
-            server_default=MeterUnit.scalar,
+            server_default="scalar",
         ),
     )
     op.add_column("meters", sa.Column("custom_label", sa.String(), nullable=True))

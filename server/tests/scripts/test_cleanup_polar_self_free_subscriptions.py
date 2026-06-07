@@ -146,7 +146,6 @@ class TestListZeroOrderIds:
             product=free_product,
             subscription=free_sub,
             subtotal_amount=0,
-            tax_amount=0,
         )
         # Paid order on free sub: excluded.
         await create_order(
@@ -155,7 +154,6 @@ class TestListZeroOrderIds:
             product=free_product,
             subscription=free_sub,
             subtotal_amount=1000,
-            tax_amount=0,
         )
         # $0 order on a different sub (not in batch): excluded.
         await create_order(
@@ -164,7 +162,6 @@ class TestListZeroOrderIds:
             product=paid_product,
             subscription=other_sub,
             subtotal_amount=0,
-            tax_amount=0,
         )
         # $0 order with no subscription: excluded.
         await create_order(
@@ -173,7 +170,6 @@ class TestListZeroOrderIds:
             product=free_product,
             subscription=None,
             subtotal_amount=0,
-            tax_amount=0,
         )
 
         ids = await _list_zero_order_ids(
@@ -202,7 +198,6 @@ class TestListZeroOrderIds:
             product=free_product,
             subscription=free_sub,
             subtotal_amount=0,
-            tax_amount=0,
         )
 
         ids = await _list_zero_order_ids(
@@ -351,7 +346,6 @@ class TestDeleteZeroOrders:
             product=free_product,
             subscription=free_sub,
             subtotal_amount=0,
-            tax_amount=0,
         )
         paid_order = await create_order(
             save_fixture,
@@ -359,7 +353,6 @@ class TestDeleteZeroOrders:
             product=free_product,
             subscription=free_sub,
             subtotal_amount=1000,
-            tax_amount=0,
         )
 
         deleted = await _delete_zero_orders(

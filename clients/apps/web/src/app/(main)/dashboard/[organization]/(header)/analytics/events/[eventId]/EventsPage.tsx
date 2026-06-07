@@ -4,7 +4,6 @@ import { CustomerContextView } from '@/components/Customer/CustomerContextView'
 import { EventRow } from '@/components/Events/EventRow'
 import { DashboardBody } from '@/components/Layout/DashboardLayout'
 import { useEventTypes } from '@/hooks/queries/event_types'
-import { Avatar } from '@polar-sh/orbit'
 import {
   useEvent,
   useEventVarianceStats,
@@ -231,11 +230,6 @@ export default function EventDetailPage({
                 href={`/dashboard/${organization.slug}/customers/${event.customer.id}`}
                 className="dark:hover:bg-polar-800 -mx-2 flex flex-row items-center gap-x-3 rounded-lg px-2 py-2 transition-colors hover:bg-gray-50"
               >
-                <Avatar
-                  avatar_url={event.customer.avatar_url}
-                  name={event.customer.name || event.customer.email || '—'}
-                  className="size-8 text-xs"
-                />
                 <div className="flex flex-col">
                   {event.customer.name && (
                     <span className="text-sm dark:text-white">

@@ -292,525 +292,6 @@ export interface components {
         | 'ZM'
         | 'ZW'
     }
-    Benefit:
-      | components['schemas']['BenefitCustom']
-      | components['schemas']['BenefitDiscord']
-      | components['schemas']['BenefitGitHubRepository']
-      | components['schemas']['BenefitDownloadables']
-      | components['schemas']['BenefitLicenseKeys']
-      | components['schemas']['BenefitMeterCredit']
-      | components['schemas']['BenefitFeatureFlag']
-    /**
-     * BenefitCustom
-     * @description A benefit of type `custom`.
-     *
-     *     Use it to grant any kind of benefit that doesn't fit in the other types.
-     */
-    BenefitCustom: {
-      /**
-       * Id
-       * Format: uuid4
-       * @description The ID of the benefit.
-       */
-      id: string
-      /**
-       * Created At
-       * Format: date-time
-       * @description Creation timestamp of the object.
-       */
-      created_at: string
-      /**
-       * Modified At
-       * @description Last modification timestamp of the object.
-       */
-      modified_at: string | null
-      /**
-       * @description discriminator enum property added by openapi-typescript
-       * @enum {string}
-       */
-      type: 'custom'
-      /**
-       * Description
-       * @description The description of the benefit.
-       */
-      description: string
-      /**
-       * Selectable
-       * @description Whether the benefit is selectable when creating a product.
-       */
-      selectable: boolean
-      /**
-       * Deletable
-       * @description Whether the benefit is deletable.
-       */
-      deletable: boolean
-      /**
-       * Is Deleted
-       * @description Whether the benefit is deleted.
-       */
-      is_deleted: boolean
-      /**
-       * Organization Id
-       * Format: uuid4
-       * @description The ID of the organization owning the benefit.
-       */
-      organization_id: string
-      metadata: components['schemas']['MetadataOutputType']
-      properties: components['schemas']['BenefitCustomProperties']
-    }
-    /**
-     * BenefitCustomProperties
-     * @description Properties for a benefit of type `custom`.
-     */
-    BenefitCustomProperties: {
-      /** Note */
-      note: (string | null) | null
-    }
-    /**
-     * BenefitDiscord
-     * @description A benefit of type `discord`.
-     *
-     *     Use it to automatically invite your backers to a Discord server.
-     */
-    BenefitDiscord: {
-      /**
-       * Id
-       * Format: uuid4
-       * @description The ID of the benefit.
-       */
-      id: string
-      /**
-       * Created At
-       * Format: date-time
-       * @description Creation timestamp of the object.
-       */
-      created_at: string
-      /**
-       * Modified At
-       * @description Last modification timestamp of the object.
-       */
-      modified_at: string | null
-      /**
-       * @description discriminator enum property added by openapi-typescript
-       * @enum {string}
-       */
-      type: 'discord'
-      /**
-       * Description
-       * @description The description of the benefit.
-       */
-      description: string
-      /**
-       * Selectable
-       * @description Whether the benefit is selectable when creating a product.
-       */
-      selectable: boolean
-      /**
-       * Deletable
-       * @description Whether the benefit is deletable.
-       */
-      deletable: boolean
-      /**
-       * Is Deleted
-       * @description Whether the benefit is deleted.
-       */
-      is_deleted: boolean
-      /**
-       * Organization Id
-       * Format: uuid4
-       * @description The ID of the organization owning the benefit.
-       */
-      organization_id: string
-      metadata: components['schemas']['MetadataOutputType']
-      properties: components['schemas']['BenefitDiscordProperties']
-    }
-    /**
-     * BenefitDiscordProperties
-     * @description Properties for a benefit of type `discord`.
-     */
-    BenefitDiscordProperties: {
-      /**
-       * Guild Id
-       * @description The ID of the Discord server.
-       */
-      guild_id: string
-      /**
-       * Role Id
-       * @description The ID of the Discord role to grant.
-       */
-      role_id: string
-      /**
-       * Kick Member
-       * @description Whether to kick the member from the Discord server on revocation.
-       */
-      kick_member: boolean
-      /** Guild Token */
-      readonly guild_token: string
-    }
-    /** BenefitDownloadables */
-    BenefitDownloadables: {
-      /**
-       * Id
-       * Format: uuid4
-       * @description The ID of the benefit.
-       */
-      id: string
-      /**
-       * Created At
-       * Format: date-time
-       * @description Creation timestamp of the object.
-       */
-      created_at: string
-      /**
-       * Modified At
-       * @description Last modification timestamp of the object.
-       */
-      modified_at: string | null
-      /**
-       * @description discriminator enum property added by openapi-typescript
-       * @enum {string}
-       */
-      type: 'downloadables'
-      /**
-       * Description
-       * @description The description of the benefit.
-       */
-      description: string
-      /**
-       * Selectable
-       * @description Whether the benefit is selectable when creating a product.
-       */
-      selectable: boolean
-      /**
-       * Deletable
-       * @description Whether the benefit is deletable.
-       */
-      deletable: boolean
-      /**
-       * Is Deleted
-       * @description Whether the benefit is deleted.
-       */
-      is_deleted: boolean
-      /**
-       * Organization Id
-       * Format: uuid4
-       * @description The ID of the organization owning the benefit.
-       */
-      organization_id: string
-      metadata: components['schemas']['MetadataOutputType']
-      properties: components['schemas']['BenefitDownloadablesProperties']
-    }
-    /** BenefitDownloadablesProperties */
-    BenefitDownloadablesProperties: {
-      /** Archived */
-      archived: {
-        [key: string]: boolean
-      }
-      /** Files */
-      files: string[]
-    }
-    /**
-     * BenefitFeatureFlag
-     * @description A benefit of type `feature_flag`.
-     *
-     *     Use it to grant feature flags with key-value metadata
-     *     that can be queried via the API and webhooks.
-     */
-    BenefitFeatureFlag: {
-      /**
-       * Id
-       * Format: uuid4
-       * @description The ID of the benefit.
-       */
-      id: string
-      /**
-       * Created At
-       * Format: date-time
-       * @description Creation timestamp of the object.
-       */
-      created_at: string
-      /**
-       * Modified At
-       * @description Last modification timestamp of the object.
-       */
-      modified_at: string | null
-      /**
-       * @description discriminator enum property added by openapi-typescript
-       * @enum {string}
-       */
-      type: 'feature_flag'
-      /**
-       * Description
-       * @description The description of the benefit.
-       */
-      description: string
-      /**
-       * Selectable
-       * @description Whether the benefit is selectable when creating a product.
-       */
-      selectable: boolean
-      /**
-       * Deletable
-       * @description Whether the benefit is deletable.
-       */
-      deletable: boolean
-      /**
-       * Is Deleted
-       * @description Whether the benefit is deleted.
-       */
-      is_deleted: boolean
-      /**
-       * Organization Id
-       * Format: uuid4
-       * @description The ID of the organization owning the benefit.
-       */
-      organization_id: string
-      metadata: components['schemas']['MetadataOutputType']
-      properties: components['schemas']['BenefitFeatureFlagProperties']
-    }
-    /**
-     * BenefitFeatureFlagProperties
-     * @description Properties for a benefit of type `feature_flag`.
-     */
-    BenefitFeatureFlagProperties: Record<string, never>
-    /**
-     * BenefitGitHubRepository
-     * @description A benefit of type `github_repository`.
-     *
-     *     Use it to automatically invite your backers to a private GitHub repository.
-     */
-    BenefitGitHubRepository: {
-      /**
-       * Id
-       * Format: uuid4
-       * @description The ID of the benefit.
-       */
-      id: string
-      /**
-       * Created At
-       * Format: date-time
-       * @description Creation timestamp of the object.
-       */
-      created_at: string
-      /**
-       * Modified At
-       * @description Last modification timestamp of the object.
-       */
-      modified_at: string | null
-      /**
-       * @description discriminator enum property added by openapi-typescript
-       * @enum {string}
-       */
-      type: 'github_repository'
-      /**
-       * Description
-       * @description The description of the benefit.
-       */
-      description: string
-      /**
-       * Selectable
-       * @description Whether the benefit is selectable when creating a product.
-       */
-      selectable: boolean
-      /**
-       * Deletable
-       * @description Whether the benefit is deletable.
-       */
-      deletable: boolean
-      /**
-       * Is Deleted
-       * @description Whether the benefit is deleted.
-       */
-      is_deleted: boolean
-      /**
-       * Organization Id
-       * Format: uuid4
-       * @description The ID of the organization owning the benefit.
-       */
-      organization_id: string
-      metadata: components['schemas']['MetadataOutputType']
-      properties: components['schemas']['BenefitGitHubRepositoryProperties']
-    }
-    /**
-     * BenefitGitHubRepositoryProperties
-     * @description Properties for a benefit of type `github_repository`.
-     */
-    BenefitGitHubRepositoryProperties: {
-      /**
-       * Repository Owner
-       * @description The owner of the repository.
-       * @example polarsource
-       */
-      repository_owner: string
-      /**
-       * Repository Name
-       * @description The name of the repository.
-       * @example private_repo
-       */
-      repository_name: string
-      /**
-       * Permission
-       * @description The permission level to grant. Read more about roles and their permissions on [GitHub documentation](https://docs.github.com/en/organizations/managing-user-access-to-your-organizations-repositories/managing-repository-roles/repository-roles-for-an-organization#permissions-for-each-role).
-       * @enum {string}
-       */
-      permission: 'pull' | 'triage' | 'push' | 'maintain' | 'admin'
-    }
-    /** BenefitLicenseKeyActivationProperties */
-    BenefitLicenseKeyActivationProperties: {
-      /** Limit */
-      limit: number
-      /** Enable Customer Admin */
-      enable_customer_admin: boolean
-    }
-    /** BenefitLicenseKeyExpirationProperties */
-    BenefitLicenseKeyExpirationProperties: {
-      /** Ttl */
-      ttl: number
-      /**
-       * Timeframe
-       * @enum {string}
-       */
-      timeframe: 'year' | 'month' | 'day'
-    }
-    /** BenefitLicenseKeys */
-    BenefitLicenseKeys: {
-      /**
-       * Id
-       * Format: uuid4
-       * @description The ID of the benefit.
-       */
-      id: string
-      /**
-       * Created At
-       * Format: date-time
-       * @description Creation timestamp of the object.
-       */
-      created_at: string
-      /**
-       * Modified At
-       * @description Last modification timestamp of the object.
-       */
-      modified_at: string | null
-      /**
-       * @description discriminator enum property added by openapi-typescript
-       * @enum {string}
-       */
-      type: 'license_keys'
-      /**
-       * Description
-       * @description The description of the benefit.
-       */
-      description: string
-      /**
-       * Selectable
-       * @description Whether the benefit is selectable when creating a product.
-       */
-      selectable: boolean
-      /**
-       * Deletable
-       * @description Whether the benefit is deletable.
-       */
-      deletable: boolean
-      /**
-       * Is Deleted
-       * @description Whether the benefit is deleted.
-       */
-      is_deleted: boolean
-      /**
-       * Organization Id
-       * Format: uuid4
-       * @description The ID of the organization owning the benefit.
-       */
-      organization_id: string
-      metadata: components['schemas']['MetadataOutputType']
-      properties: components['schemas']['BenefitLicenseKeysProperties']
-    }
-    /** BenefitLicenseKeysProperties */
-    BenefitLicenseKeysProperties: {
-      /** Prefix */
-      prefix: string | null
-      expires:
-        | components['schemas']['BenefitLicenseKeyExpirationProperties']
-        | null
-      activations:
-        | components['schemas']['BenefitLicenseKeyActivationProperties']
-        | null
-      /** Limit Usage */
-      limit_usage: number | null
-    }
-    /**
-     * BenefitMeterCredit
-     * @description A benefit of type `meter_unit`.
-     *
-     *     Use it to grant a number of units on a specific meter.
-     */
-    BenefitMeterCredit: {
-      /**
-       * Id
-       * Format: uuid4
-       * @description The ID of the benefit.
-       */
-      id: string
-      /**
-       * Created At
-       * Format: date-time
-       * @description Creation timestamp of the object.
-       */
-      created_at: string
-      /**
-       * Modified At
-       * @description Last modification timestamp of the object.
-       */
-      modified_at: string | null
-      /**
-       * @description discriminator enum property added by openapi-typescript
-       * @enum {string}
-       */
-      type: 'meter_credit'
-      /**
-       * Description
-       * @description The description of the benefit.
-       */
-      description: string
-      /**
-       * Selectable
-       * @description Whether the benefit is selectable when creating a product.
-       */
-      selectable: boolean
-      /**
-       * Deletable
-       * @description Whether the benefit is deletable.
-       */
-      deletable: boolean
-      /**
-       * Is Deleted
-       * @description Whether the benefit is deleted.
-       */
-      is_deleted: boolean
-      /**
-       * Organization Id
-       * Format: uuid4
-       * @description The ID of the organization owning the benefit.
-       */
-      organization_id: string
-      metadata: components['schemas']['MetadataOutputType']
-      properties: components['schemas']['BenefitMeterCreditProperties']
-    }
-    /**
-     * BenefitMeterCreditProperties
-     * @description Properties for a benefit of type `meter_unit`.
-     */
-    BenefitMeterCreditProperties: {
-      /** Units */
-      units: number
-      /** Rollover */
-      rollover: boolean
-      /**
-       * Meter Id
-       * Format: uuid4
-       */
-      meter_id: string
-    }
     /**
      * CustomerCancellationReason
      * @enum {string}
@@ -1080,9 +561,6 @@ export interface components {
       /** Order Url */
       readonly order_url: string | null
     }
-    MetadataOutputType: {
-      [key: string]: string | number | boolean
-    }
     /** NotificationCreateAccountEmail */
     NotificationCreateAccountEmail: {
       /**
@@ -1303,9 +781,9 @@ export interface components {
       billing_address: components['schemas']['Address'] | null
       /**
        * Invoice Number
-       * @description The invoice number associated with this order.
+       * @description The invoice number associated with this order. `null` while the order is in `draft` status; assigned at finalize.
        */
-      invoice_number: string
+      invoice_number: string | null
       /**
        * Is Invoice Generated
        * @description Whether an invoice has been generated for this order.
@@ -1408,7 +886,13 @@ export interface components {
      * OrderStatus
      * @enum {string}
      */
-    OrderStatus: 'pending' | 'paid' | 'refunded' | 'partially_refunded' | 'void'
+    OrderStatus:
+      | 'draft'
+      | 'pending'
+      | 'paid'
+      | 'refunded'
+      | 'partially_refunded'
+      | 'void'
     /** Organization */
     Organization: {
       /**
@@ -1916,6 +1400,12 @@ export interface components {
        */
       reset_proration_behavior_enabled: boolean
       /**
+       * Off Session Charges Enabled
+       * @description If this organization can create and finalize draft orders via the API (off-session charges against a saved payment method).
+       * @default false
+       */
+      off_session_charges_enabled: boolean
+      /**
        * Billing Enabled
        * @description If this organization has billing enabled
        * @default false
@@ -2141,14 +1631,9 @@ export interface components {
        * @description The ID of the organization owning the product.
        */
       organization_id: string
-      /**
-       * Benefits
-       * @description List of benefits granted by the product.
-       */
-      benefits: components['schemas']['Benefit'][]
     }
     /**
-     * ProductVisibility
+     * Visibility
      * @enum {string}
      */
     ProductVisibility: 'draft' | 'private' | 'public'

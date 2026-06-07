@@ -1,7 +1,6 @@
 import hashlib
 import hmac
 import uuid
-from datetime import date
 from enum import StrEnum
 from typing import Annotated, Literal
 
@@ -10,9 +9,8 @@ from pydantic import UUID4, EmailStr, Field, computed_field
 
 from polar.auth.scope import Scope
 from polar.config import settings
-from polar.kit.address import CountryAlpha2Input
 from polar.kit.schemas import Schema, TimestampedSchema, UUID4ToStr
-from polar.models.user import IdentityVerificationStatus, OAuthPlatform
+from polar.models.user import OAuthPlatform
 from polar.organization.schemas import OrganizationWithRole
 
 
@@ -33,12 +31,6 @@ class UserRead(UserBase, TimestampedSchema):
     id: uuid.UUID
     accepted_terms_of_service: bool
     is_admin: bool
-    identity_verified: bool
-    identity_verification_status: IdentityVerificationStatus
-    first_name: str | None
-    last_name: str | None
-    country: str | None
-    date_of_birth: date | None
     oauth_accounts: list[OAuthAccountRead]
     organizations: list[OrganizationWithRole] = Field(
         default_factory=list,
@@ -61,16 +53,8 @@ class UserRead(UserBase, TimestampedSchema):
 
 
 class UserUpdate(Schema):
-    first_name: str | None = None
-    last_name: str | None = None
-    country: CountryAlpha2Input | None = None
-    date_of_birth: date | None = None
     accepted_terms_of_service: bool | None = None
 
-
-class UserIdentityVerification(Schema):
-    id: str
-    client_secret: str
 
 
 class UserSetAccount(Schema):

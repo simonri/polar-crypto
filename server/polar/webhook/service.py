@@ -30,11 +30,8 @@ from polar.kit.pagination import PaginationParams
 from polar.kit.utils import utc_now
 from polar.logging import Logger
 from polar.models import (
-    Benefit,
-    BenefitGrant,
     Checkout,
     Customer,
-    CustomerSeat,
     Member,
     Order,
     Organization,
@@ -524,32 +521,6 @@ class WebhookService:
     ) -> list[WebhookEvent]: ...
 
     @overload
-    async def send(
-        self,
-        session: AsyncSession,
-        target: Organization,
-        event: Literal[WebhookEventType.customer_seat_assigned],
-        data: CustomerSeat,
-    ) -> list[WebhookEvent]: ...
-
-    @overload
-    async def send(
-        self,
-        session: AsyncSession,
-        target: Organization,
-        event: Literal[WebhookEventType.customer_seat_claimed],
-        data: CustomerSeat,
-    ) -> list[WebhookEvent]: ...
-
-    @overload
-    async def send(
-        self,
-        session: AsyncSession,
-        target: Organization,
-        event: Literal[WebhookEventType.customer_seat_revoked],
-        data: CustomerSeat,
-    ) -> list[WebhookEvent]: ...
-
     @overload
     async def send(
         self,
@@ -719,60 +690,6 @@ class WebhookService:
         target: Organization,
         event: Literal[WebhookEventType.organization_updated],
         data: Organization,
-    ) -> list[WebhookEvent]: ...
-
-    @overload
-    async def send(
-        self,
-        session: AsyncSession,
-        target: Organization,
-        event: Literal[WebhookEventType.benefit_created],
-        data: Benefit,
-    ) -> list[WebhookEvent]: ...
-
-    @overload
-    async def send(
-        self,
-        session: AsyncSession,
-        target: Organization,
-        event: Literal[WebhookEventType.benefit_updated],
-        data: Benefit,
-    ) -> list[WebhookEvent]: ...
-
-    @overload
-    async def send(
-        self,
-        session: AsyncSession,
-        target: Organization,
-        event: Literal[WebhookEventType.benefit_grant_created],
-        data: BenefitGrant,
-    ) -> list[WebhookEvent]: ...
-
-    @overload
-    async def send(
-        self,
-        session: AsyncSession,
-        target: Organization,
-        event: Literal[WebhookEventType.benefit_grant_updated],
-        data: BenefitGrant,
-    ) -> list[WebhookEvent]: ...
-
-    @overload
-    async def send(
-        self,
-        session: AsyncSession,
-        target: Organization,
-        event: Literal[WebhookEventType.benefit_grant_cycled],
-        data: BenefitGrant,
-    ) -> list[WebhookEvent]: ...
-
-    @overload
-    async def send(
-        self,
-        session: AsyncSession,
-        target: Organization,
-        event: Literal[WebhookEventType.benefit_grant_revoked],
-        data: BenefitGrant,
     ) -> list[WebhookEvent]: ...
 
     async def send(

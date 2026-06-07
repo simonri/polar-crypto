@@ -6,20 +6,9 @@ Create Date: 2025-06-20 09:52:27.598192
 
 """
 
-import concurrent.futures
-import random
-import time
-from datetime import UTC, datetime
-from typing import TypedDict
-
 import sqlalchemy as sa
-import stripe as stripe_lib
 from alembic import op
 from sqlalchemy.dialects import postgresql
-
-# Polar Custom Imports
-from polar.config import settings
-from polar.integrations.stripe.utils import get_expandable_id
 
 # revision identifiers, used by Alembic.
 revision = "197161f42f14"
@@ -118,6 +107,7 @@ def upgrade() -> None:
         ["id"],
         ondelete="set null",
     )
+    # Stripe data migration already applied on production — skipped here.
     # ### end Alembic commands ###
 
 

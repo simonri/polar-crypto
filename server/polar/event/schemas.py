@@ -20,13 +20,10 @@ from polar.event.system import (
     BalanceDisputeMetadata,
     BalanceOrderMetadata,
     BalanceRefundMetadata,
-    BenefitGrantMetadata,
     CheckoutCreatedMetadata,
     CustomerCreatedMetadata,
     CustomerDeletedMetadata,
     CustomerUpdatedMetadata,
-    MeterCreditedMetadata,
-    MeterResetMetadata,
     OrderPaidMetadata,
     OrderRefundedMetadata,
     OrderVoidedMetadata,
@@ -264,66 +261,6 @@ class SystemEventBase(BaseEvent):
     """An event created by Polar."""
 
     source: Literal[EventSource.system] = Field(description=_SOURCE_DESCRIPTION)
-
-
-class MeterCreditEvent(SystemEventBase):
-    """An event created by Polar when credits are added to a customer meter."""
-
-    name: Literal[SystemEventEnum.meter_credited] = Field(description=_NAME_DESCRIPTION)
-    metadata: MeterCreditedMetadata = Field(
-        validation_alias=AliasChoices("user_metadata", "metadata")
-    )
-
-
-class MeterResetEvent(SystemEventBase):
-    """An event created by Polar when a customer meter is reset."""
-
-    name: Literal[SystemEventEnum.meter_reset] = Field(description=_NAME_DESCRIPTION)
-    metadata: MeterResetMetadata = Field(
-        validation_alias=AliasChoices("user_metadata", "metadata")
-    )
-
-
-class BenefitGrantedEvent(SystemEventBase):
-    """An event created by Polar when a benefit is granted to a customer."""
-
-    name: Literal[SystemEventEnum.benefit_granted] = Field(
-        description=_NAME_DESCRIPTION
-    )
-    metadata: BenefitGrantMetadata = Field(
-        validation_alias=AliasChoices("user_metadata", "metadata")
-    )
-
-
-class BenefitCycledEvent(SystemEventBase):
-    """An event created by Polar when a benefit is cycled."""
-
-    name: Literal[SystemEventEnum.benefit_cycled] = Field(description=_NAME_DESCRIPTION)
-    metadata: BenefitGrantMetadata = Field(
-        validation_alias=AliasChoices("user_metadata", "metadata")
-    )
-
-
-class BenefitUpdatedEvent(SystemEventBase):
-    """An event created by Polar when a benefit is updated."""
-
-    name: Literal[SystemEventEnum.benefit_updated] = Field(
-        description=_NAME_DESCRIPTION
-    )
-    metadata: BenefitGrantMetadata = Field(
-        validation_alias=AliasChoices("user_metadata", "metadata")
-    )
-
-
-class BenefitRevokedEvent(SystemEventBase):
-    """An event created by Polar when a benefit is revoked from a customer."""
-
-    name: Literal[SystemEventEnum.benefit_revoked] = Field(
-        description=_NAME_DESCRIPTION
-    )
-    metadata: BenefitGrantMetadata = Field(
-        validation_alias=AliasChoices("user_metadata", "metadata")
-    )
 
 
 class SubscriptionCreatedEvent(SystemEventBase):
@@ -592,13 +529,7 @@ class BalanceDisputeReversalEvent(SystemEventBase):
 
 
 SystemEvent = Annotated[
-    MeterCreditEvent
-    | MeterResetEvent
-    | BenefitGrantedEvent
-    | BenefitCycledEvent
-    | BenefitUpdatedEvent
-    | BenefitRevokedEvent
-    | SubscriptionCreatedEvent
+    SubscriptionCreatedEvent
     | SubscriptionUpdatedEvent
     | SubscriptionCycledEvent
     | SubscriptionCanceledEvent

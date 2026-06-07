@@ -4,21 +4,16 @@ from typing import Annotated
 from pydantic import UUID4, AliasChoices, AliasPath, Field
 from pydantic.json_schema import SkipJsonSchema
 
-from polar.enums import SubscriptionProrationBehavior
-from polar.kit.schemas import IDSchema, Schema, SetSchemaReference, TimestampedSchema
-from polar.meter.schemas import NAME_DESCRIPTION as METER_NAME_DESCRIPTION
+from polar.kit.schemas import Schema, SetSchemaReference
 from polar.models.subscription import CustomerCancellationReason
 from polar.product.schemas import (
-    BenefitPublicList,
     ProductBase,
-    ProductMediaList,
     ProductPrice,
     ProductPriceList,
 )
 from polar.subscription.schemas import (
     PendingSubscriptionUpdate,
     SubscriptionBase,
-    SubscriptionMeterBase,
 )
 
 from .organization import CustomerOrganization
@@ -26,17 +21,7 @@ from .organization import CustomerOrganization
 
 class CustomerSubscriptionProduct(ProductBase):
     prices: ProductPriceList
-    benefits: BenefitPublicList
-    medias: ProductMediaList
     organization: CustomerOrganization
-
-
-class CustomerSubscriptionMeterMeter(IDSchema, TimestampedSchema):
-    name: str = Field(description=METER_NAME_DESCRIPTION)
-
-
-class CustomerSubscriptionMeter(SubscriptionMeterBase):
-    meter: CustomerSubscriptionMeterMeter
 
 
 class CustomerSubscription(SubscriptionBase):
@@ -64,9 +49,6 @@ class CustomerSubscription(SubscriptionBase):
     prices: list[ProductPrice] = Field(
         description="List of enabled prices for the subscription."
     )
-    meters: list[CustomerSubscriptionMeter] = Field(
-        description="List of meters associated with the subscription."
-    )
     pending_update: PendingSubscriptionUpdate | None = Field(
         description=(
             "Pending subscription update that will be applied at the beginning of the next period. "
@@ -77,20 +59,6 @@ class CustomerSubscription(SubscriptionBase):
 
 class CustomerSubscriptionUpdateProduct(Schema):
     product_id: UUID4 = Field(description="Update subscription to another product.")
-
-
-class CustomerSubscriptionUpdateSeats(Schema):
-    seats: int = Field(
-        description="Update the number of seats for this subscription.",
-        ge=1,
-    )
-    proration_behavior: SubscriptionProrationBehavior | None = Field(
-        default=None,
-        description=(
-            "Determine how to handle the proration billing. "
-            "If not provided, will use the default organization setting."
-        ),
-    )
 
 
 class CustomerSubscriptionCancel(Schema):
@@ -133,7 +101,6 @@ class CustomerSubscriptionUpdateClear(Schema):
 
 CustomerSubscriptionUpdate = Annotated[
     CustomerSubscriptionUpdateProduct
-    | CustomerSubscriptionUpdateSeats
     | CustomerSubscriptionCancel
     | CustomerSubscriptionUpdateClear,
     SetSchemaReference("CustomerSubscriptionUpdate"),

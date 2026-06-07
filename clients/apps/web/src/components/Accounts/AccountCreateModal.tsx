@@ -1,8 +1,9 @@
+'use client'
+
 import { setValidationErrors } from '@/utils/api/errors'
 import { api } from '@/utils/client'
-import { enums, isValidationError, schemas } from '@polar-sh/client'
+import { isValidationError, schemas } from '@polar-sh/client'
 import { Button } from '@polar-sh/orbit'
-import CountryPicker from '@polar-sh/ui/components/atoms/CountryPicker'
 import {
   Form,
   FormControl,
@@ -15,17 +16,38 @@ import {
 import { useCallback, useState } from 'react'
 import { useForm, useFormContext } from 'react-hook-form'
 
+const COUNTRIES = [
+  'US',
+  'GB',
+  'DE',
+  'FR',
+  'NL',
+  'SE',
+  'NO',
+  'DK',
+  'FI',
+  'AU',
+  'CA',
+  'NZ',
+  'SG',
+  'JP',
+  'BR',
+  'IN',
+  'MX',
+  'AR',
+  'ZA',
+  'NG',
+  'KE',
+]
+
 const AccountCreateModal = ({
   forOrganizationId,
-  returnPath,
 }: {
   forOrganizationId: string
   returnPath: string
 }) => {
   const form = useForm<schemas['PayoutAccountCreate']>({
-    defaultValues: {
-      country: 'US',
-    },
+    defaultValues: { country: 'US' },
   })
 
   const {
@@ -35,45 +57,21 @@ const AccountCreateModal = ({
   } = form
 
   const [loading, setLoading] = useState(false)
-
-  const goToOnboarding = useCallback(
-    async (payoutAccount: schemas['PayoutAccount']) => {
-      setLoading(true)
-      const { data, error } = await api.POST(
-        '/v1/payout-accounts/{id}/onboarding-link',
-        {
-          params: {
-            path: { id: payoutAccount.id },
-            query: { return_path: returnPath },
-          },
-        },
-      )
-      setLoading(false)
-
-      if (error) {
-        window.location.reload()
-        return
-      }
-
-      window.location.href = data.url
-    },
-    [returnPath],
-  )
+  const [created, setCreated] = useState(false)
 
   const onSubmit = useCallback(
     async (data: schemas['PayoutAccountCreate']) => {
       setLoading(true)
 
-      const { data: payoutAccount, error } = await api.POST(
-        '/v1/payout-accounts/',
-        {
-          body: {
-            type: 'stripe',
-            country: data.country,
-            organization_id: forOrganizationId,
-          },
-        },
-      )
+      const { error } = await api.POST('/v1/payout-accounts/', {
+        body: {
+          type: 'manual',
+          country: data.country,
+          organization_id: forOrganizationId,
+        } as schemas['PayoutAccountCreate'],
+      })
+
+      setLoading(false)
 
       if (error) {
         if (isValidationError(error.detail)) {
@@ -81,26 +79,66 @@ const AccountCreateModal = ({
         } else {
           setError('root', { message: error.detail })
         }
-        setLoading(false)
         return
       }
 
-      setLoading(false)
-      await goToOnboarding(payoutAccount)
+      setCreated(true)
     },
-    [setLoading, forOrganizationId, goToOnboarding, setError],
+    [forOrganizationId, setError],
   )
+
+  if (created) {
+    return (
+      <div className="flex flex-col gap-y-4 p-8">
+        <h2>Payout account created</h2>
+        <p className="text-sm text-gray-600">
+          Your payout account is ready. Go to Finance settings to add your
+          crypto wallet addresses for receiving payouts.
+        </p>
+      </div>
+    )
+  }
 
   return (
     <div className="flex flex-col gap-y-6 overflow-auto p-8">
       <h2>Setup payout account</h2>
+      <p className="text-sm text-gray-600">
+        Create a payout account to receive crypto payments. You can add your
+        wallet addresses after account creation.
+      </p>
 
       <Form {...form}>
         <form
           className="flex flex-col gap-y-4"
           onSubmit={handleSubmit(onSubmit)}
         >
-          <AccountCountry />
+          <FormField
+            control={form.control}
+            name="country"
+            render={({ field }) => (
+              <FormItem>
+                <FormLabel>Country</FormLabel>
+                <FormControl>
+                  <select
+                    value={field.value || 'US'}
+                    onChange={field.onChange}
+                    className="w-full rounded-lg border border-gray-200 bg-white px-3 py-2 text-sm dark:border-gray-700 dark:bg-gray-900"
+                  >
+                    {COUNTRIES.map((c) => (
+                      <option key={c} value={c}>
+                        {c}
+                      </option>
+                    ))}
+                  </select>
+                </FormControl>
+                <FormDescription>
+                  Select your country of residence or business tax residency.
+                </FormDescription>
+                <FormMessage />
+              </FormItem>
+            )}
+          />
+
           {errors.root && (
             <p className="text-destructive-foreground text-sm">
               {errors.root.message}
@@ -112,42 +150,11 @@ const AccountCreateModal = ({
             loading={loading}
             disabled={loading}
           >
-            Set up account
+            Create account
           </Button>
         </form>
       </Form>
     </div>
-  )
-}
-
-const AccountCountry = () => {
-  const { control } = useFormContext<schemas['PayoutAccountCreate']>()
-
-  return (
-    <FormField
-      control={control}
-      name="country"
-      render={({ field }) => {
-        return (
-          <FormItem>
-            <FormLabel>Country</FormLabel>
-            <FormControl>
-              <CountryPicker
-                value={field.value || undefined}
-                onChange={field.onChange}
-                allowedCountries={enums.stripeAccountCountryValues}
-              />
-            </FormControl>
-            <FormMessage />
-            <FormDescription>
-              If this is a personal account, please select your country of
-              residence. If this is an organization or business, select the
-              country of tax residency.
-            </FormDescription>
-          </FormItem>
-        )
-      }}
-    />
   )
 }
 

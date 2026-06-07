@@ -1,15 +1,12 @@
-from decimal import Decimal
 from enum import StrEnum
-from typing import TYPE_CHECKING, Any, Literal, TypedDict
+from typing import TYPE_CHECKING, Any, Literal
 from uuid import UUID
 
-from babel.numbers import format_decimal
 from sqlalchemy import (
     BigInteger,
     Boolean,
     ColumnElement,
     ForeignKey,
-    Numeric,
     String,
     Uuid,
     case,
@@ -17,7 +14,6 @@ from sqlalchemy import (
     func,
     type_coerce,
 )
-from sqlalchemy.dialects import postgresql
 from sqlalchemy.ext.hybrid import hybrid_property
 from sqlalchemy.orm import (
     Mapped,
@@ -29,15 +25,12 @@ from sqlalchemy.orm import (
 
 from polar.enums import (
     SubscriptionRecurringInterval,
-    TaxBehaviorOption,
 )
-from polar.kit.currency import format_currency
 from polar.kit.db.models import RecordModel
 from polar.kit.extensions.sqlalchemy.types import StringEnum
-from polar.kit.math import polar_round
 
 if TYPE_CHECKING:
-    from polar.models import Meter, Product
+    from polar.models import Product
 
 
 class ProductPriceType(StrEnum):
@@ -52,33 +45,11 @@ class ProductPriceAmountType(StrEnum):
     fixed = "fixed"
     custom = "custom"
     free = "free"
-    metered_unit = "metered_unit"
-    seat_based = "seat_based"
 
 
 class ProductPriceSource(StrEnum):
     catalog = "catalog"
     ad_hoc = "ad_hoc"
-
-
-class SeatTierType(StrEnum):
-    volume = "volume"
-    graduated = "graduated"
-
-
-class SeatTier(TypedDict):
-    """A single pricing tier for seat-based pricing."""
-
-    min_seats: int
-    max_seats: int | None
-    price_per_seat: int
-
-
-class SeatTiersData(TypedDict):
-    """The structure of the seat_tiers JSONB column."""
-
-    seat_tier_type: SeatTierType
-    tiers: list[SeatTier]
 
 
 LEGACY_IDENTITY_PREFIX = "legacy_"
@@ -107,9 +78,6 @@ class ProductPrice(RecordModel):
     )
     price_currency: Mapped[str] = mapped_column(
         String(3), nullable=False, use_existing_column=True
-    )
-    tax_behavior: Mapped[TaxBehaviorOption | None] = mapped_column(
-        StringEnum(TaxBehaviorOption), nullable=True
     )
     is_archived: Mapped[bool] = mapped_column(Boolean, nullable=False, default=False)
 
@@ -155,7 +123,6 @@ class ProductPrice(RecordModel):
             ProductPriceAmountType.fixed,
             ProductPriceAmountType.free,
             ProductPriceAmountType.custom,
-            ProductPriceAmountType.seat_based,
         }
 
     @is_static.inplace.expression
@@ -166,18 +133,8 @@ class ProductPrice(RecordModel):
                 ProductPriceAmountType.fixed,
                 ProductPriceAmountType.free,
                 ProductPriceAmountType.custom,
-                ProductPriceAmountType.seat_based,
             )
         )
-
-    @hybrid_property
-    def is_metered(self) -> bool:
-        return self.amount_type in {ProductPriceAmountType.metered_unit}
-
-    @is_metered.inplace.expression
-    @classmethod
-    def _is_metered_price_expression(cls) -> ColumnElement[bool]:
-        return cls.amount_type.in_((ProductPriceAmountType.metered_unit,))
 
     @property
     def legacy_type(self) -> ProductPriceType | None:
@@ -322,142 +279,6 @@ class ProductPriceFree(NewProductPrice, _ProductPriceFree):
 class LegacyRecurringProductPriceFree(LegacyRecurringProductPrice, _ProductPriceFree):
     __mapper_args__ = {
         "polymorphic_identity": f"{LEGACY_IDENTITY_PREFIX}{ProductPriceAmountType.free}",
-        "polymorphic_load": "inline",
-    }
-
-
-class ProductPriceMeteredUnit(ProductPrice, NewProductPrice):
-    amount_type: Mapped[Literal[ProductPriceAmountType.metered_unit]] = mapped_column(
-        use_existing_column=True, default=ProductPriceAmountType.metered_unit
-    )
-    unit_amount: Mapped[Decimal] = mapped_column(
-        Numeric(17, 12),  # 12 decimal places, 17 digits total
-        # Polymorphic columns must be nullable, as they don't apply to other types
-        nullable=True,
-    )
-    cap_amount: Mapped[int | None] = mapped_column(
-        "cap_amount_v2", BigInteger, nullable=True
-    )
-    meter_id: Mapped[UUID] = mapped_column(
-        Uuid,
-        ForeignKey("meters.id"),
-        # Polymorphic columns must be nullable, as they don't apply to other types
-        nullable=True,
-        index=True,
-    )
-
-    @declared_attr
-    def meter(cls) -> Mapped["Meter"]:
-        # For convenience, eager load it, at it's embedded in all schemas outputting a price
-        return relationship("Meter", lazy="joined")
-
-    def get_amount_and_label(self, units: float) -> tuple[int, str]:
-        label = f"({format_decimal(max(0, units), locale='en_US')} consumed units"
-
-        label += f") × {format_currency(self.unit_amount, self.price_currency, decimal_quantization=False)}"
-
-        billable_units = Decimal(max(0, units))
-        raw_amount = self.unit_amount * billable_units
-        amount = polar_round(raw_amount)
-
-        if self.cap_amount is not None and amount > self.cap_amount:
-            amount = self.cap_amount
-            label += (
-                f" — Capped at {format_currency(self.cap_amount, self.price_currency)}"
-            )
-
-        return amount, label
-
-    __mapper_args__ = {
-        "polymorphic_identity": ProductPriceAmountType.metered_unit,
-        "polymorphic_load": "inline",
-    }
-
-
-class ProductPriceSeatUnit(NewProductPrice, ProductPrice):
-    amount_type: Mapped[Literal[ProductPriceAmountType.seat_based]] = mapped_column(
-        use_existing_column=True, default=ProductPriceAmountType.seat_based
-    )
-    seat_tiers: Mapped[SeatTiersData] = mapped_column(
-        postgresql.JSONB,
-        nullable=True,
-    )
-
-    def get_tier_for_seats(self, seats: int) -> SeatTier:
-        for tier in self.seat_tiers.get("tiers", []):
-            min_seats = tier["min_seats"]
-            max_seats = tier.get("max_seats")
-            if seats >= min_seats and (max_seats is None or seats <= max_seats):
-                return tier
-        raise ValueError(f"No tier found for {seats} seats")
-
-    def calculate_amount(self, seats: int) -> int:
-        seat_tier_type = self.seat_tiers.get("seat_tier_type", SeatTierType.volume)
-        match seat_tier_type:
-            case SeatTierType.volume:
-                return self._calculate_volume(seats)
-            case SeatTierType.graduated:
-                return self._calculate_graduated(seats)
-
-    def _calculate_volume(self, seats: int) -> int:
-        tier = self.get_tier_for_seats(seats)
-        return tier["price_per_seat"] * seats
-
-    def _calculate_graduated(self, seats: int) -> int:
-        total = 0
-        remaining = seats
-        # Tier capacity is measured from the previous tier's upper bound, not the
-        # tier's own min_seats. The first tier's min_seats doubles as the minimum
-        # order quantity (see get_minimum_seats), so it may be > 1; the first tier
-        # must still bill from seat 1, otherwise seats below it spill into cheaper
-        # tiers (T-28449).
-        previous_max = 0
-        for tier in sorted(
-            self.seat_tiers.get("tiers", []), key=lambda t: t["min_seats"]
-        ):
-            if remaining <= 0:
-                break
-            max_seats = tier.get("max_seats")
-            tier_capacity = (
-                (max_seats - previous_max) if max_seats is not None else remaining
-            )
-            seats_in_tier = min(remaining, tier_capacity)
-            total += seats_in_tier * tier["price_per_seat"]
-            remaining -= seats_in_tier
-            if max_seats is not None:
-                previous_max = max_seats
-        return total
-
-    def get_minimum_seats(self) -> int:
-        """Get the minimum number of seats allowed, derived from first tier's min_seats."""
-        tiers = self.seat_tiers.get("tiers", [])
-        if not tiers:
-            return 1
-        sorted_tiers = sorted(tiers, key=lambda t: t["min_seats"])
-        return sorted_tiers[0]["min_seats"]
-
-    def get_maximum_seats(self) -> int | None:
-        """Get the maximum number of seats allowed, derived from last tier's max_seats."""
-        tiers = self.seat_tiers.get("tiers", [])
-        if not tiers:
-            return None
-        sorted_tiers = sorted(tiers, key=lambda t: t["min_seats"])
-        return sorted_tiers[-1].get("max_seats")
-
-    @property
-    def is_free(self) -> bool:
-        """Check if ALL tiers have price_per_seat == 0.
-
-        A seat-based price is only considered free if every single tier
-        has a zero price per seat. If any tier charges, it's not free.
-        """
-        tiers = self.seat_tiers.get("tiers", [])
-        if not tiers:
-            return True
-        return all(tier["price_per_seat"] == 0 for tier in tiers)
-
-    __mapper_args__ = {
-        "polymorphic_identity": ProductPriceAmountType.seat_based,
         "polymorphic_load": "inline",
     }
 

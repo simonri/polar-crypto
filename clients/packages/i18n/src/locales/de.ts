@@ -280,7 +280,6 @@ export default {
     github_repository: 'GitHub-Repository-Zugang',
     discord: 'Discord-Einladung',
     downloadables: 'Dateidownloads',
-    meter_credit: 'Verbrauchsguthaben',
     feature_flag: 'Feature-Flag',
   },
   ordinal: {

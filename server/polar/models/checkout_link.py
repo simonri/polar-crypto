@@ -22,7 +22,7 @@ class CheckoutLink(TrialConfigurationMixin, MetadataMixin, RecordModel):
     __tablename__ = "checkout_links"
 
     payment_processor: Mapped[PaymentProcessor] = mapped_column(
-        String, nullable=False, default=PaymentProcessor.stripe, index=True
+        String, nullable=False, default=PaymentProcessor.crypto, index=True
     )
     client_secret: Mapped[str] = mapped_column(
         String, index=True, nullable=False, unique=True
@@ -35,9 +35,6 @@ class CheckoutLink(TrialConfigurationMixin, MetadataMixin, RecordModel):
     label: Mapped[UUID] = mapped_column(String, nullable=True)
     allow_discount_codes: Mapped[bool] = mapped_column(
         Boolean, nullable=False, default=True
-    )
-    require_billing_address: Mapped[bool] = mapped_column(
-        Boolean, nullable=False, default=False
     )
 
     discount_id: Mapped[UUID | None] = mapped_column(

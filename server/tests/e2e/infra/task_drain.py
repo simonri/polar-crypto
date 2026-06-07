@@ -37,8 +37,6 @@ DEFAULT_IGNORED_ACTORS: frozenset[str] = frozenset(
     {
         # Requires Stripe API call to look up charge details for balance transactions
         "order.balance",
-        # Uploads invoice PDF to S3/MinIO
-        "order.invoice",
         # Tinybird analytics ingestion
         "tinybird.ingest",
         # Uses Retry for concurrency — AsyncSessionMaker rollback corrupts the
@@ -53,7 +51,6 @@ QUEUE_NAMES = (
     "low_priority",
     "webhooks",
     "tinybird",
-    "invoices_and_receipts",
 )
 MAX_DRAIN_ITERATIONS = 200
 MAX_UNWRAP_DEPTH = 10

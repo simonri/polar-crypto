@@ -38,7 +38,7 @@ const ManagePayoutAccountModal: React.FC<ManagePayoutAccountModalProps> = ({
     null,
   )
 
-  const handleOpenStripeLink = useCallback(
+  const handleOpenLink = useCallback(
     async (payoutAccount: schemas['PayoutAccount']) => {
       setLoadingDashboardId(payoutAccount.id)
       try {
@@ -60,8 +60,8 @@ const ManagePayoutAccountModal: React.FC<ManagePayoutAccountModalProps> = ({
       } catch {
         toast({
           title: payoutAccount.is_payout_ready
-            ? 'Failed to open Stripe dashboard'
-            : 'Failed to open Stripe onboarding',
+            ? 'Failed to open dashboard'
+            : 'Failed to open onboarding',
           description: 'An error occurred while generating the link.',
         })
       } finally {
@@ -163,15 +163,15 @@ const ManagePayoutAccountModal: React.FC<ManagePayoutAccountModalProps> = ({
                     )}
                   </div>
                   <div className="flex flex-row flex-wrap justify-end gap-2">
-                    {account.type === 'stripe' && (
+                    {false && (
                       <Button
                         variant="secondary"
                         size="sm"
-                        onClick={() => handleOpenStripeLink(account)}
+                        onClick={() => handleOpenLink(account)}
                         loading={loadingDashboardId === account.id}
                       >
                         {account.is_payout_ready
-                          ? 'Open in Stripe'
+                          ? 'Manage account'
                           : 'Complete Setup'}
                         <ExternalLink className="ml-2 h-3.5 w-3.5" />
                       </Button>

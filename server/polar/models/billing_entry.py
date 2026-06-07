@@ -1,6 +1,6 @@
 from datetime import datetime
 from enum import StrEnum
-from typing import TYPE_CHECKING, Self
+from typing import TYPE_CHECKING
 from uuid import UUID
 
 from sqlalchemy import TIMESTAMP, BigInteger, ForeignKey, Index, String, Uuid
@@ -17,7 +17,6 @@ if TYPE_CHECKING:
         OrderItem,
         ProductPrice,
         Subscription,
-        SubscriptionProductPrice,
     )
 
 
@@ -29,7 +28,6 @@ class BillingEntryDirection(StrEnum):
 class BillingEntryType(StrEnum):
     cycle = "cycle"
     proration = "proration"
-    metered = "metered"
     subscription_seats_increase = "subscription_seats_increase"
     subscription_seats_decrease = "subscription_seats_decrease"
 
@@ -122,21 +120,3 @@ class BillingEntry(RecordModel):
     @declared_attr
     def order_item(cls) -> Mapped["OrderItem | None"]:
         return relationship("OrderItem", lazy="raise_on_sql")
-
-    @classmethod
-    def from_metered_event(
-        cls,
-        customer: "Customer",
-        subscription_product_price: "SubscriptionProductPrice",
-        event: "Event",
-    ) -> Self:
-        return cls(
-            start_timestamp=event.timestamp,
-            end_timestamp=event.timestamp,
-            type=BillingEntryType.metered,
-            direction=BillingEntryDirection.debit,
-            customer=customer,
-            product_price=subscription_product_price.product_price,
-            subscription=subscription_product_price.subscription,
-            event=event,
-        )

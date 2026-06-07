@@ -3,6 +3,7 @@
 import { useOrganization } from '@/hooks/queries'
 import { usePayoutAccountSetup } from '@/hooks/usePayoutAccountSetup'
 import { schemas } from '@polar-sh/client'
+import type { OrganizationReviewCheck } from './index'
 import { Box } from '@polar-sh/orbit/Box'
 import { Button } from '@polar-sh/orbit'
 import { ArrowRight, BanknoteIcon, CheckIcon } from 'lucide-react'
@@ -11,7 +12,7 @@ import { StatusBlock } from './StatusBlock'
 
 interface Props {
   organization: schemas['Organization']
-  step: schemas['OrganizationReviewCheck']
+  step: OrganizationReviewCheck
   reasonItems: string[]
 }
 
@@ -39,49 +40,18 @@ export const PayoutAccountSection = ({
       `/dashboard/${organization.slug}/finance/account`,
     )
 
-  const isStripeAccount = payoutAccount?.type === 'stripe'
-  const isManualAccount = payoutAccount && !isStripeAccount
-
-  if (isManualAccount) {
-    return (
-      <>
-        <StatusBlock
-          tone="neutral"
-          icon={BanknoteIcon}
-          title="Manual payouts"
-          description={
-            <>
-              You are receiving manual payouts.{' '}
-              <a
-                href="mailto:support@polar.sh"
-                className="underline hover:no-underline"
-              >
-                Reach out to support
-              </a>{' '}
-              to request a payout or change this.
-            </>
-          }
-        />
-        {modals}
-        {banners}
-      </>
-    )
-  }
-
-  if (isStripeAccount) {
+  if (payoutAccount) {
     const ready = payoutAccount.is_payout_ready
     return (
       <>
         <StatusBlock
           tone={ready ? 'success' : 'pending'}
           icon={ready ? CheckIcon : BanknoteIcon}
-          title={
-            ready ? 'Payout account connected' : 'Payout account needs setup'
-          }
+          title={ready ? 'Payout account ready' : 'Payout account needs setup'}
           description={
             ready
-              ? 'Your Stripe payout account is configured and ready to receive payouts.'
-              : 'Your Stripe payout account is connected but onboarding isn’t complete yet.'
+              ? 'Your payout account is configured. Add crypto wallet addresses to receive payouts.'
+              : 'Your payout account is set up but not yet ready for payouts.'
           }
           action={
             <Button onClick={openManage}>
@@ -101,11 +71,11 @@ export const PayoutAccountSection = ({
       <StatusBlock
         tone="neutral"
         icon={BanknoteIcon}
-        title="Connect payout account"
-        description="Connect or create a Stripe account to receive payments from your customers."
+        title="Set up payout account"
+        description="Create a payout account and add crypto wallet addresses to receive payments."
         action={
           <Button onClick={openPrimary}>
-            Connect payout account
+            Set up payout account
             <ArrowRight className="ml-2 h-4 w-4" />
           </Button>
         }

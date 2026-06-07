@@ -78,9 +78,7 @@ OPENAPI_PARAMETERS: OpenAPIParameters = {
     "summary": "Polar HTTP and Webhooks API",
     "version": "0.1.0",
     "description": "Read the docs at https://polar.sh/docs/api-reference",
-    "docs_url": None
-    if settings.is_environment({Environment.sandbox, Environment.production})
-    else "/docs",
+    "docs_url": None if settings.is_environment({Environment.production}) else "/docs",
     "redoc_url": None
     if settings.is_environment({Environment.sandbox, Environment.production})
     else "/redoc",

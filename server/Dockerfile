@@ -33,19 +33,7 @@ COPY ./polar/backoffice/ .
 
 RUN pnpm run build
 
-# Stage 3: Download IPInfo database with checksum validation
-FROM alpine:3.21 AS download-ipinfo
-
-RUN apk add --no-cache curl jq
-
-RUN --mount=type=secret,id=IPINFO_ACCESS_TOKEN \
-  mkdir /data && \
-  TOKEN=$(cat /run/secrets/IPINFO_ACCESS_TOKEN) && \
-  EXPECTED_SHA256=$(curl -fsSL "https://ipinfo.io/data/free/country_asn.mmdb/checksums?token=${TOKEN}" | jq -r '.checksums.sha256') && \
-  curl -fsSL "https://ipinfo.io/data/free/country_asn.mmdb?token=${TOKEN}" -o /data/country_asn.mmdb && \
-  echo "${EXPECTED_SHA256}  /data/country_asn.mmdb" | sha256sum -c -
-
-# Stage 4: Download per-script Noto Sans CJK .ttf fonts with checksum validation.
+# Stage 3: Download per-script Noto Sans CJK .ttf fonts with checksum validation.
 # URLs are pinned to versioned (v39/v40/v56) gstatic.com paths returned by
 # https://fonts.googleapis.com/css2; those paths are immutable for a given
 # version. We use TrueType (glyf) builds because PDF.js (Firefox) does not
@@ -113,10 +101,6 @@ ENV POLAR_EMAIL_RENDERER_BINARY_PATH=/app/server/react-email-pkg
 COPY --from=build-backoffice /app/static /app/server/polar/backoffice/static
 RUN ls -la /app/server/polar/backoffice/static
 
-COPY --from=download-ipinfo /data /data
-ENV POLAR_IP_GEOLOCATION_DATABASE_DIRECTORY_PATH=/data
-ENV POLAR_IP_GEOLOCATION_DATABASE_NAME=country_asn.mmdb
-
 COPY --from=download-cjk-fonts /fonts/ /app/server/polar/invoice/fonts/
 
 ARG RELEASE_VERSION
@@ -128,11 +112,3 @@ CMD ["uv", "run", "uvicorn", "polar.app:app", "--host", "0.0.0.0", "--port", "10
 FROM production AS playwright
 
 RUN uv run playwright install --with-deps chromium
-
-# Stage 7: AWS Lambda image (SQS-driven background tasks, POC)
-FROM production AS lambda
-
-RUN uv pip install awslambdaric
-
-ENTRYPOINT ["uv", "run", "python", "-m", "awslambdaric"]
-CMD ["polar.worker.aws_lambda.handler"]

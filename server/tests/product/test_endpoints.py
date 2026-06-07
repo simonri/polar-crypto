@@ -5,7 +5,6 @@ import pytest
 from httpx import AsyncClient
 
 from polar.models import (
-    Benefit,
     Organization,
     Product,
     ProductPriceFixed,
@@ -17,7 +16,6 @@ from tests.fixtures.database import SaveFixture
 from tests.fixtures.random_objects import (
     create_custom_field,
     create_product,
-    set_product_benefits,
 )
 
 
@@ -45,40 +43,6 @@ class TestListProducts:
         assert response.status_code == 200
         json = response.json()
         assert json["pagination"]["total_count"] == 0
-
-    @pytest.mark.auth
-    async def test_with_benefits(
-        self,
-        session: AsyncSession,
-        save_fixture: SaveFixture,
-        client: AsyncClient,
-        organization: Organization,
-        user_organization: UserOrganization,
-        product: Product,
-        benefits: list[Benefit],
-    ) -> None:
-        product = await set_product_benefits(
-            save_fixture,
-            product=product,
-            benefits=benefits,
-        )
-
-        response = await client.get(
-            "/v1/products/",
-            params={"organization_id": str(organization.id)},
-        )
-
-        assert response.status_code == 200
-
-        json = response.json()
-        assert json["pagination"]["total_count"] == 1
-
-        items = json["items"]
-        item = items[0]
-        assert item["id"] == str(product.id)
-        assert len(item["benefits"]) == len(benefits)
-        for benefit in item["benefits"]:
-            assert "properties" in benefit
 
 
 @pytest.mark.asyncio
@@ -118,31 +82,6 @@ class TestGetProduct:
 
         json = response.json()
         assert json["id"] == str(product.id)
-
-    @pytest.mark.auth
-    async def test_valid_with_benefits(
-        self,
-        save_fixture: SaveFixture,
-        client: AsyncClient,
-        product: Product,
-        benefits: list[Benefit],
-        user_organization: UserOrganization,
-    ) -> None:
-        product = await set_product_benefits(
-            save_fixture,
-            product=product,
-            benefits=benefits,
-        )
-
-        response = await client.get(f"/v1/products/{product.id}")
-
-        assert response.status_code == 200
-
-        json = response.json()
-        assert json["id"] == str(product.id)
-        assert len(json["benefits"]) == len(benefits)
-        for benefit in json["benefits"]:
-            assert "properties" in benefit
 
 
 @pytest.mark.asyncio
@@ -484,55 +423,3 @@ class TestUpdateProduct:
         )
 
         assert response.status_code == 422
-
-
-@pytest.mark.asyncio
-class TestUpdateProductBenefits:
-    async def test_anonymous(self, client: AsyncClient, product: Product) -> None:
-        response = await client.post(
-            f"/v1/products/{product.id}/benefits",
-            json={"benefits": []},
-        )
-
-        assert response.status_code == 401
-
-    @pytest.mark.auth
-    async def test_not_existing(self, client: AsyncClient) -> None:
-        response = await client.post(
-            f"/v1/products/{uuid.uuid4()}/benefits",
-            json={"benefits": []},
-        )
-
-        assert response.status_code == 404
-
-    @pytest.mark.auth
-    async def test_user_cannot_access_other_organization_product(
-        self,
-        client: AsyncClient,
-        user_organization: UserOrganization,
-        product_organization_second: Product,
-    ) -> None:
-        response = await client.post(
-            f"/v1/products/{product_organization_second.id}/benefits",
-            json={"benefits": []},
-        )
-
-        assert response.status_code == 404
-
-    @pytest.mark.auth
-    async def test_valid(
-        self,
-        client: AsyncClient,
-        product: Product,
-        user_organization: UserOrganization,
-        benefit_organization: Benefit,
-    ) -> None:
-        response = await client.post(
-            f"/v1/products/{product.id}/benefits",
-            json={"benefits": [str(benefit_organization.id)]},
-        )
-
-        assert response.status_code == 200
-
-        json = response.json()
-        assert len(json["benefits"]) == 1

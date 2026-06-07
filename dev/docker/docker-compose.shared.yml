@@ -1,11 +1,11 @@
 # Shared Polar dev infrastructure
-# One copy of postgres/redis/minio/tinybird (and optional prometheus/grafana)
-# is brought up per machine, regardless of how many app instances run on top.
+# One copy of postgres/redis/tinybird is brought up per machine,
+# regardless of how many app instances run on top.
 # Auto-started by `dev docker up` when not already running.
 #
 # Per-instance app stacks (api/worker/web) live in docker-compose.dev.yml and
 # attach to the external `polar-shared` network created here, so they reach
-# infra by container name (db, redis, minio, tinybird). No host ports — use
+# infra by container name (db, redis, tinybird). No host ports — use
 # `dev docker exec <service>` to run psql/redis-cli/etc. on the shared infra.
 
 services:
@@ -46,46 +46,6 @@ services:
       timeout: 10s
       retries: 10
 
-  minio:
-    image: bitnamilegacy/minio:2024.5.28
-    expose:
-      - "9000"
-      - "9001"
-    volumes:
-      - minio_data:/minio
-    environment:
-      MINIO_ROOT_USER: polar-development
-      MINIO_ROOT_PASSWORD: polar123456789
-    networks:
-      - polar-shared
-    healthcheck:
-      test: ["CMD", "curl", "-f", "http://localhost:9000/minio/health/live"]
-      interval: 5s
-      timeout: 10s
-      retries: 10
-
-  minio-setup:
-    image: bitnamilegacy/minio-client:2024.5.24
-    depends_on:
-      minio:
-        condition: service_healthy
-    volumes:
-      - ../../server/.minio:/tmp/config:ro
-    environment:
-      MINIO_HOST: minio
-      MINIO_ROOT_USER: polar-development
-      MINIO_ROOT_PASSWORD: polar123456789
-      BUCKET_NAME: polar-s3
-      PUBLIC_BUCKET_NAME: polar-s3-public
-      BUCKET_TESTING_NAME: testing-polar-s3
-      POLICY_FILE: /tmp/config/policy.json
-      ACCESS_KEY: polar-development
-      SECRET_ACCESS_KEY: polar123456789
-    networks:
-      - polar-shared
-    entrypoint:
-      ["bash", "-c", "bash /tmp/config/local.sh /tmp/config/configure.sh"]
-
   tinybird:
     image: tinybirdco/tinybird-local:latest
     platform: linux/amd64
@@ -106,50 +66,9 @@ services:
     profiles:
       - tinybird
 
-  prometheus:
-    image: prom/prometheus:v3.7.3
-    expose:
-      - "9090"
-    volumes:
-      - ../../server/monitoring/prometheus.yml:/etc/prometheus/prometheus.yml:ro
-      - prometheus_data:/prometheus
-    networks:
-      - polar-shared
-    command:
-      - "--config.file=/etc/prometheus/prometheus.yml"
-      - "--storage.tsdb.path=/prometheus"
-      - "--storage.tsdb.retention.time=1d"
-      - "--web.enable-lifecycle"
-      - "--web.enable-remote-write-receiver"
-    profiles:
-      - monitoring
-
-  grafana:
-    image: grafana/grafana:12.3.0
-    expose:
-      - "3000"
-    volumes:
-      - ../../server/monitoring/grafana/provisioning:/etc/grafana/provisioning:ro
-      - ../../server/monitoring/grafana/dashboards:/var/lib/grafana/dashboards:ro
-      - grafana_data:/var/lib/grafana
-    environment:
-      - GF_SECURITY_ADMIN_USER=polar
-      - GF_SECURITY_ADMIN_PASSWORD=polar
-      - GF_USERS_ALLOW_SIGN_UP=false
-    depends_on:
-      - prometheus
-    networks:
-      - polar-shared
-    profiles:
-      - monitoring
-
 networks:
   polar-shared:
     external: true
 
 volumes:
   postgres_data:
-  minio_data:
-    driver: local
-  prometheus_data:
-  grafana_data:

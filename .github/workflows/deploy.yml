@@ -1,302 +1,181 @@
-name: Build and Deploy
+name: Deploy
 
 on:
   push:
-    branches: ["main"]
+    branches: [main]
     paths:
-      - "server/**"
-      - "clients/**"
-      - "!clients/apps/app/**"
-      - ".github/workflows/deploy.yml"
-      - ".github/workflows/deploy-environment.yml"
-      - ".github/workflows/deploy_server.sh"
+      - 'server/**'
+      - 'server/docker-compose.prod.yml'
+      - '.github/workflows/deploy.yml'
   workflow_dispatch:
 
 concurrency:
-  group: build-deploy
+  group: deploy-production
+  cancel-in-progress: false
 
-# Tag-update jobs in deploy-environment.yml need contents: write to push
-# deployed/{component}-{environment} tags. Declared here at the workflow
-# level because a reusable workflow's per-job permissions are capped by
-# the caller's effective token scope.
-permissions:
-  contents: write
-  packages: write
+env:
+  REGISTRY: ghcr.io
+  IMAGE_NAME: ${{ github.repository_owner }}/polar
 
 jobs:
-  changes:
-    name: "Detect Changes 🔍"
+  detect-changes:
+    name: Detect Changes
     runs-on: ubuntu-latest
-    # Read-only: this job only checks out, fetches tags, and runs paths-filter.
-    # Narrow it explicitly so it doesn't inherit the workflow-level
-    # contents: write (which exists only for the tag-push jobs).
-    permissions:
-      contents: read
     outputs:
-      # Per-component-per-environment outputs: each diffs HEAD against the
-      # SHA of the last successful deploy for that component + environment
-      # (tracked via deployed/{component}-{environment} git tags). Falls
-      # back to HEAD~1 if no tag exists and the push has no parent SHA.
-      #
-      # Why per-env: sandbox can be ahead of production (failed prod deploy
-      # leaves sandbox tag advanced while prod tag stays). Each env needs its
-      # own diff base to compute its own pending changes correctly.
-      #
-      # Why per-component: a frontend-only push must not advance the backend
-      # tag, otherwise a later cancelled backend run's commits would be lost.
-      # Crucially, the frontend FILTER must use the frontend tag (not backend
-      # tag) as its base — otherwise a frontend deploy that failed after a
-      # successful backend deploy would be permanently dropped from future
-      # diffs (its pending frontend changes sit "before" the backend tag).
-      # This is why each component has its own paths-filter invocation.
-      backend-sandbox: ${{ steps.filter-backend-sandbox.outputs.backend }}
-      migrations-sandbox: ${{ steps.filter-backend-sandbox.outputs.migrations }}
-      frontend-sandbox: ${{ steps.filter-frontend-sandbox.outputs.frontend }}
-      backend-production: ${{ steps.filter-backend-production.outputs.backend }}
-      migrations-production: ${{ steps.filter-backend-production.outputs.migrations }}
-      frontend-production: ${{ steps.filter-frontend-production.outputs.frontend }}
+      backend: ${{ steps.set-outputs.outputs.backend }}
     steps:
-      - uses: actions/checkout@v6.0.2
+      - uses: actions/checkout@v4
         with:
-          # fetch-depth: 0 already fetches all tags, so no separate
-          # fetch-tags is needed here.
-          fetch-depth: 0
+          fetch-depth: 2
 
-      - name: Resolve deploy bases from tags
-        id: bases
-        env:
-          # github.event.before is the parent SHA before this push. On
-          # workflow_dispatch it is empty; on the very first push to a
-          # branch it can be the zero SHA. Bind via env to avoid any
-          # template-into-shell interpolation in the run: body.
-          EVENT_BEFORE: ${{ github.event.before }}
-          ZERO_SHA: "0000000000000000000000000000000000000000"
+      - name: Detect changed files
+        if: github.event_name != 'workflow_dispatch'
+        id: changes
+        uses: dorny/paths-filter@v3
+        with:
+          filters: |
+            backend:
+              - 'server/**'
+              - '.github/workflows/deploy.yml'
+
+      - name: Set outputs
+        id: set-outputs
         run: |
-          set -euo pipefail
-          # Bash command substitution does NOT propagate set -e failures by
-          # default; without this, a transient git failure inside resolve()
-          # would silently emit "key=" (empty value) instead of aborting.
-          shopt -s inherit_errexit
-          # Re-fetch tags with prune so a remote-side deletion drops the
-          # local copy (defensive against cached/self-hosted runners).
-          # Non-fatal: checkout (fetch-depth: 0) already fetched all tags, so
-          # this is belt-and-suspenders. A transient failure here must NOT
-          # abort the changes job, otherwise it would block ALL deploys.
-          git fetch --tags --force --prune --prune-tags origin || true
-          # Resolve the safe fallback once. We prefer event.before, but on
-          # workflow_dispatch / new-branch pushes it's empty or zero-SHA;
-          # fall back to HEAD~1 which always exists on a fetch-depth: 0
-          # checkout. Last resort: HEAD itself (zero diff vs HEAD, lets the
-          # workflow_dispatch override paths take over downstream).
-          fallback_base() {
-            if [ -n "${EVENT_BEFORE}" ] \
-               && [ "${EVENT_BEFORE}" != "${ZERO_SHA}" ] \
-               && git rev-parse --verify --quiet "${EVENT_BEFORE}^{commit}" >/dev/null; then
-              echo "${EVENT_BEFORE}"
-            elif git rev-parse --verify --quiet "HEAD~1^{commit}" >/dev/null; then
-              git rev-parse "HEAD~1"
-            else
-              git rev-parse "HEAD"
-            fi
-          }
-          FALLBACK="$(fallback_base)"
-          resolve() {
-            local tag="$1"
-            if git rev-parse --verify --quiet "refs/tags/${tag}^{commit}" >/dev/null; then
-              git rev-parse "refs/tags/${tag}^{commit}"
-            else
-              echo "${FALLBACK}"
-            fi
-          }
-          {
-            echo "backend-sandbox=$(resolve deployed/backend-sandbox)"
-            echo "frontend-sandbox=$(resolve deployed/frontend-sandbox)"
-            echo "backend-production=$(resolve deployed/backend-production)"
-            echo "frontend-production=$(resolve deployed/frontend-production)"
-          } >> "$GITHUB_OUTPUT"
-
-      # Four paths-filter invocations: one per component per env. We can't
-      # combine them because dorny/paths-filter@v4 uses a single base for
-      # all filters in one invocation, but our design requires the frontend
-      # filter to diff against the frontend tag, not the backend tag.
-      - name: Detect backend changes since last sandbox backend deploy
-        uses: dorny/paths-filter@v4
-        id: filter-backend-sandbox
-        with:
-          base: ${{ steps.bases.outputs.backend-sandbox }}
-          filters: |
-            backend:
-              - 'server/**'
-              - '.github/workflows/deploy.yml'
-              - '.github/workflows/deploy-environment.yml'
-              - '.github/workflows/deploy_server.sh'
-            migrations:
-              - 'server/migrations/**'
-
-      - name: Detect frontend changes since last sandbox frontend deploy
-        uses: dorny/paths-filter@v4
-        id: filter-frontend-sandbox
-        with:
-          base: ${{ steps.bases.outputs.frontend-sandbox }}
-          filters: |
-            frontend:
-              - 'clients/**'
-              - '.github/workflows/deploy.yml'
-              - '.github/workflows/deploy-environment.yml'
-
-      - name: Detect backend changes since last production backend deploy
-        uses: dorny/paths-filter@v4
-        id: filter-backend-production
-        with:
-          base: ${{ steps.bases.outputs.backend-production }}
-          filters: |
-            backend:
-              - 'server/**'
-              - '.github/workflows/deploy.yml'
-              - '.github/workflows/deploy-environment.yml'
-              - '.github/workflows/deploy_server.sh'
-            migrations:
-              - 'server/migrations/**'
-
-      - name: Detect frontend changes since last production frontend deploy
-        uses: dorny/paths-filter@v4
-        id: filter-frontend-production
-        with:
-          base: ${{ steps.bases.outputs.frontend-production }}
-          filters: |
-            frontend:
-              - 'clients/**'
-              - '.github/workflows/deploy.yml'
-              - '.github/workflows/deploy-environment.yml'
+          if [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
+            echo "backend=true" >> $GITHUB_OUTPUT
+          else
+            echo "backend=${{ steps.changes.outputs.backend }}" >> $GITHUB_OUTPUT
+          fi
 
   build:
-    name: "Build Docker Image 🐳"
-    needs: changes
-    # Build if EITHER environment needs backend deployed. Most common case is
-    # both flip together (sandbox and prod tags advance in lockstep), but if a
-    # sandbox deploy succeeded and prod failed previously, only prod still
-    # needs the build.
-    if: needs.changes.outputs.backend-sandbox == 'true' || needs.changes.outputs.backend-production == 'true' || github.event_name == 'workflow_dispatch'
-    timeout-minutes: 20
-    runs-on: blacksmith-4vcpu-ubuntu-2404
+    name: Build Docker Image
+    runs-on: ubuntu-latest
+    needs: detect-changes
+    if: needs.detect-changes.outputs.backend == 'true'
     permissions:
       contents: read
       packages: write
     outputs:
       digest: ${{ steps.push.outputs.digest }}
-      digest-playwright: ${{ steps.push-playwright.outputs.digest }}
     steps:
-      - uses: actions/checkout@v6.0.2
+      - uses: actions/checkout@v4
 
       - name: Set up Docker Buildx
-        uses: useblacksmith/setup-docker-builder@v1.8.0
+        uses: docker/setup-buildx-action@v3
 
-      - name: Log in to the Container registry
-        uses: docker/login-action@v4.2.0
+      - name: Log in to Container Registry
+        uses: docker/login-action@v3
         with:
-          registry: ghcr.io
+          registry: ${{ env.REGISTRY }}
           username: ${{ github.actor }}
           password: ${{ secrets.GITHUB_TOKEN }}
 
-      - name: Docker meta
+      - name: Extract metadata
         id: meta
-        uses: docker/metadata-action@v6
+        uses: docker/metadata-action@v5
         with:
-          images: |
-            ghcr.io/polarsource/polar
+          images: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}
           tags: |
-            type=ref,event=branch
-            type=ref,event=pr
-            type=semver,pattern={{version}}
-            type=semver,pattern={{major}}.{{minor}}
-            type=sha
             type=raw,value=latest,enable={{is_default_branch}}
+            type=sha,prefix=,format=short
+            type=ref,event=branch
 
-      - name: Sync AUP to server
-        run: cp "clients/apps/web/src/app/(main)/(website)/(landing)/(mdx)/legal/acceptable-use-policy/page.mdx" "server/polar/organization_review/acceptable-use-policy.mdx"
-
-      - uses: useblacksmith/build-push-action@v2
+      - name: Build and push
         id: push
+        uses: docker/build-push-action@v6
         with:
+          context: ./server
+          target: production
           push: true
           tags: ${{ steps.meta.outputs.tags }}
           labels: ${{ steps.meta.outputs.labels }}
-          context: ./server
-          target: production
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
           platforms: linux/amd64
           build-args: |
             RELEASE_VERSION=${{ github.sha }}
-          secrets: |
-            IPINFO_ACCESS_TOKEN=${{ secrets.IPINFO_ACCESS_TOKEN }}
 
-      - name: Docker meta (Playwright)
-        id: meta-playwright
-        uses: docker/metadata-action@v6
+  deploy:
+    name: Deploy to VPS
+    runs-on: ubuntu-latest
+    needs: [detect-changes, build]
+    if: |
+      always() &&
+      (needs.build.result == 'success' || needs.build.result == 'skipped') &&
+      needs.detect-changes.outputs.backend == 'true'
+    environment: production
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Copy deploy files to VPS
+        uses: appleboy/scp-action@v0.1.7
         with:
-          images: ghcr.io/polarsource/polar-playwright
-          tags: |
-            type=sha
-            type=raw,value=latest,enable={{is_default_branch}}
+          host: ${{ secrets.VPS_HOST }}
+          username: ${{ secrets.VPS_USER }}
+          key: ${{ secrets.VPS_SSH_KEY }}
+          source: "server/docker-compose.prod.yml,server/init-readonly-user.sql"
+          target: "/home/polar/"
+          strip_components: 1
 
-      - uses: useblacksmith/build-push-action@v2
-        id: push-playwright
+      - name: Deploy to VPS
+        uses: appleboy/ssh-action@v1.0.3
+        env:
+          GITHUB_ACTOR: ${{ github.actor }}
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          INFISICAL_CLIENT_ID: ${{ secrets.INFISICAL_CLIENT_ID }}
+          INFISICAL_CLIENT_SECRET: ${{ secrets.INFISICAL_CLIENT_SECRET }}
+          INFISICAL_PROJECT_ID: ${{ secrets.INFISICAL_PROJECT_ID }}
         with:
-          push: true
-          tags: ${{ steps.meta-playwright.outputs.tags }}
-          context: ./server
-          target: playwright
-          platforms: linux/amd64
-          build-args: |
-            RELEASE_VERSION=${{ github.sha }}
-          secrets: |
-            IPINFO_ACCESS_TOKEN=${{ secrets.IPINFO_ACCESS_TOKEN }}
+          host: ${{ secrets.VPS_HOST }}
+          username: ${{ secrets.VPS_USER }}
+          key: ${{ secrets.VPS_SSH_KEY }}
+          envs: GITHUB_ACTOR,GITHUB_TOKEN,INFISICAL_CLIENT_ID,INFISICAL_CLIENT_SECRET,INFISICAL_PROJECT_ID
+          script: |
+            set -e
+            cd /home/polar
 
-  deploy-sandbox:
-    name: "Deploy to Sandbox 🧪"
-    needs: [changes, build]
-    # `!failure() && !cancelled()` mirrors deploy-production: if the `changes`
-    # job fails, `build` is skipped (no `if: always()`), and on a
-    # workflow_dispatch the OR-clause below would otherwise let this job run
-    # with an EMPTY docker-digest. Guarding on !failure() blocks that path.
-    if: always() && !failure() && !cancelled() && (needs.build.result == 'success' || needs.build.result == 'skipped') && (needs.changes.outputs.backend-sandbox == 'true' || needs.changes.outputs.frontend-sandbox == 'true' || github.event_name == 'workflow_dispatch')
-    uses: ./.github/workflows/deploy-environment.yml
-    with:
-      environment: sandbox
-      docker-digest: ${{ needs.build.outputs.digest }}
-      render-api-service-id: "srv-crkocgbtq21c73ddsdbg"
-      render-worker-service-ids: "srv-d62q7vh4tr6s73fk44ng,srv-d733cp15pdvs73f6vqng,srv-d7unnjhj2pic73c2vr60"
-      docker-digest-playwright: ${{ needs.build.outputs.digest-playwright }}
-      render-playwright-worker-service-ids: "srv-d089jj7diees73934kgg"
-      has-migrations: ${{ needs.changes.outputs.migrations-sandbox == 'true' || github.event_name == 'workflow_dispatch' }}
-      skip-backend: ${{ needs.changes.outputs.backend-sandbox != 'true' && github.event_name != 'workflow_dispatch' }}
-      skip-frontend: ${{ needs.changes.outputs.frontend-sandbox != 'true' && github.event_name != 'workflow_dispatch' }}
-    secrets:
-      RENDER_API_TOKEN: ${{ secrets.RENDER_API_TOKEN }}
-      VERCEL_TOKEN: ${{ secrets.VERCEL_TOKEN }}
-      VERCEL_ORG_ID: ${{ secrets.VERCEL_ORG_ID }}
-      VERCEL_PROJECT_ID: ${{ secrets.VERCEL_PROJECT_ID }}
-      SENTRY_AUTH_TOKEN: ${{ secrets.SENTRY_AUTH_TOKEN }}
-      SENTRY_ORG: ${{ secrets.SENTRY_ORG }}
+            DC="docker compose -f docker-compose.prod.yml"
 
-  deploy-production:
-    name: "Deploy to Production 🚀"
-    needs: [changes, build, deploy-sandbox]
-    if: always() && !failure() && !cancelled() && (needs.build.result == 'success' || needs.build.result == 'skipped') && (needs.changes.outputs.backend-production == 'true' || needs.changes.outputs.frontend-production == 'true' || github.event_name == 'workflow_dispatch')
-    uses: ./.github/workflows/deploy-environment.yml
-    with:
-      environment: production
-      docker-digest: ${{ needs.build.outputs.digest }}
-      render-api-service-id: "srv-ci4r87h8g3ne0dmvvl60"
-      render-worker-service-ids: "srv-d4k62svpm1nc73af5e3g,srv-d3hrh1j3fgac73a1t4r0,srv-d4uto5ili9vc73dd37tg,srv-d5l0oekhg0os73clofm0,srv-d733djuuk2gs73e98h1g,srv-d7us9je7r5hc73be5ieg"
-      docker-digest-playwright: ${{ needs.build.outputs.digest-playwright }}
-      render-playwright-worker-service-ids: "srv-d4k6otfgi27c73cicnpg"
-      has-migrations: ${{ needs.changes.outputs.migrations-production == 'true' || github.event_name == 'workflow_dispatch' }}
-      skip-backend: ${{ needs.changes.outputs.backend-production != 'true' && github.event_name != 'workflow_dispatch' }}
-      skip-frontend: ${{ needs.changes.outputs.frontend-production != 'true' && github.event_name != 'workflow_dispatch' }}
-    secrets:
-      RENDER_API_TOKEN: ${{ secrets.RENDER_API_TOKEN }}
-      VERCEL_TOKEN: ${{ secrets.VERCEL_TOKEN }}
-      VERCEL_ORG_ID: ${{ secrets.VERCEL_ORG_ID }}
-      VERCEL_PROJECT_ID: ${{ secrets.VERCEL_PROJECT_ID }}
-      SENTRY_AUTH_TOKEN: ${{ secrets.SENTRY_AUTH_TOKEN }}
-      SENTRY_ORG: ${{ secrets.SENTRY_ORG }}
+            echo "$GITHUB_TOKEN" | docker login ghcr.io -u "$GITHUB_ACTOR" --password-stdin
+
+            # Pull secrets from Infisical REST API (no CLI dependency)
+            INFISICAL_TOKEN=$(curl -sf -X POST https://app.infisical.com/api/v1/auth/universal-auth/login \
+              -H "Content-Type: application/json" \
+              -d "{\"clientId\":\"$INFISICAL_CLIENT_ID\",\"clientSecret\":\"$INFISICAL_CLIENT_SECRET\"}" \
+              | grep -o '"accessToken":"[^"]*"' | cut -d'"' -f4)
+            curl -sf "https://app.infisical.com/api/v3/secrets/raw?environment=prod&workspaceId=${INFISICAL_PROJECT_ID}&secretPath=/" \
+              -H "Authorization: Bearer $INFISICAL_TOKEN" \
+              | python3 -c "
+import sys, json
+data = json.load(sys.stdin)
+for s in data.get('secrets', []):
+    k, v = s['secretKey'], s['secretValue']
+    print(f'{k}={v}')
+" > .env
+            [ -s .env ] || { echo 'ERROR: .env is empty — secrets not loaded from Infisical'; exit 1; }
+
+            $DC pull api worker
+
+            $DC run --rm api uv run task db_migrate
+
+            $DC up -d --no-deps api worker
+
+            for i in $(seq 1 12); do
+              sleep 5
+              unhealthy=$($DC ps --format json | jq -r 'select(.Health != "healthy" and .Health != "") | .Service' 2>/dev/null || true)
+              [ -z "$unhealthy" ] && break
+            done
+            $DC ps
+
+            docker image prune -af --filter "until=168h"
+
+            echo "Deployment complete!"
+
+  notify-failure:
+    name: Notify on Failure
+    runs-on: ubuntu-latest
+    needs: [build, deploy]
+    if: failure()
+    steps:
+      - name: Notify
+        run: echo "Deployment failed — check workflow logs."

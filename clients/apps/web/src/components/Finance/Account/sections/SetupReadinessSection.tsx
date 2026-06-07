@@ -10,6 +10,7 @@ import { toast } from '@/components/Toast/use-toast'
 import { getQueryClient } from '@/utils/api/query'
 import { schemas } from '@polar-sh/client'
 import { Text } from '@polar-sh/orbit'
+import type { OrganizationReviewCheck, OrganizationReviewCheckStatus } from './index'
 import { Box } from '@polar-sh/orbit/Box'
 import { Button } from '@polar-sh/orbit'
 import CopyToClipboardInput from '@polar-sh/ui/components/atoms/CopyToClipboardInput'
@@ -21,13 +22,13 @@ import { PathCardBanner } from './PathCardBanner'
 
 interface Props {
   organization: schemas['Organization']
-  step: schemas['OrganizationReviewCheck']
+  step: OrganizationReviewCheck
 }
 
 const subStatus = (
-  step: schemas['OrganizationReviewCheck'],
-  key: schemas['OrganizationReviewSubCheckKey'],
-): schemas['OrganizationReviewCheckStatus'] | undefined =>
+  step: OrganizationReviewCheck,
+  key: string,
+): OrganizationReviewCheckStatus | undefined =>
   step.sub_checks?.find((s) => s.key === key)?.status
 
 const INLINE_LINK_CLASS =
@@ -99,15 +100,7 @@ export const SetupReadinessSection = ({ organization, step }: Props) => {
                   title="Checkout link is invalid"
                   description={
                     <>
-                      Your checkout links needs either a{' '}
-                      <Link
-                        href={`/dashboard/${organization.slug}/products`}
-                        onClick={(e) => e.stopPropagation()}
-                        className={INLINE_LINK_CLASS}
-                      >
-                        product
-                      </Link>{' '}
-                      with a benefit attached or a{' '}
+                      Your checkout link needs a{' '}
                       <Link
                         href={`/dashboard/${organization.slug}/products/checkout-links`}
                         onClick={(e) => e.stopPropagation()}

@@ -4,8 +4,7 @@ import pytest
 from sqlalchemy import func, select
 
 from polar.kit.db.postgres import AsyncSession
-from polar.models import Account, Discount, Organization, ProductBenefit, User
-from polar.models.benefit import BenefitType
+from polar.models import Account, Discount, Organization, User
 from polar.models.discount import DiscountDuration, DiscountType
 from scripts.transfer_products_between_organizations import (
     MixedOrganizationError,
@@ -15,7 +14,6 @@ from scripts.transfer_products_between_organizations import (
 from tests.fixtures.database import SaveFixture
 from tests.fixtures.random_objects import (
     create_account,
-    create_benefit,
     create_checkout_link,
     create_customer,
     create_discount,
@@ -187,7 +185,6 @@ class TestProductTransferService:
 
         await service.analyze_affected_data(session)
 
-        assert len(service.benefits_to_transfer) >= 0  # May have benefits
         assert len(service.customers_to_split) == 0  # No customers to split
         assert (
             len(service.customers_to_transfer) == 1
@@ -331,39 +328,6 @@ class TestProductTransferService:
         # Check that source customer was NOT soft-deleted (since this is a split, not direct transfer)
         await session.refresh(source_customer)
         assert source_customer.deleted_at is None
-
-    async def test_transfer_benefits_updates_organization(
-        self,
-        save_fixture: SaveFixture,
-        session: AsyncSession,
-        account: Account,
-        account_second: Account,
-    ) -> None:
-        """Test that benefits are transferred to target organization."""
-        source_org = await create_organization(save_fixture, account)
-        target_org = await create_organization(save_fixture, account_second)
-
-        # Create product with benefit
-        product = await create_product(
-            save_fixture,
-            organization=source_org,
-            name="Test Product",
-            recurring_interval=None,
-        )
-        benefit = await create_benefit(
-            save_fixture, organization=source_org, type=BenefitType.custom
-        )
-        product_benefit = ProductBenefit(product=product, benefit=benefit, order=0)
-        await save_fixture(product_benefit)
-
-        service = ProductTransferService(source_org.id, target_org.id)
-        service.benefits_to_transfer = [benefit]
-
-        await service.transfer_benefits(session)
-
-        # Check that benefit organization was updated
-        await session.refresh(benefit)
-        assert benefit.organization_id == target_org.id
 
     async def test_transfer_products_updates_organization(
         self,
@@ -699,7 +663,6 @@ class TestProductTransferService:
 
         service = ProductTransferService(source_org.id, target_org.id)
         service.products = [product1, product2]
-        service.benefits_to_transfer = []  # No benefits to transfer
         service.customers_to_transfer = []  # No customers to transfer
 
         # Manually update the products to target org (simulating transfer)
@@ -744,7 +707,6 @@ class TestProductTransferService:
 
         service = ProductTransferService(source_org.id, target_org.id)
         service.products = [product]
-        service.benefits_to_transfer = []
         service.customers_to_transfer = []  # No customers to transfer directly
         service.customers_to_merge = [source_customer]  # This customer should be merged
 
@@ -784,7 +746,6 @@ class TestProductTransferService:
 
         service = ProductTransferService(source_org.id, target_org.id)
         service.products = [product1, product2]
-        service.benefits_to_transfer = []
 
         # Only transfer one product (simulating partial transfer)
         product1.organization_id = target_org.id
@@ -1157,7 +1118,6 @@ class TestProductTransferIntegration:
 
         # Execute the transfer
         await service.split_customers(session)
-        await service.transfer_benefits(session)
         await service.transfer_products(session)
         await service.update_related_entities(session)
         await service.validate_transfer(session)
@@ -1212,7 +1172,6 @@ class TestProductTransferIntegration:
 
         # Execute the transfer
         await service.split_customers(session)
-        await service.transfer_benefits(session)
         await service.transfer_products(session)
         await service.update_related_entities(session)
         await service.validate_transfer(session)
@@ -1276,7 +1235,6 @@ class TestProductTransferIntegration:
 
         # Execute the transfer
         await service.split_customers(session)
-        await service.transfer_benefits(session)
         await service.transfer_products(session)
         await service.update_related_entities(session)
         await service.validate_transfer(session)
@@ -1330,7 +1288,6 @@ class TestProductTransferIntegration:
         # Execute the transfer
         await service.transfer_customers_directly(session)
         await service.transfer_events(session)
-        await service.transfer_benefits(session)
         await service.transfer_products(session)
         await service.update_related_entities(session)
         await service.validate_transfer(session)

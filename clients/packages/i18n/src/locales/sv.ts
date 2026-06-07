@@ -274,7 +274,6 @@ export default {
     github_repository: 'Åtkomst till GitHub-repository',
     discord: 'Discord-inbjudan',
     downloadables: 'Filnedladdningar',
-    meter_credit: 'Mätarkrediter',
     feature_flag: 'Feature flag',
   },
   ordinal: {

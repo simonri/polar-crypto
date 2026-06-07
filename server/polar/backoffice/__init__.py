@@ -3,14 +3,10 @@ from pathlib import Path
 from fastapi import Depends, FastAPI, Request
 from tagflow import tag, text
 
-from polar.observability.http_metrics import exclude_app_from_metrics
-
-from .benefits.endpoints import router as benefits_router
 from .customers.endpoints import router as customers_router
 from .dependencies import get_admin
 from .email_logs.endpoints import router as email_logs_router
 from .external_events.endpoints import router as external_events_router
-from .feedbacks.endpoints import router as feedbacks_router
 from .impersonation.endpoints import router as impersonation_router
 from .layout import layout
 from .middlewares import SecurityHeadersMiddleware, TagflowMiddleware
@@ -34,8 +30,6 @@ app = FastAPI(
     openapi_url=None,
 )
 
-# Exclude backoffice from HTTP metrics (not sent to Grafana Cloud)
-exclude_app_from_metrics(app)
 app.add_middleware(SecurityHeadersMiddleware)
 app.add_middleware(TagflowMiddleware)
 
@@ -49,7 +43,6 @@ app.include_router(users_router, prefix="/users")
 app.include_router(organizations_v2_router)  # Primary organizations interface
 app.include_router(organizations_router, prefix="/organizations-classic")
 app.include_router(customers_router, prefix="/customers")
-app.include_router(benefits_router, prefix="/benefits")
 app.include_router(products_router, prefix="/products")
 app.include_router(email_logs_router, prefix="/email-logs")
 app.include_router(external_events_router, prefix="/external-events")
@@ -59,7 +52,6 @@ app.include_router(orders_router, prefix="/orders")
 app.include_router(payouts_router, prefix="/payouts")
 app.include_router(impersonation_router, prefix="/impersonation")
 app.include_router(webhooks_router, prefix="/webhooks")
-app.include_router(feedbacks_router, prefix="/feedbacks")
 
 
 @app.get("/", name="index")

@@ -3,7 +3,6 @@ import { describe, expect, it } from 'vitest'
 import {
   createCheckout,
   createFreePrice,
-  createSeatBasedPrice,
 } from '../test-utils/makeCheckout'
 import { CheckoutProductSwitcherItemPrice } from './CheckoutProductSwitcher'
 
@@ -41,101 +40,6 @@ describe('CheckoutProductSwitcherItemPrice', () => {
       )
 
       expect(getRenderedText(container)).toBe('$9.99')
-    })
-  })
-
-  describe('seat-based price, selected', () => {
-    const seatPrice = createSeatBasedPrice({ id: 'price_seat' })
-
-    it('shows netAmount when selected (current behavior, no tax)', () => {
-      const checkout = createCheckout({
-        net_amount: 3000,
-        total_amount: 3000,
-        product_price: seatPrice,
-      })
-
-      const { container } = render(
-        <CheckoutProductSwitcherItemPrice
-          isSelected={true}
-          product={checkout.product}
-          price={seatPrice}
-          checkout={checkout}
-          locale="en"
-        />,
-      )
-
-      expect(getRenderedText(container)).toBe('$30')
-    })
-
-    it('shows netAmount not totalAmount when tax present (current behavior)', () => {
-      const checkout = createCheckout({
-        net_amount: 3000,
-        tax_amount: 750,
-        total_amount: 3750,
-        product_price: seatPrice,
-      })
-
-      const { container } = render(
-        <CheckoutProductSwitcherItemPrice
-          isSelected={true}
-          product={checkout.product}
-          price={seatPrice}
-          checkout={checkout}
-          locale="en"
-        />,
-      )
-
-      expect(getRenderedText(container)).toBe('$30')
-    })
-
-    it('shows "From" minimum seat total when not selected', () => {
-      const checkout = createCheckout({
-        net_amount: 3000,
-        total_amount: 3000,
-        product_price: seatPrice,
-      })
-
-      const { container } = render(
-        <CheckoutProductSwitcherItemPrice
-          isSelected={false}
-          product={checkout.product}
-          price={seatPrice}
-          checkout={checkout}
-          locale="en"
-        />,
-      )
-
-      expect(getRenderedText(container)).toBe('From\u00a0$10')
-    })
-
-    it('shows "From" minimum seat total for multi-seat minimum when not selected', () => {
-      const multiSeatPrice = createSeatBasedPrice({
-        id: 'price_seat_5min',
-        seat_tiers: {
-          seat_tier_type: 'volume',
-          tiers: [{ min_seats: 5, max_seats: null, price_per_seat: 1000 }],
-          minimum_seats: 5,
-          maximum_seats: null,
-        },
-      })
-
-      const checkout = createCheckout({
-        net_amount: 5000,
-        total_amount: 5000,
-        product_price: multiSeatPrice,
-      })
-
-      const { container } = render(
-        <CheckoutProductSwitcherItemPrice
-          isSelected={false}
-          product={checkout.product}
-          price={multiSeatPrice}
-          checkout={checkout}
-          locale="en"
-        />,
-      )
-
-      expect(getRenderedText(container)).toBe('From\u00a0$50')
     })
   })
 

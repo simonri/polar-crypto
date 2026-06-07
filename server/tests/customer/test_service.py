@@ -21,7 +21,6 @@ from polar.models.member import Member, MemberRole
 from polar.models.webhook_endpoint import CustomerWebhookEventType, WebhookEventType
 from polar.postgres import AsyncSession
 from polar.redis import Redis
-from polar.tax.tax_id import TaxIDFormat
 from tests.fixtures.auth import AuthSubjectFixture
 from tests.fixtures.database import SaveFixture
 from tests.fixtures.random_objects import create_customer, create_member
@@ -364,83 +363,6 @@ class TestCreate:
             )
         assert exc_info.value.errors()[0]["loc"] == ("body", "external_id")
 
-    @pytest.mark.auth(
-        AuthSubjectFixture(subject="user"), AuthSubjectFixture(subject="organization")
-    )
-    async def test_tax_id_without_billing_address(
-        self,
-        session: AsyncSession,
-        auth_subject: AuthSubject[User | Organization],
-        organization: Organization,
-        user_organization: UserOrganization,
-    ) -> None:
-        """Creating a customer with tax_id but no billing_address should fail."""
-        payload: dict[str, Any] = {
-            "email": "taxid-no-address@example.com",
-            "tax_id": "FR61954506077",
-        }
-        if is_user(auth_subject):
-            payload["organization_id"] = str(organization.id)
-
-        with pytest.raises(PolarRequestValidationError) as exc_info:
-            await customer_service.create(
-                session, CustomerIndividualCreate.model_validate(payload), auth_subject
-            )
-        assert exc_info.value.errors()[0]["loc"] == ("body", "billing_address")
-
-    @pytest.mark.auth(
-        AuthSubjectFixture(subject="user"), AuthSubjectFixture(subject="organization")
-    )
-    async def test_invalid_tax_id(
-        self,
-        session: AsyncSession,
-        auth_subject: AuthSubject[User | Organization],
-        organization: Organization,
-        user_organization: UserOrganization,
-    ) -> None:
-        """Creating a customer with an invalid tax_id should fail."""
-        payload: dict[str, Any] = {
-            "email": "invalid-taxid@example.com",
-            "tax_id": "INVALID",
-            "billing_address": {"country": "FR"},
-        }
-        if is_user(auth_subject):
-            payload["organization_id"] = str(organization.id)
-
-        with pytest.raises(PolarRequestValidationError) as exc_info:
-            await customer_service.create(
-                session, CustomerIndividualCreate.model_validate(payload), auth_subject
-            )
-        assert exc_info.value.errors()[0]["loc"] == ("body", "tax_id")
-
-    @pytest.mark.auth(
-        AuthSubjectFixture(subject="user"), AuthSubjectFixture(subject="organization")
-    )
-    async def test_valid_tax_id(
-        self,
-        session: AsyncSession,
-        auth_subject: AuthSubject[User | Organization],
-        organization: Organization,
-        user_organization: UserOrganization,
-    ) -> None:
-        """Creating a customer with a valid tax_id should validate and store it as a tuple."""
-        payload: dict[str, Any] = {
-            "email": "valid-taxid@example.com",
-            "tax_id": "FR61954506077",
-            "billing_address": {"country": "FR"},
-        }
-        if is_user(auth_subject):
-            payload["organization_id"] = str(organization.id)
-
-        customer = await customer_service.create(
-            session, CustomerIndividualCreate.model_validate(payload), auth_subject
-        )
-        await session.flush()
-
-        assert customer.tax_id is not None
-        assert customer.tax_id[0] == "FR61954506077"
-        assert customer.tax_id[1] == TaxIDFormat.eu_vat
-
 
 @pytest.mark.asyncio
 class TestUpdate:
@@ -665,90 +587,6 @@ class TestUpdate:
         await session.flush()
 
         assert updated_customer.type == CustomerType.team
-
-    async def test_tax_id_without_billing_address(
-        self,
-        session: AsyncSession,
-        customer: Customer,
-    ) -> None:
-        """Updating a customer with tax_id but no billing_address should fail."""
-        with pytest.raises(PolarRequestValidationError) as exc_info:
-            await customer_service.update(
-                session,
-                customer,
-                CustomerUpdate(tax_id="FR61954506077"),
-            )
-        assert exc_info.value.errors()[0]["loc"] == ("body", "billing_address")
-
-    async def test_invalid_tax_id(
-        self,
-        save_fixture: SaveFixture,
-        session: AsyncSession,
-        organization: Organization,
-    ) -> None:
-        """Updating a customer with an invalid tax_id should fail."""
-        customer = await create_customer(
-            save_fixture,
-            organization=organization,
-            email="invalid-taxid-update@example.com",
-            billing_address=Address(country=CountryAlpha2("FR")),
-        )
-        with pytest.raises(PolarRequestValidationError) as exc_info:
-            await customer_service.update(
-                session,
-                customer,
-                CustomerUpdate(tax_id="INVALID"),
-            )
-        assert exc_info.value.errors()[0]["loc"] == ("body", "tax_id")
-
-    async def test_valid_tax_id(
-        self,
-        save_fixture: SaveFixture,
-        session: AsyncSession,
-        organization: Organization,
-    ) -> None:
-        """Updating a customer with a valid tax_id should validate and store it as a tuple."""
-        customer = await create_customer(
-            save_fixture,
-            organization=organization,
-            email="valid-taxid-update@example.com",
-            billing_address=Address(country=CountryAlpha2("FR")),
-        )
-        updated_customer = await customer_service.update(
-            session,
-            customer,
-            CustomerUpdate(tax_id="FR61954506077"),
-        )
-        await session.flush()
-
-        assert updated_customer.tax_id is not None
-        assert updated_customer.tax_id[0] == "FR61954506077"
-        assert updated_customer.tax_id[1] == TaxIDFormat.eu_vat
-
-    async def test_billing_address_change_revalidates_tax_id(
-        self,
-        save_fixture: SaveFixture,
-        session: AsyncSession,
-        organization: Organization,
-    ) -> None:
-        """Changing billing_address should re-validate existing tax_id against new country."""
-        customer = await create_customer(
-            save_fixture,
-            organization=organization,
-            email="revalidate-taxid@example.com",
-            billing_address=Address(country=CountryAlpha2("FR")),
-            tax_id=("FR61954506077", TaxIDFormat.eu_vat),
-        )
-        # Changing country to US should fail because FR VAT is not valid in US
-        with pytest.raises(PolarRequestValidationError) as exc_info:
-            await customer_service.update(
-                session,
-                customer,
-                CustomerUpdate(
-                    billing_address=AddressInput(country=CountryAlpha2Input("US"))
-                ),
-            )
-        assert exc_info.value.errors()[0]["loc"] == ("body", "tax_id")
 
     async def test_syncs_owner_member_email_for_individual_customer(
         self,
@@ -1216,35 +1054,6 @@ class TestAnonymize:
 
         # Customer should be marked as deleted
         assert anonymized.deleted_at is not None
-
-    async def test_business_customer(
-        self,
-        session: AsyncSession,
-        save_fixture: SaveFixture,
-        organization: Organization,
-    ) -> None:
-        """Business customers (has tax_id) should have their name preserved."""
-        customer = await create_customer(
-            save_fixture,
-            organization=organization,
-            email="business@example.com",
-            name="Acme Corp",
-            tax_id=("DE123456789", TaxIDFormat.eu_vat),
-        )
-
-        anonymized = await customer_service.anonymize(session, customer)
-
-        # Email should be hashed
-        assert anonymized.email is not None
-        assert anonymized.email.endswith("@anonymized.polar.sh")
-        assert anonymized.email_verified is False
-
-        # Name should be PRESERVED for businesses
-        assert anonymized.name == "Acme Corp"
-
-        # Tax ID should be PRESERVED for legal reasons
-        assert anonymized.tax_id is not None
-        assert anonymized.tax_id[0] == "DE123456789"
 
     async def test_idempotent(
         self,

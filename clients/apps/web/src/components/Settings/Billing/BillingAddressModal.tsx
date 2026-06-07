@@ -36,7 +36,6 @@ export const BillingAddressModal = ({
     defaultValues: {
       billing_name: details?.billing_name ?? null,
       billing_address: details?.billing_address ?? null,
-      tax_id: details?.tax_id ?? null,
     },
   })
 
@@ -49,7 +48,6 @@ export const BillingAddressModal = ({
       reset({
         billing_name: details.billing_name,
         billing_address: details.billing_address,
-        tax_id: details.tax_id,
       })
     }
   }, [details, reset])
@@ -221,24 +219,6 @@ export const BillingAddressModal = ({
               />
             )}
           </FormItem>
-          <FormField
-            control={control}
-            name="tax_id"
-            render={({ field }) => (
-              <FormItem>
-                <FormLabel>Tax ID</FormLabel>
-                <FormControl>
-                  <Input
-                    type="text"
-                    autoComplete="off"
-                    {...field}
-                    value={field.value || ''}
-                  />
-                </FormControl>
-                <FormMessage />
-              </FormItem>
-            )}
-          />
           <div className="flex flex-row items-center gap-2">
             <Button
               type="submit"

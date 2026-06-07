@@ -1,0 +1,109 @@
+name: polar
+
+# Environment variables are injected at deploy time via Infisical (see deploy.yml).
+# Required variables: API_HOST, TRAEFIK_NETWORK, POLAR_POSTGRES_USER/PWD/DATABASE,
+# and all POLAR_* vars from server/.env.template.
+#
+# Manual migration (before first start or after updates):
+#   infisical run --env=prod -- docker compose -f docker-compose.prod.yml run --rm api uv run task db_migrate
+
+services:
+  api:
+    image: ghcr.io/simonri/polar:${POLAR_VERSION:-latest}
+    restart: unless-stopped
+    env_file: .env
+    environment:
+      POLAR_JWKS: /run/secrets/jwks.json
+    volumes:
+      - ./.jwks.json:/run/secrets/jwks.json:ro
+    depends_on:
+      db:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    networks:
+      - default
+      - traefik
+    labels:
+      - "traefik.enable=true"
+      - "traefik.docker.network=${TRAEFIK_NETWORK:-web}"
+      - "traefik.http.routers.polar-api.rule=Host(`${API_HOST}`)"
+      - "traefik.http.routers.polar-api.entrypoints=websecure"
+      - "traefik.http.routers.polar-api.tls.certresolver=letsencrypt"
+      - "traefik.http.services.polar-api.loadbalancer.server.port=10000"
+
+  worker:
+    image: ghcr.io/simonri/polar:${POLAR_VERSION:-latest}
+    command: uv run dramatiq -p 2 -t 4 -f polar.worker.scheduler:start polar.worker.run
+    restart: unless-stopped
+    env_file: .env
+    environment:
+      POLAR_JWKS: /run/secrets/jwks.json
+    volumes:
+      - ./.jwks.json:/run/secrets/jwks.json:ro
+    depends_on:
+      db:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+
+  db:
+    image: postgres:15-bullseye
+    command: ["postgres", "-c", "max_locks_per_transaction=256"]
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: ${POLAR_POSTGRES_USER}
+      POSTGRES_PASSWORD: ${POLAR_POSTGRES_PWD}
+      POSTGRES_DB: ${POLAR_POSTGRES_DATABASE}
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+      - ./init-readonly-user.sql:/docker-entrypoint-initdb.d/init-readonly-user.sql
+    healthcheck:
+      test: ["CMD", "pg_isready", "-q", "-d", "${POLAR_POSTGRES_DATABASE}", "-U", "${POLAR_POSTGRES_USER}"]
+      interval: 5s
+      timeout: 10s
+      retries: 20
+
+  redis:
+    image: redis:7-alpine
+    restart: unless-stopped
+    volumes:
+      - redis_data:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+  btc-daemon:
+    image: bitcartcc/bitcart-btc:stable
+    restart: unless-stopped
+    environment:
+      - BTC_NETWORK=${POLAR_CRYPTO_BTC_NETWORK:-mainnet}
+      - BTC_XPUB=${POLAR_CRYPTO_BTC_XPUB}
+      - BTC_LOGIN=${POLAR_CRYPTO_DAEMON_RPC_USER}
+      - BTC_PASSWORD=${POLAR_CRYPTO_DAEMON_RPC_PASS}
+    volumes:
+      - btc_daemon_data:/root/.electrum
+
+  ltc-daemon:
+    image: bitcartcc/bitcart-ltc:stable
+    restart: unless-stopped
+    environment:
+      - LTC_XPUB=${POLAR_CRYPTO_LTC_XPUB}
+      - LTC_LOGIN=${POLAR_CRYPTO_DAEMON_RPC_USER}
+      - LTC_PASSWORD=${POLAR_CRYPTO_DAEMON_RPC_PASS}
+    volumes:
+      - ltc_daemon_data:/root/.electrum-ltc
+
+networks:
+  traefik:
+    external: true
+    name: ${TRAEFIK_NETWORK:-web}
+
+volumes:
+  postgres_data:
+  redis_data:
+  btc_daemon_data:
+  eth_daemon_data:
+  ltc_daemon_data:

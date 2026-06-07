@@ -17,3 +17,14 @@ onlyBuiltDependencies:
 minimumReleaseAge: 1440
 minimumReleaseAgeExclude:
   - '@polar-sh/sdk'
+  - '@tanstack/router-plugin'
+  - '@tanstack/router-devtools'
+  - '@tanstack/react-router'
+  - '@tanstack/react-query'
+  - '@tanstack/router-core'
+  - '@tanstack/history'
+  - '@tanstack/react-store'
+  - '@tanstack/store'
+  - '@tanstack/router-generator'
+  - '@tanstack/virtual-file-routes'
+  - '@tanstack/router-utils'

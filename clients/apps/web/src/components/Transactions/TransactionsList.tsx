@@ -117,7 +117,7 @@ const TransactionsList = ({
           return <div className="flex flex-row justify-end">—</div>
         }
 
-        const amount = paymentTransaction.amount + paymentTransaction.tax_amount
+        const amount = paymentTransaction.amount
 
         return (
           <div className="flex flex-row justify-end">
@@ -136,8 +136,7 @@ const TransactionsList = ({
                     </span>
                     <span>
                       {formatCurrency('accounting')(
-                        (paymentTransaction.presentment_amount ?? 0) +
-                          (paymentTransaction.presentment_tax_amount ?? 0),
+                        paymentTransaction.presentment_amount ?? 0,
                         paymentTransaction.presentment_currency ??
                           paymentTransaction.currency,
                       )}
@@ -189,74 +188,6 @@ const TransactionsList = ({
               </>
             ) : (
               '—'
-            )}
-          </div>
-        )
-      },
-    },
-    {
-      id: 'tax',
-      enableSorting: false,
-      header: ({ column }) => (
-        <DataTableColumnHeader
-          column={column}
-          title="Tax"
-          className="flex justify-end"
-        />
-      ),
-      cell: (props) => {
-        const { row } = props
-        const { original: transaction } = row
-        const paymentTransaction = isTransaction(transaction)
-          ? transaction.payment_transaction
-          : null
-
-        if (!paymentTransaction) {
-          return <div className="flex justify-end">—</div>
-        }
-
-        return (
-          <div className="flex justify-end">
-            {paymentTransaction.presentment_currency !==
-            transaction.currency ? (
-              <Tooltip>
-                <TooltipTrigger asChild>
-                  <span className="underline decoration-dotted">
-                    {formatCurrency('accounting')(
-                      -paymentTransaction.tax_amount,
-                      transaction.currency,
-                    )}
-                  </span>
-                </TooltipTrigger>
-                <TooltipContent className="flex flex-col gap-1.5">
-                  <div className="flex justify-between gap-6">
-                    <span className="dark:text-polar-400 text-gray-500">
-                      Presentment amount
-                    </span>
-                    <span>
-                      {formatCurrency('accounting')(
-                        paymentTransaction.presentment_tax_amount ?? 0,
-                        paymentTransaction.presentment_currency ??
-                          paymentTransaction.currency,
-                      )}
-                    </span>
-                  </div>
-                  <div className="flex justify-between gap-6">
-                    <span className="dark:text-polar-400 text-gray-500 uppercase">
-                      FX (
-                      {paymentTransaction.presentment_currency ??
-                        paymentTransaction.currency}{' '}
-                      → {transaction.currency})
-                    </span>
-                    <span>{paymentTransaction.exchange_rate}</span>
-                  </div>
-                </TooltipContent>
-              </Tooltip>
-            ) : (
-              formatCurrency('accounting')(
-                -paymentTransaction.tax_amount,
-                paymentTransaction.currency,
-              )
             )}
           </div>
         )

@@ -8,17 +8,10 @@ from sqlalchemy.util.typing import TypedDict
 from polar.enums import SubscriptionProrationBehavior
 from polar.kit.address import AddressDict
 from polar.models import Customer, Event, Organization
-from polar.models.benefit import BenefitType
 from polar.models.event import EventSource
 
 
 class SystemEvent(StrEnum):
-    meter_credited = "meter.credited"
-    meter_reset = "meter.reset"
-    benefit_granted = "benefit.granted"
-    benefit_cycled = "benefit.cycled"
-    benefit_updated = "benefit.updated"
-    benefit_revoked = "benefit.revoked"
     subscription_created = "subscription.created"
     subscription_updated = "subscription.updated"
     subscription_canceled = "subscription.canceled"
@@ -47,10 +40,6 @@ class SystemEvent(StrEnum):
 
 
 SYSTEM_EVENT_LABELS: dict[str, str] = {
-    "benefit.granted": "Benefit Granted",
-    "benefit.cycled": "Benefit Cycled",
-    "benefit.updated": "Benefit Updated",
-    "benefit.revoked": "Benefit Revoked",
     "subscription.created": "Subscription Created",
     "subscription.updated": "Subscription Updated",
     "subscription.canceled": "Subscription Canceled",
@@ -70,8 +59,6 @@ SYSTEM_EVENT_LABELS: dict[str, str] = {
     "customer.created": "Customer Created",
     "customer.updated": "Customer Updated",
     "customer.deleted": "Customer Deleted",
-    "meter.credited": "Meter Credited",
-    "meter.reset": "Meter Reset",
     "balance.order": "Balance Order",
     "balance.credit_order": "Balance Credit Order",
     "balance.refund": "Balance Refund",
@@ -79,65 +66,6 @@ SYSTEM_EVENT_LABELS: dict[str, str] = {
     "balance.dispute": "Balance Dispute",
     "balance.dispute_reversal": "Balance Dispute Reversal",
 }
-
-
-class MeterCreditedMetadata(TypedDict):
-    meter_id: str
-    units: int
-    rollover: bool
-
-
-class MeterCreditedEvent(Event):
-    if TYPE_CHECKING:
-        source: Mapped[Literal[EventSource.system]]
-        name: Mapped[Literal[SystemEvent.meter_credited]]
-        user_metadata: Mapped[MeterCreditedMetadata]  # type: ignore[assignment]
-
-
-class MeterResetMetadata(TypedDict):
-    meter_id: str
-
-
-class MeterResetEvent(Event):
-    if TYPE_CHECKING:
-        source: Mapped[Literal[EventSource.system]]
-        name: Mapped[Literal[SystemEvent.meter_reset]]
-        user_metadata: Mapped[MeterResetMetadata]  # type: ignore[assignment]
-
-
-class BenefitGrantMetadata(TypedDict):
-    benefit_id: str
-    benefit_grant_id: str
-    benefit_type: BenefitType
-    member_id: NotRequired[str]
-
-
-class BenefitGrantedEvent(Event):
-    if TYPE_CHECKING:
-        source: Mapped[Literal[EventSource.system]]
-        name: Mapped[Literal[SystemEvent.benefit_granted]]
-        user_metadata: Mapped[BenefitGrantMetadata]  # type: ignore[assignment]
-
-
-class BenefitCycledEvent(Event):
-    if TYPE_CHECKING:
-        source: Mapped[Literal[EventSource.system]]
-        name: Mapped[Literal[SystemEvent.benefit_cycled]]
-        user_metadata: Mapped[BenefitGrantMetadata]  # type: ignore[assignment]
-
-
-class BenefitUpdatedEvent(Event):
-    if TYPE_CHECKING:
-        source: Mapped[Literal[EventSource.system]]
-        name: Mapped[Literal[SystemEvent.benefit_updated]]
-        user_metadata: Mapped[BenefitGrantMetadata]  # type: ignore[assignment]
-
-
-class BenefitRevokedEvent(Event):
-    if TYPE_CHECKING:
-        source: Mapped[Literal[EventSource.system]]
-        name: Mapped[Literal[SystemEvent.benefit_revoked]]
-        user_metadata: Mapped[BenefitGrantMetadata]  # type: ignore[assignment]
 
 
 class CustomerCreatedMetadata(TypedDict):
@@ -158,7 +86,6 @@ class CustomerUpdatedFields(TypedDict):
     name: NotRequired[str | None]
     email: NotRequired[str | None]
     billing_address: NotRequired[AddressDict | None]
-    tax_id: NotRequired[str | None]
     metadata: NotRequired[dict[str, str | int | bool] | None]
 
 
@@ -388,7 +315,6 @@ class OrderPaidMetadata(TypedDict):
     amount: int
     currency: NotRequired[str]
     net_amount: NotRequired[int]
-    tax_amount: NotRequired[int]
     applied_balance_amount: NotRequired[int]
     discount_amount: NotRequired[int]
     discount_id: NotRequired[str]
@@ -454,9 +380,6 @@ class BalanceOrderMetadata(TypedDict):
     currency: str
     presentment_amount: int
     presentment_currency: str
-    tax_amount: int
-    tax_state: NotRequired[str | None]
-    tax_country: NotRequired[str | None]
     fee: int
     exchange_rate: NotRequired[float]
 
@@ -474,9 +397,6 @@ class BalanceCreditOrderMetadata(TypedDict):
     subscription_id: NotRequired[str]
     amount: int
     currency: str
-    tax_amount: int
-    tax_state: NotRequired[str | None]
-    tax_country: NotRequired[str | None]
     fee: int
     exchange_rate: NotRequired[float]
 
@@ -500,9 +420,6 @@ class BalanceRefundMetadata(TypedDict):
     presentment_amount: int
     presentment_currency: str
     refundable_amount: NotRequired[int]
-    tax_amount: int
-    tax_state: NotRequired[str | None]
-    tax_country: NotRequired[str | None]
     fee: int
     exchange_rate: NotRequired[float]
 
@@ -532,9 +449,6 @@ class BalanceDisputeMetadata(TypedDict):
     currency: str
     presentment_amount: int
     presentment_currency: str
-    tax_amount: int
-    tax_state: NotRequired[str | None]
-    tax_country: NotRequired[str | None]
     fee: int
     exchange_rate: NotRequired[float]
 
@@ -551,60 +465,6 @@ class BalanceDisputeReversalEvent(Event):
         source: Mapped[Literal[EventSource.system]]
         name: Mapped[Literal[SystemEvent.balance_dispute_reversal]]
         user_metadata: Mapped[BalanceDisputeMetadata]  # type: ignore[assignment]
-
-
-@overload
-def build_system_event(
-    name: Literal[SystemEvent.meter_credited],
-    customer: Customer,
-    organization: Organization,
-    metadata: MeterCreditedMetadata,
-) -> Event: ...
-
-
-@overload
-def build_system_event(
-    name: Literal[SystemEvent.meter_reset],
-    customer: Customer,
-    organization: Organization,
-    metadata: MeterResetMetadata,
-) -> Event: ...
-
-
-@overload
-def build_system_event(
-    name: Literal[SystemEvent.benefit_granted],
-    customer: Customer,
-    organization: Organization,
-    metadata: BenefitGrantMetadata,
-) -> Event: ...
-
-
-@overload
-def build_system_event(
-    name: Literal[SystemEvent.benefit_cycled],
-    customer: Customer,
-    organization: Organization,
-    metadata: BenefitGrantMetadata,
-) -> Event: ...
-
-
-@overload
-def build_system_event(
-    name: Literal[SystemEvent.benefit_updated],
-    customer: Customer,
-    organization: Organization,
-    metadata: BenefitGrantMetadata,
-) -> Event: ...
-
-
-@overload
-def build_system_event(
-    name: Literal[SystemEvent.benefit_revoked],
-    customer: Customer,
-    organization: Organization,
-    metadata: BenefitGrantMetadata,
-) -> Event: ...
 
 
 @overload

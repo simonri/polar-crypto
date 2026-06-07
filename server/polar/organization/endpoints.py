@@ -39,8 +39,6 @@ from polar.integrations.polar.schemas import (
     OrganizationOrderInvoice,
     OrganizationPaymentMethod,
     OrganizationPlan,
-    OrganizationStartupProgramClaimRequest,
-    OrganizationStartupProgramClaimResponse,
     OrganizationSubscription,
     OrganizationSubscriptionUpdate,
     organization_payment_method_from_sdk,
@@ -51,9 +49,6 @@ from polar.kit.pagination import ListResource, Pagination, PaginationParamsQuery
 from polar.models import Account, Organization, UserOrganization
 from polar.models.user_organization import OrganizationRole
 from polar.openapi import APITag
-from polar.organization.repository import (
-    OrganizationReviewRepository,
-)
 from polar.payout_account.repository import PayoutAccountRepository
 from polar.postgres import (
     AsyncReadSession,
@@ -62,12 +57,6 @@ from polar.postgres import (
     get_db_session,
 )
 from polar.routing import APIRouter
-from polar.startup_program.service import (
-    StartupProgramError,
-)
-from polar.startup_program.service import (
-    startup_program as startup_program_service,
-)
 from polar.user.service import user as user_service
 from polar.user_organization.schemas import (
     OrganizationMember,
@@ -87,16 +76,12 @@ from polar.user_organization.service import (
 from . import auth, sorting
 from .schemas import Organization as OrganizationSchema
 from .schemas import (
-    OrganizationAppealRequest,
-    OrganizationAppealResponse,
     OrganizationCreate,
     OrganizationDeletionResponse,
     OrganizationID,
     OrganizationKYC,
     OrganizationPaymentStatus,
     OrganizationPayoutAccountSet,
-    OrganizationReviewState,
-    OrganizationReviewStatus,
     OrganizationRoleDefinition,
     OrganizationSlugAvailability,
     OrganizationSlugCheck,
@@ -293,24 +278,6 @@ async def update(
     return await organization_service.update(
         session, authz.organization, organization_update
     )
-
-
-@router.post(
-    "/{id}/submit-review",
-    response_model=OrganizationSchema,
-    summary="Submit Organization for Review",
-    responses={
-        200: {"description": "Organization submitted for review."},
-        404: OrganizationNotFound,
-    },
-    tags=[APITag.private],
-)
-async def submit_review(
-    authz: AuthorizeOrgManage,
-    session: AsyncSession = Depends(get_db_session),
-) -> Organization:
-    """Submit an organization's saved details for review."""
-    return await organization_service.submit_for_review(session, authz.organization)
 
 
 @router.delete(
@@ -614,77 +581,6 @@ async def set_member_role(
 
 
 @router.post(
-    "/{id}/ai-validation",
-    response_model=OrganizationReviewStatus,
-    summary="Get AI Validation Status",
-    responses={
-        200: {"description": "AI validation status returned."},
-        404: OrganizationNotFound,
-    },
-    tags=[APITag.private],
-)
-async def validate_with_ai(
-    authz: AuthorizeOrgManage,
-    session: AsyncSession = Depends(get_db_session),
-) -> OrganizationReviewStatus:
-    """Get the AI validation status. Review runs asynchronously in the background."""
-    review = await organization_service.get_ai_review(session, authz.organization)
-
-    if review is None:
-        # Review is pending (background task not yet complete)
-        return OrganizationReviewStatus()
-
-    return OrganizationReviewStatus(
-        verdict=review.verdict,  # type: ignore[arg-type]
-        reason=review.reason,
-        appeal_submitted_at=review.appeal_submitted_at,
-        appeal_reason=review.appeal_reason,
-        appeal_decision=review.appeal_decision,
-        appeal_reviewed_at=review.appeal_reviewed_at,
-    )
-
-
-@router.post(
-    "/{id}/appeal",
-    response_model=OrganizationAppealResponse,
-    summary="Submit Appeal for Organization Review",
-    responses={
-        200: {"description": "Appeal submitted successfully."},
-        404: OrganizationNotFound,
-        400: {"description": "Invalid appeal request."},
-    },
-    tags=[APITag.private],
-)
-async def submit_appeal(
-    authz: AuthorizeOrgManage,
-    appeal_request: OrganizationAppealRequest,
-    session: AsyncSession = Depends(get_db_session),
-) -> OrganizationAppealResponse:
-    """Submit an appeal for organization review after AI validation failure."""
-    try:
-        result = await organization_service.submit_appeal(
-            session, authz.organization, appeal_request.reason
-        )
-
-        return OrganizationAppealResponse(
-            success=True,
-            message="Appeal submitted successfully. Our team will review your case.",
-            appeal_submitted_at=result.appeal_submitted_at,  # type: ignore[arg-type]
-        )
-    except ValueError as e:
-        raise PolarRequestValidationError(
-            [
-                {
-                    "type": "value_error",
-                    "loc": ("body", "reason"),
-                    "msg": e.args[0],
-                    "input": appeal_request.reason,
-                }
-            ]
-        )
-
-
-@router.post(
     "/{id}/ai-onboarding-complete",
     response_model=OrganizationSchema,
     summary="Mark AI Onboarding Complete",
@@ -702,59 +598,6 @@ async def mark_ai_onboarding_complete(
     return await organization_service.mark_ai_onboarding_complete(
         session, authz.organization
     )
-
-
-@router.get(
-    "/{id}/review-status",
-    response_model=OrganizationReviewStatus,
-    summary="Get Organization Review Status",
-    responses={
-        200: {"description": "Organization review status retrieved."},
-        404: OrganizationNotFound,
-    },
-    tags=[APITag.private],
-)
-async def get_review_status(
-    authz: AuthorizeOrgManageRead,
-    session: AsyncReadSession = Depends(get_db_read_session),
-) -> OrganizationReviewStatus:
-    """Get the current review status and appeal information for an organization."""
-    review_repository = OrganizationReviewRepository.from_session(session)
-    review = await review_repository.get_by_organization(authz.organization.id)
-
-    if review is None:
-        return OrganizationReviewStatus()
-
-    return OrganizationReviewStatus(
-        verdict=review.verdict,  # type: ignore[arg-type]
-        reason=review.reason,
-        appeal_submitted_at=review.appeal_submitted_at,
-        appeal_reason=review.appeal_reason,
-        appeal_decision=review.appeal_decision,
-        appeal_reviewed_at=review.appeal_reviewed_at,
-    )
-
-
-@router.get(
-    "/{id}/review",
-    response_model=OrganizationReviewState,
-    summary="Get Organization Self-Review Checklist",
-    responses={
-        200: {"description": "Organization self-review checklist returned."},
-        404: OrganizationNotFound,
-    },
-    tags=[APITag.private],
-)
-async def get_review(
-    authz: AuthorizeOrgManageRead,
-    session: AsyncReadSession = Depends(get_db_read_session),
-) -> OrganizationReviewState:
-    """Get the merchant self-review checklist state.
-
-    Powers the account review UI: pre-submission gating checks plus,
-    after submission, the AI verdict and appeal state.
-    """
-    return await organization_service.get_review_state(session, authz.organization)
 
 
 @router.post(
@@ -804,22 +647,6 @@ async def list_plans(
     return [free_plan, *(OrganizationPlan.from_sdk(product) for product in products)]
 
 
-async def _enrich_subscription(
-    subscription_obj: OrganizationSubscription,
-    *,
-    organization_id: UUID,
-) -> OrganizationSubscription:
-    """Annotate the subscription with Startup Program state when configured."""
-    if settings.STARTUP_PROGRAM_ENABLED:
-        subscription_obj.startup_program_scale_product_id = (
-            settings.POLAR_SCALE_PRODUCT_ID
-        )
-        subscription_obj.startup_program_status = (
-            await startup_program_service.get_status(organization_id)
-        )
-    return subscription_obj
-
-
 @router.get(
     "/{id}/subscription",
     response_model=OrganizationSubscription,
@@ -844,10 +671,7 @@ async def get_subscription(
         subscription_obj = OrganizationSubscription.free(plan=free_plan)
     else:
         subscription_obj = OrganizationSubscription.from_sdk(subscription)
-    return await _enrich_subscription(
-        subscription_obj,
-        organization_id=authz.organization.id,
-    )
+    return subscription_obj
 
 
 @router.post(
@@ -905,10 +729,7 @@ async def change_subscription_plan(
         organization_id=authz.organization.id,
         product_id=body.product_id,
     )
-    return await _enrich_subscription(
-        OrganizationSubscription.from_sdk(subscription),
-        organization_id=authz.organization.id,
-    )
+    return OrganizationSubscription.from_sdk(subscription)
 
 
 @router.delete(
@@ -935,68 +756,7 @@ async def cancel_subscription_endpoint(
     subscription = await polar_self_service.cancel_subscription(
         organization_id=authz.organization.id,
     )
-    return await _enrich_subscription(
-        OrganizationSubscription.from_sdk(subscription),
-        organization_id=authz.organization.id,
-    )
-
-
-@router.post(
-    "/{id}/startup-program/claim",
-    response_model=OrganizationStartupProgramClaimResponse,
-    summary="Claim Startup Program Discount",
-    responses={404: OrganizationNotFound},
-    tags=[APITag.private],
-)
-async def claim_startup_program(
-    request: Request,
-    authz: AuthorizeOrgManage,
-    body: OrganizationStartupProgramClaimRequest,
-    session: AsyncReadSession = Depends(get_db_read_session),
-) -> OrganizationStartupProgramClaimResponse:
-    """Claim the Startup Program discount on the Scale plan.
-
-    Single entry point for the "Switch to Scale" callout regardless of
-    current plan:
-
-    - Free orgs receive a checkout to set up payment (discount attached).
-    - Paid orgs get their subscription switched to Scale + discount applied
-      directly via PATCH, no checkout needed.
-
-    Caller passes ``success_url`` / ``return_url`` defensively; they're only
-    used on the Free-plan branch.
-    """
-    customer_ip_address = request.client.host if request.client else None
-    try:
-        subscription, checkout = await polar_self_service.claim_startup_program(
-            session=session,
-            organization_id=authz.organization.id,
-            customer_ip_address=customer_ip_address,
-            success_url=body.success_url,
-            return_url=body.return_url,
-            embed_origin=body.embed_origin,
-        )
-    except StartupProgramError as e:
-        raise PolarRequestValidationError(
-            [
-                {
-                    "type": "value_error",
-                    "loc": ("body",),
-                    "msg": str(e),
-                    "input": None,
-                }
-            ]
-        ) from e
-
-    response = OrganizationStartupProgramClaimResponse()
-    if checkout is not None:
-        response.checkout = OrganizationCheckoutResponse.from_sdk(checkout)
-    if subscription is not None:
-        response.subscription = await _enrich_subscription(
-            OrganizationSubscription.from_sdk(subscription),
-            organization_id=authz.organization.id,
-        )
-    return response
+    return OrganizationSubscription.from_sdk(subscription)
 
 
 @router.get(

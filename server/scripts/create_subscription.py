@@ -8,6 +8,7 @@ from uuid import UUID
 import dramatiq
 import structlog
 import typer
+from polar.payment_method.repository import PaymentMethodRepository
 from sqlalchemy import select
 from sqlalchemy.orm import joinedload
 
@@ -30,9 +31,8 @@ from polar.models.billing_entry import (
 from polar.models.order import OrderBillingReasonInternal
 from polar.models.subscription import SubscriptionStatus
 from polar.models.subscription_product_price import SubscriptionProductPrice
-from polar.payment_method.repository import PaymentMethodRepository
 from polar.postgres import create_async_engine
-from polar.product.guard import is_recurring_product, is_seat_price, is_static_price
+from polar.product.guard import is_recurring_product, is_static_price
 from polar.product.price_set import PriceSet
 from polar.product.repository import ProductRepository
 from polar.redis import create_redis
@@ -156,20 +156,14 @@ async def create_subscription(
             currency = product.organization.default_presentment_currency
             currency_prices = PriceSet.from_product(product, currency)
 
-            seats: int | None = None
-            if product.has_seat_based_price:
-                for p in currency_prices:
-                    if is_seat_price(p):
-                        seats = p.get_minimum_seats()
-                        break
-
             subscription_product_prices: list[SubscriptionProductPrice] = []
             for price in currency_prices:
                 subscription_product_prices.append(
-                    SubscriptionProductPrice.from_price(price, seats=seats)
+                    SubscriptionProductPrice.from_price(price)
                 )
 
             recurring_interval = product.recurring_interval
+
             recurring_interval_count = product.recurring_interval_count
 
             current_period_start = utc_now()
@@ -211,7 +205,6 @@ async def create_subscription(
                 customer=customer,
                 subscription_product_prices=subscription_product_prices,
                 currency=currency,
-                seats=seats,
                 payment_method=payment_method,
                 pending_update=None,
             )

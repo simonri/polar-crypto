@@ -1,4 +1,4 @@
-"""Start Docker infrastructure (PostgreSQL, Redis, Minio, Tinybird)."""
+"""Start Docker infrastructure (PostgreSQL, Redis, Tinybird)."""
 
 from shared import (
     SERVER_DIR,
@@ -46,7 +46,7 @@ def run(ctx: Context) -> bool:
         compose_cmd.extend(["--profile", "tinybird"])
     compose_cmd.extend(["up", "-d"])
 
-    service_name = "PostgreSQL, Redis, Minio"
+    service_name = "PostgreSQL, Redis"
     if not ctx.skip_tinybird:
         service_name += ", Tinybird"
 

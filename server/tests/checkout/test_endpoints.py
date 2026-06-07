@@ -1,7 +1,7 @@
 import uuid
 from datetime import timedelta
 from types import SimpleNamespace
-from unittest.mock import AsyncMock, MagicMock
+from unittest.mock import MagicMock
 
 import pytest
 import pytest_asyncio
@@ -13,8 +13,7 @@ from polar.auth.scope import Scope
 from polar.checkout.repository import CheckoutRepository
 from polar.checkout.schemas import CheckoutProductCreate
 from polar.checkout.service import checkout as checkout_service
-from polar.enums import SubscriptionRecurringInterval, TaxBehavior, TaxProcessor
-from polar.integrations.stripe.service import StripeService
+from polar.enums import SubscriptionRecurringInterval
 from polar.kit.utils import utc_now
 from polar.models import (
     Checkout,
@@ -31,8 +30,6 @@ from polar.models.checkout import CheckoutStatus
 from polar.models.discount import DiscountDuration, DiscountType
 from polar.models.organization import OrganizationStatus
 from polar.postgres import AsyncSession
-from polar.tax.calculation import TaxCalculationService
-from polar.tax.calculation.base import TaxabilityReason
 from tests.fixtures.auth import AuthSubjectFixture
 from tests.fixtures.database import SaveFixture
 from tests.fixtures.random_objects import (
@@ -57,37 +54,9 @@ def api_prefix(request: pytest.FixtureRequest) -> str:
 
 @pytest.fixture(autouse=True)
 def stripe_service_mock(mocker: MockerFixture) -> MagicMock:
-    mock = MagicMock(spec=StripeService)
-    mocker.patch("polar.checkout.service.stripe_service", new=mock)
+    mock = MagicMock()
+    mocker.patch("polar.checkout.service.stripe_service", new=mock, create=True)
     return mock
-
-
-@pytest.fixture(autouse=True)
-def calculate_tax_mock(mocker: MockerFixture) -> AsyncMock:
-    mock = mocker.patch(
-        "polar.checkout.service.tax_calculation_service", spec=TaxCalculationService
-    )
-    mock.calculate.return_value = (
-        {
-            "processor_id": "TAX_PROCESSOR_ID",
-            "amount": 0,
-            "tax_behavior": TaxBehavior.exclusive,
-            "tax_breakdown": [
-                {
-                    "rate_type": "percentage",
-                    "rate": 0.2,
-                    "display_name": "Tax",
-                    "country": "US",
-                    "state": None,
-                    "subdivision": None,
-                    "amount": 0,
-                    "taxability_reason": TaxabilityReason.standard_rated,
-                }
-            ],
-        },
-        TaxProcessor.numeral,
-    )
-    return mock.calculate
 
 
 @pytest_asyncio.fixture
@@ -421,70 +390,6 @@ class TestCreateCheckout:
         assert json["return_url"] == "https://example.com/return"
 
     @pytest.mark.auth(AuthSubjectFixture(scopes={Scope.checkouts_write}))
-    async def test_valid_seat_based_checkout(
-        self,
-        api_prefix: str,
-        save_fixture: SaveFixture,
-        client: AsyncClient,
-        user_organization: UserOrganization,
-        organization: Organization,
-    ) -> None:
-        product = await create_product(
-            save_fixture,
-            organization=organization,
-            recurring_interval=SubscriptionRecurringInterval.month,
-            prices=[("seat", 1500, "usd")],
-        )
-
-        response = await client.post(
-            f"{api_prefix}/",
-            json={
-                "payment_processor": "stripe",
-                "products": [str(product.id)],
-                "seats": 6,
-            },
-        )
-
-        assert response.status_code == 201
-
-        json = response.json()
-        assert json["seats"] == 6
-        assert json["amount"] == 1500 * 6
-        assert json["product_price"]["id"] == str(product.prices[0].id)
-
-    @pytest.mark.auth(AuthSubjectFixture(scopes={Scope.checkouts_write}))
-    async def test_seat_based_missing_seats_defaults_to_minimum(
-        self,
-        api_prefix: str,
-        save_fixture: SaveFixture,
-        client: AsyncClient,
-        user_organization: UserOrganization,
-        organization: Organization,
-    ) -> None:
-        """Test that omitting seats defaults to minimum_seats."""
-        product = await create_product(
-            save_fixture,
-            organization=organization,
-            recurring_interval=SubscriptionRecurringInterval.month,
-            prices=[("seat", 1500, "usd")],
-        )
-
-        response = await client.post(
-            f"{api_prefix}/",
-            json={
-                "payment_processor": "stripe",
-                "products": [str(product.id)],
-            },
-        )
-
-        assert response.status_code == 201
-
-        json = response.json()
-        # Should default to minimum_seats (1 for standard seat-based product)
-        assert json["seats"] == 1
-        assert json["amount"] == 1500 * 1
-
-    @pytest.mark.auth(AuthSubjectFixture(scopes={Scope.checkouts_write}))
     async def test_valid_ad_hoc_prices(
         self,
         api_prefix: str,
@@ -579,74 +484,6 @@ class TestUpdateCheckout:
 
         json = response.json()
         assert json["metadata"] == {"test": "test"}
-
-    @pytest.mark.auth(AuthSubjectFixture(scopes={Scope.checkouts_write}))
-    async def test_update_seats(
-        self,
-        api_prefix: str,
-        save_fixture: SaveFixture,
-        session: AsyncSession,
-        client: AsyncClient,
-        user_organization: UserOrganization,
-        organization: Organization,
-    ) -> None:
-        product = await create_product(
-            save_fixture,
-            organization=organization,
-            recurring_interval=SubscriptionRecurringInterval.month,
-            prices=[("seat", 2500, "usd")],
-        )
-
-        checkout = await create_checkout(save_fixture, products=[product], seats=4)
-
-        response = await client.patch(
-            f"{api_prefix}/{checkout.id}",
-            json={
-                "seats": 10,
-            },
-        )
-
-        assert response.status_code == 200
-
-        json = response.json()
-        assert json["seats"] == 10
-        assert json["amount"] == 2500 * 10
-
-    @pytest.mark.auth(AuthSubjectFixture(scopes={Scope.checkouts_write}))
-    async def test_update_seats_amount_calculation(
-        self,
-        api_prefix: str,
-        save_fixture: SaveFixture,
-        client: AsyncClient,
-        user_organization: UserOrganization,
-        organization: Organization,
-    ) -> None:
-        product = await create_product(
-            save_fixture,
-            organization=organization,
-            recurring_interval=SubscriptionRecurringInterval.month,
-            prices=[("seat", 3000, "usd")],
-        )
-
-        checkout = await create_checkout(save_fixture, products=[product], seats=2)
-
-        # Initial state
-        response = await client.get(f"{api_prefix}/{checkout.id}")
-        json = response.json()
-        assert json["seats"] == 2
-        assert json["amount"] == 3000 * 2
-
-        # Update to 7 seats
-        response = await client.patch(
-            f"{api_prefix}/{checkout.id}",
-            json={"seats": 7},
-        )
-
-        assert response.status_code == 200
-
-        json = response.json()
-        assert json["seats"] == 7
-        assert json["amount"] == 3000 * 7
 
     @pytest.mark.auth(AuthSubjectFixture(scopes={Scope.checkouts_write}))
     async def test_update_with_discount(
@@ -954,9 +791,6 @@ class TestClientOpened:
         assert updated_checkout is not None
         assert updated_checkout.analytics_metadata is not None
         assert updated_checkout.analytics_metadata.get("opened_at") is not None
-        assert (
-            updated_checkout.analytics_metadata.get("distinct_id") == "test-posthog-id"
-        )
 
     async def test_idempotent(
         self,

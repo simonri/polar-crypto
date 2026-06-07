@@ -6,6 +6,7 @@ import { useOrganization, useUpdateOrganization } from '@/hooks/queries'
 import { setValidationErrors } from '@/utils/api/errors'
 import { getQueryClient } from '@/utils/api/query'
 import { isValidationError, schemas } from '@polar-sh/client'
+import type { OrganizationReviewCheck } from './index'
 import { Box } from '@polar-sh/orbit/Box'
 import { Button } from '@polar-sh/orbit'
 import { Input } from '@polar-sh/orbit'
@@ -16,7 +17,7 @@ import { SectionLayout } from './SectionLayout'
 
 interface Props {
   organization: schemas['Organization']
-  step: schemas['OrganizationReviewCheck']
+  step: OrganizationReviewCheck
   reasonItems: string[]
 }
 

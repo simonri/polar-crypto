@@ -5,11 +5,8 @@ import structlog
 from sqlalchemy import select
 from sqlalchemy.orm import joinedload
 
-from polar.enums import PaymentProcessor
 from polar.event.service import event as event_service
 from polar.event.system import BalanceRefundMetadata, SystemEvent, build_system_event
-from polar.integrations.stripe.service import stripe as stripe_service
-from polar.kit.math import polar_round
 from polar.logging import Logger
 from polar.models import Customer, Order, Refund, Transaction
 from polar.models.refund import RefundStatus
@@ -66,17 +63,10 @@ class RefundTransactionService(BaseTransactionService):
         if await repository.get_by_refund_id(refund.id) is not None:
             raise RefundTransactionAlreadyExistsError(refund)
 
-        if refund.processor == PaymentProcessor.stripe:
-            assert refund.processor_balance_transaction_id is not None
-            balance_transaction = await stripe_service.get_balance_transaction(
-                refund.processor_balance_transaction_id
-            )
-            settlement_amount = balance_transaction.amount
-            settlement_currency = balance_transaction.currency
-            exchange_rate = -settlement_amount / (refund.amount + refund.tax_amount)
-            settlement_tax_amount = -polar_round(refund.tax_amount * exchange_rate)
-        else:
-            raise NotImplementedError()
+        # Crypto refunds: no balance transaction from processor
+        settlement_amount = -refund.amount
+        settlement_currency = refund.currency
+        exchange_rate: float | None = None
 
         payment_transaction_repository = PaymentTransactionRepository.from_session(
             session
@@ -102,15 +92,11 @@ class RefundTransactionService(BaseTransactionService):
             type=TransactionType.refund,
             processor=refund.processor,
             currency=settlement_currency,
-            amount=settlement_amount - settlement_tax_amount,
+            amount=settlement_amount,
             account_currency=settlement_currency,
-            account_amount=settlement_amount - settlement_tax_amount,
-            tax_amount=settlement_tax_amount,
-            tax_country=payment_transaction.tax_country,
-            tax_state=payment_transaction.tax_state,
+            account_amount=settlement_amount,
             presentment_currency=refund.currency,
             presentment_amount=-refund.amount,
-            presentment_tax_amount=-refund.tax_amount,
             exchange_rate=exchange_rate,
             refund=refund,
             customer_id=payment_transaction.customer_id,
@@ -134,7 +120,7 @@ class RefundTransactionService(BaseTransactionService):
         await self._create_reversal_balances(
             session,
             payment_transaction=payment_transaction,
-            refund_amount=settlement_amount - settlement_tax_amount,
+            refund_amount=settlement_amount,
         )
 
         try:
@@ -151,11 +137,7 @@ class RefundTransactionService(BaseTransactionService):
                     "currency": refund_transaction.currency,
                     "presentment_amount": refund_transaction.presentment_amount,
                     "presentment_currency": refund_transaction.presentment_currency,
-                    "tax_amount": settlement_tax_amount,
-                    "tax_country": payment_transaction.tax_country,
-                    "tax_state": payment_transaction.tax_state,
                     "fee": 0,
-                    "exchange_rate": exchange_rate,
                 }
                 if order is not None:
                     metadata["order_id"] = str(order.id)
@@ -213,15 +195,9 @@ class RefundTransactionService(BaseTransactionService):
             amount=-refund_transaction.amount,
             account_currency=refund.currency,
             account_amount=-refund_transaction.amount,
-            tax_amount=-refund_transaction.tax_amount,
-            tax_country=payment_transaction.tax_country,
-            tax_state=payment_transaction.tax_state,
             presentment_currency=refund_transaction.presentment_currency,
             presentment_amount=-refund_transaction.presentment_amount
             if refund_transaction.presentment_amount is not None
-            else None,
-            presentment_tax_amount=-refund_transaction.presentment_tax_amount
-            if refund_transaction.presentment_tax_amount is not None
             else None,
             exchange_rate=refund_transaction.exchange_rate,
             customer_id=payment_transaction.customer_id,
@@ -250,9 +226,6 @@ class RefundTransactionService(BaseTransactionService):
                     or 0,
                     "presentment_currency": refund_reversal_transaction.presentment_currency
                     or "",
-                    "tax_amount": refund_reversal_transaction.tax_amount,
-                    "tax_country": payment_transaction.tax_country,
-                    "tax_state": payment_transaction.tax_state,
                     "fee": 0,
                 }
                 if refund_transaction.exchange_rate is not None:

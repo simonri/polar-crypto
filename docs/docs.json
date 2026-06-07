@@ -40,26 +40,6 @@
             "pages": [
               "features/products",
               {
-                "group": "Usage Based Billing",
-                "pages": [
-                  "features/usage-based-billing/introduction",
-                  "features/usage-based-billing/event-ingestion",
-                  {
-                    "group": "Ingestion Strategies",
-                    "pages": [
-                      "features/usage-based-billing/ingestion-strategies/ingestion-strategy",
-                      "features/usage-based-billing/ingestion-strategies/llm-strategy",
-                      "features/usage-based-billing/ingestion-strategies/s3-strategy",
-                      "features/usage-based-billing/ingestion-strategies/stream-strategy",
-                      "features/usage-based-billing/ingestion-strategies/delta-time-strategy"
-                    ]
-                  },
-                  "features/usage-based-billing/meters",
-                  "features/usage-based-billing/credits",
-                  "features/usage-based-billing/billing"
-                ]
-              },
-              {
                 "group": "Cost Insights",
                 "tag": "Beta",
                 "pages": [
@@ -72,7 +52,6 @@
                 "group": "Benefits",
                 "pages": [
                   "features/benefits/introduction",
-                  "features/benefits/credits",
                   "features/benefits/custom",
                   "features/benefits/discord-access",
                   "features/benefits/feature-flags",
@@ -326,16 +305,6 @@
                 ]
               },
               {
-                "group": "Meters",
-                "pages": [
-                  "api-reference/meters/create",
-                  "api-reference/meters/get",
-                  "api-reference/meters/list",
-                  "api-reference/meters/update",
-                  "api-reference/meters/get-quantities"
-                ]
-              },
-              {
                 "group": "Benefits",
                 "pages": [
                   "api-reference/benefits/create",
@@ -344,13 +313,6 @@
                   "api-reference/benefits/list-grants",
                   "api-reference/benefits/update",
                   "api-reference/benefits/delete"
-                ]
-              },
-              {
-                "group": "Customer Meters",
-                "pages": [
-                  "api-reference/customer-meters/get",
-                  "api-reference/customer-meters/list"
                 ]
               },
               {

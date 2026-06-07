@@ -1,4 +1,3 @@
-from collections.abc import Iterable
 from typing import TYPE_CHECKING
 from uuid import UUID
 
@@ -13,14 +12,11 @@ from polar.kit.repository import (
     RepositorySoftDeletionMixin,
 )
 from polar.models import (
-    Benefit,
     CheckoutLink,
     CheckoutLinkProduct,
     Organization,
     Product,
-    ProductBenefit,
 )
-from polar.models.benefit import BenefitType
 
 if TYPE_CHECKING:
     from sqlalchemy.orm.strategy_options import _AbstractLoad
@@ -61,7 +57,6 @@ class CheckoutLinkRepository(
             checkout_link_product_load.options(
                 joinedload(CheckoutLinkProduct.product).options(
                     joinedload(Product.organization),
-                    joinedload(Product.product_medias),
                     joinedload(Product.attached_custom_fields),
                 )
             ),
@@ -75,33 +70,6 @@ class CheckoutLinkRepository(
         return self.get_base_statement().where(
             CheckoutLink.organization_id.in_(org_ids)
         )
-
-    async def has_with_benefit_types(
-        self, organization_id: UUID, benefit_types: Iterable[BenefitType]
-    ) -> bool:
-        """Whether the organization has any live checkout link pointing at
-        an active product that grants a benefit of the given types."""
-        statement = (
-            select(CheckoutLink.id)
-            .join(
-                CheckoutLinkProduct,
-                CheckoutLink.id == CheckoutLinkProduct.checkout_link_id,
-            )
-            .join(Product, CheckoutLinkProduct.product_id == Product.id)
-            .join(ProductBenefit, Product.id == ProductBenefit.product_id)
-            .join(Benefit, ProductBenefit.benefit_id == Benefit.id)
-            .where(
-                CheckoutLink.organization_id == organization_id,
-                CheckoutLink.deleted_at.is_(None),
-                Product.deleted_at.is_(None),
-                Product.is_archived.is_(False),
-                Benefit.deleted_at.is_(None),
-                Benefit.type.in_(list(benefit_types)),
-            )
-            .limit(1)
-        )
-        result = await self.session.execute(statement)
-        return result.scalar_one_or_none() is not None
 
     async def has_any(self, organization_id: UUID) -> bool:
         """Whether the organization has any live checkout link at all,

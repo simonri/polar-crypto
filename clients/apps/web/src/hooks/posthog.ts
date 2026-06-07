@@ -1,26 +1,17 @@
 'use client'
 
 import type { schemas } from '@polar-sh/client'
-import type { JsonType } from '@posthog/core'
-import type { CaptureOptions } from 'posthog-js'
-import { usePostHog as useOuterPostHog } from 'posthog-js/react'
-import { useCallback, useMemo } from 'react'
 
-// https://posthog.com/product-engineers/5-ways-to-improve-analytics-data#suggested-naming-guide
+export type JsonType =
+  | string
+  | number
+  | boolean
+  | null
+  | undefined
+  | Record<string, unknown>
+  | unknown[]
 
-// PostHog Events Naming Convention
-//
-// ${Category}:${Noun}:${Verb}
-//
-type Surface =
-  | 'website'
-  | 'docs'
-  | 'dashboard'
-  | 'storefront'
-  // For rare global(ish) events, e.g login, signup...
-  // We can use properties to distinguish flywheel etc
-  | 'global'
-
+type Surface = 'website' | 'docs' | 'dashboard' | 'storefront' | 'global'
 type Category =
   | 'benefits'
   | 'checkout'
@@ -29,10 +20,7 @@ type Category =
   | 'organizations'
   | 'onboarding'
   | 'issues'
-
 type Noun = string
-
-// Verbs in past tense
 type Verb =
   | 'click'
   | 'submit'
@@ -61,62 +49,16 @@ export interface PolarHog {
   setPersistence: (
     persistence: 'localStorage' | 'sessionStorage' | 'cookie' | 'memory',
   ) => void
-  capture: (
-    event: EventName,
-    properties?: { [key: string]: JsonType },
-    options?: CaptureOptions,
-  ) => void
+  capture: (event: EventName, properties?: Record<string, JsonType>) => void
   identify: (user: schemas['UserRead']) => void
   logout: () => void
 }
 
-export const usePostHog = (): PolarHog => {
-  const posthog = useOuterPostHog()
-
-  const setPersistence = useCallback(
-    (persistence: 'localStorage' | 'sessionStorage' | 'cookie' | 'memory') => {
-      posthog.set_config({ persistence })
-    },
-    [posthog],
-  )
-
-  const capture: PolarHog['capture'] = useCallback(
-    (event, properties, options) => {
-      if (process.env.NODE_ENV === 'development') {
-        console.debug(`[posthog] ${event}`, properties ?? {})
-      }
-      posthog.capture(event, properties, options)
-    },
-    [posthog],
-  )
-
-  const identify: PolarHog['identify'] = useCallback(
-    (user) => {
-      const posthogId = `user:${user.id}`
-
-      if (posthog.get_distinct_id() !== posthogId) {
-        posthog.identify(posthogId, {
-          email: user.email,
-        })
-      }
-    },
-    [posthog],
-  )
-
-  const logout: PolarHog['logout'] = useCallback(() => {
-    capture('global:user:logout:done')
-    posthog?.reset()
-  }, [capture, posthog])
-
-  const context = useMemo(
-    () => ({
-      setPersistence,
-      capture,
-      identify,
-      logout,
-    }),
-    [setPersistence, capture, identify, logout],
-  )
-
-  return context
+const noOp: PolarHog = {
+  setPersistence: () => {},
+  capture: () => {},
+  identify: () => {},
+  logout: () => {},
 }
+
+export const usePostHog = (): PolarHog => noOp

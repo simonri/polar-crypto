@@ -9,11 +9,8 @@ from uuid import UUID
 from fastapi import Request
 from tagflow import classes, tag, text
 
-from polar.config import settings
 from polar.models import Organization, User
-from polar.models.organization import OrganizationStatus, SnoozeType
-from polar.organization_review.schemas import ReviewVerdict
-from polar.startup_program.service import StartupProgramStatus
+from polar.models.organization import OrganizationStatus
 
 from ...components import (
     Tab,
@@ -41,19 +38,12 @@ class OrganizationDetailView:
     def __init__(
         self,
         organization: Organization,
-        ai_verdict: str = "",
         owner_email: str | None = None,
         impersonate_user: User | None = None,
-        startup_program_status: str | None = None,
     ):
         self.org = organization
-        self.ai_verdict = ai_verdict
         self.owner_email = owner_email
         self.impersonate_user = impersonate_user
-        # Startup Program status string is derived via the Polar API and
-        # populated by the endpoint; ``None`` means "feature disabled" OR
-        # "not invited". The card collapses both into the same rendering.
-        self.startup_program_status = startup_program_status
 
     @contextlib.contextmanager
     def section_tabs(
@@ -86,22 +76,6 @@ class OrganizationDetailView:
                 active=current_section == "account",
             ),
             Tab(
-                "Files",
-                str(
-                    request.url_for("organizations:detail", organization_id=self.org.id)
-                )
-                + "?section=files",
-                active=current_section == "files",
-            ),
-            Tab(
-                "Reviews",
-                str(
-                    request.url_for("organizations:detail", organization_id=self.org.id)
-                )
-                + "?section=reviews",
-                active=current_section == "reviews",
-            ),
-            Tab(
                 "Settings",
                 str(
                     request.url_for("organizations:detail", organization_id=self.org.id)
@@ -130,80 +104,6 @@ class OrganizationDetailView:
                 hx_target="#modal",
             ):
                 text("Create Plain Ticket")
-
-    def _render_startup_program_card(self, request: Request) -> None:
-        """Show Startup Program state and an Invite action.
-
-        Status comes from the Polar API (customer + discount), pre-computed
-        by the endpoint and passed in as ``startup_program_status``. The
-        "no Polar customer" case shows up as ``None`` (same as "not invited")
-        — clicking Invite surfaces the specific error via toast.
-        """
-        if not settings.STARTUP_PROGRAM_ENABLED:
-            return
-        with card(bordered=True, classes="mb-4"):
-            with tag.h3(classes="font-bold text-sm uppercase tracking-wide mb-3"):
-                text("Startup Program")
-
-            status_value = self.startup_program_status
-            with tag.div(classes="flex items-center gap-2 mb-3 text-sm"):
-                with tag.span(classes="text-base-content/60"):
-                    text("Status")
-                with tag.div(classes="badge"):
-                    if status_value == StartupProgramStatus.invited:
-                        classes("badge-success")
-                        text("Invited")
-                    elif status_value == StartupProgramStatus.consumed:
-                        classes("badge-neutral")
-                        text("Consumed")
-                    else:
-                        classes("badge-ghost")
-                        text("Not invited")
-
-            if status_value not in (
-                StartupProgramStatus.invited,
-                StartupProgramStatus.consumed,
-            ):
-                with tag.div(classes="w-full"):
-                    with button(
-                        variant="primary",
-                        size="sm",
-                        hx_post=str(
-                            request.url_for(
-                                "organizations:startup_program_mark_invited",
-                                organization_id=self.org.id,
-                            )
-                        ),
-                        hx_swap="none",
-                        hx_confirm=(
-                            "Invite this organization to the Startup "
-                            "Program? A 100% discount on Scale (12 months, "
-                            "single use) will be created."
-                        ),
-                    ):
-                        text("Invite")
-            elif status_value == StartupProgramStatus.invited:
-                # Discount is still unused — safe to revoke. Once consumed
-                # the discount is part of billing history and can't be removed.
-                with tag.div(classes="w-full"):
-                    with button(
-                        variant="secondary",
-                        size="sm",
-                        outline=True,
-                        hx_post=str(
-                            request.url_for(
-                                "organizations:startup_program_uninvite",
-                                organization_id=self.org.id,
-                            )
-                        ),
-                        hx_swap="none",
-                        hx_confirm=(
-                            "Remove this organization's unused Startup "
-                            "Program discount? They will no longer be able "
-                            "to claim it."
-                        ),
-                    ):
-                        text("Uninvite")
 
     @contextlib.contextmanager
     def right_sidebar(self, request: Request) -> Generator[None]:
@@ -430,218 +330,7 @@ class OrganizationDetailView:
                             ):
                                 text("Approve")
 
-                        # Show "Deny Appeal" when there's a pending appeal
-                        if (
-                            self.org.review
-                            and self.org.review.appeal_submitted_at
-                            and self.org.review.appeal_decision is None
-                        ):
-                            with tag.div(classes="w-full"):
-                                with button(
-                                    variant="secondary",
-                                    size="sm",
-                                    outline=True,
-                                    hx_get=str(
-                                        request.url_for(
-                                            "organizations:deny_appeal_dialog",
-                                            organization_id=self.org.id,
-                                        )
-                                    ),
-                                    hx_target="#modal",
-                                ):
-                                    text("Deny Appeal")
-
                     elif self.org.status == OrganizationStatus.ACTIVE:
-                        # Active organizations can be denied or set under review
-                        with tag.div(classes="w-full"):
-                            with button(
-                                variant="secondary",
-                                size="sm",
-                                outline=True,
-                                hx_get=str(
-                                    request.url_for(
-                                        "organizations:under_review_dialog",
-                                        organization_id=self.org.id,
-                                    )
-                                ),
-                                hx_target="#modal",
-                            ):
-                                text("Set Under Review")
-
-                        with tag.div(classes="w-full"):
-                            with button(
-                                variant="secondary",
-                                size="sm",
-                                outline=True,
-                                hx_get=str(
-                                    request.url_for(
-                                        "organizations:deny_dialog",
-                                        organization_id=self.org.id,
-                                    )
-                                ),
-                                hx_target="#modal",
-                            ):
-                                text("Deny")
-
-                    elif self.org.status == OrganizationStatus.REVIEW:
-                        # Compute suggested threshold: double current or $250 min
-                        current_threshold = self.org.next_review_threshold or 0
-                        suggested_threshold = max(25000, current_threshold * 2)
-                        threshold_dollars = suggested_threshold // 100
-                        is_override = self.ai_verdict == ReviewVerdict.DENY.value
-
-                        if is_override:
-                            # AI disagrees: open modal for reason + threshold
-                            with tag.div(classes="w-full"):
-                                with button(
-                                    variant="secondary",
-                                    size="sm",
-                                    outline=True,
-                                    hx_get=str(
-                                        request.url_for(
-                                            "organizations:approve_dialog",
-                                            organization_id=self.org.id,
-                                        )
-                                    ),
-                                    hx_target="#modal",
-                                ):
-                                    text("Approve")
-                        else:
-                            # AI agrees: threshold input + approve button
-                            with tag.form(
-                                hx_post=str(
-                                    request.url_for(
-                                        "organizations:approve_dialog",
-                                        organization_id=self.org.id,
-                                    )
-                                ),
-                                classes="w-full flex gap-2",
-                            ):
-                                with tag.label(
-                                    classes="input input-bordered input-sm flex items-center gap-1 flex-1"
-                                ):
-                                    with tag.span(classes="text-base-content/40"):
-                                        text("$")
-                                    with tag.input(
-                                        type="number",
-                                        name="threshold",
-                                        value=str(threshold_dollars),
-                                        classes="w-full bg-transparent outline-none [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none",
-                                    ):
-                                        pass
-                                with button(
-                                    variant="secondary",
-                                    size="sm",
-                                    outline=True,
-                                    type="submit",
-                                ):
-                                    text("Approve")
-
-                        with tag.div(classes="w-full"):
-                            with button(
-                                variant="secondary",
-                                size="sm",
-                                outline=True,
-                                hx_get=str(
-                                    request.url_for(
-                                        "organizations:deny_dialog",
-                                        organization_id=self.org.id,
-                                    )
-                                ),
-                                hx_target="#modal",
-                            ):
-                                text("Deny")
-
-                        with tag.div(classes="w-full"):
-                            with button(
-                                variant="secondary",
-                                size="sm",
-                                outline=True,
-                                hx_get=str(
-                                    request.url_for(
-                                        "organizations:snooze_dialog",
-                                        organization_id=self.org.id,
-                                    )
-                                ),
-                                hx_target="#modal",
-                            ):
-                                text("Snooze")
-
-                        with tag.div(classes="w-full"):
-                            with button(
-                                variant="secondary",
-                                size="sm",
-                                outline=True,
-                                hx_get=str(
-                                    request.url_for(
-                                        "organizations:offboard_dialog",
-                                        organization_id=self.org.id,
-                                    )
-                                ),
-                                hx_target="#modal",
-                            ):
-                                text("Set Offboarding")
-
-                    elif self.org.status == OrganizationStatus.SNOOZED:
-                        deadline = self.org.snoozed_until
-                        snooze_type = self.org.snooze_type or SnoozeType.NEXT_SALE
-                        if deadline is not None:
-                            now = datetime.now(UTC)
-                            with tag.div(
-                                classes="bg-warning/10 border border-warning/20 p-3 rounded-lg text-xs mb-2"
-                            ):
-                                with tag.p(classes="font-semibold"):
-                                    text(f"Snoozed {self.org.snooze_count} time(s)")
-                                with tag.p(classes="text-base-content/70"):
-                                    text(snooze_type.get_display_name())
-                                if now < deadline:
-                                    remaining = deadline - now
-                                    hours, seconds = divmod(remaining.seconds, 3600)
-                                    minutes = seconds // 60
-                                    if remaining.days > 0:
-                                        countdown = f"{remaining.days}d {hours}h"
-                                    else:
-                                        countdown = f"{hours}h {minutes}m"
-                                    with tag.p():
-                                        text(f"Time remaining: {countdown}")
-                                elif snooze_type == SnoozeType.NEXT_SALE:
-                                    with tag.p():
-                                        text(
-                                            "Deadline passed — next sale triggers re-review"
-                                        )
-                                else:
-                                    with tag.p():
-                                        text("Deadline passed — auto re-review pending")
-
-                        with tag.div(classes="w-full"):
-                            with button(
-                                variant="secondary",
-                                size="sm",
-                                outline=True,
-                                hx_post=str(
-                                    request.url_for(
-                                        "organizations:unsnooze",
-                                        organization_id=self.org.id,
-                                    )
-                                ),
-                            ):
-                                text("Unsnooze → Review")
-
-                        with tag.div(classes="w-full"):
-                            with button(
-                                variant="secondary",
-                                size="sm",
-                                outline=True,
-                                hx_get=str(
-                                    request.url_for(
-                                        "organizations:approve_dialog",
-                                        organization_id=self.org.id,
-                                    )
-                                ),
-                                hx_target="#modal",
-                            ):
-                                text("Approve")
-
                         with tag.div(classes="w-full"):
                             with button(
                                 variant="secondary",
@@ -697,8 +386,6 @@ class OrganizationDetailView:
                         ):
                             text("Block Organization")
 
-            self._render_startup_program_card(request)
-
             yield
 
     @contextlib.contextmanager
@@ -748,17 +435,6 @@ class OrganizationDetailView:
                             classes="dropdown-content menu shadow bg-base-100 rounded-box w-56 z-10",
                             tabindex="0",
                         ):
-                            with tag.li():
-                                with tag.a(
-                                    hx_post=str(
-                                        request.url_for(
-                                            "organizations:run_review_agent",
-                                            organization_id=self.org.id,
-                                        )
-                                    ),
-                                    hx_confirm="Run organization review agent?",
-                                ):
-                                    text("Run Review Agent")
                             with tag.li():
                                 with tag.a(
                                     href=f"https://app.plain.com/workspace/w_01JE9TRRX9KT61D8P2CH77XDQM/search/?q={self.owner_email or self.org.slug}",

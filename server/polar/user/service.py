@@ -2,18 +2,12 @@ from datetime import UTC, datetime
 from typing import Any
 from uuid import UUID
 
-import stripe as stripe_lib
 import structlog
-from sqlalchemy import func, update
 
 from polar.exceptions import PolarError
-from polar.integrations.polar.service import polar_self as polar_self_service
-from polar.integrations.stripe.service import stripe as stripe_service
 from polar.kit.anonymization import anonymize_email_for_deletion
-from polar.models import NotificationRecipient, User
-from polar.models.user import IdentityVerificationStatus
+from polar.models import User
 from polar.organization.repository import OrganizationRepository
-from polar.organization.service import organization as organization_service
 from polar.postgres import AsyncSession
 from polar.worker import enqueue_job
 
@@ -22,7 +16,6 @@ from .schemas import (
     BlockingOrganization,
     UserDeletionBlockedReason,
     UserDeletionResponse,
-    UserIdentityVerification,
     UserSignupAttribution,
     UserUpdate,
 )
@@ -32,29 +25,6 @@ log = structlog.get_logger()
 
 class UserError(PolarError): ...
 
-
-class IdentityAlreadyVerified(UserError):
-    def __init__(self, user_id: UUID) -> None:
-        self.user_id = user_id
-        message = "Your identity is already verified."
-        super().__init__(message, 403)
-
-
-class IdentityVerificationProcessing(UserError):
-    def __init__(self, user_id: UUID) -> None:
-        self.user_id = user_id
-        message = "Your identity verification is still processing."
-        super().__init__(message, 403)
-
-
-class IdentityVerificationDoesNotExist(UserError):
-    def __init__(self, identity_verification_id: str) -> None:
-        self.identity_verification_id = identity_verification_id
-        message = (
-            f"Received identity verification {identity_verification_id} from Stripe, "
-            "but no associated User exists."
-        )
-        super().__init__(message)
 
 
 class InvalidAccount(UserError):
@@ -118,185 +88,8 @@ class UserService:
                 update_dict["accepted_terms_of_service_at"] = datetime.now(UTC)
                 update_dict["accepted_terms_of_service_ip"] = ip_address
 
-        previous_full_name = user.full_name
         repository = UserRepository.from_session(session)
-        updated_user = await repository.update(user, update_dict=update_dict)
-
-        if (
-            updated_user.full_name is not None
-            and updated_user.full_name != previous_full_name
-        ):
-            organization_repository = OrganizationRepository.from_session(session)
-            organizations = await organization_repository.get_all_by_user(
-                updated_user.id
-            )
-            for organization in organizations:
-                polar_self_service.enqueue_update_member(
-                    external_customer_id=str(organization.id),
-                    external_id=str(updated_user.id),
-                    name=updated_user.full_name,
-                )
-
-        return updated_user
-
-    async def create_identity_verification(
-        self, session: AsyncSession, user: User
-    ) -> UserIdentityVerification:
-        if user.identity_verified:
-            raise IdentityAlreadyVerified(user.id)
-
-        if user.identity_verification_status == IdentityVerificationStatus.pending:
-            raise IdentityVerificationProcessing(user.id)
-
-        verification_session: stripe_lib.identity.VerificationSession | None = None
-        if user.identity_verification_id is not None:
-            verification_session = await stripe_service.get_verification_session(
-                user.identity_verification_id
-            )
-
-        if (
-            verification_session is None
-            or verification_session.status != "requires_input"
-        ):
-            verification_session = await stripe_service.create_verification_session(
-                user
-            )
-
-        repository = UserRepository.from_session(session)
-        await repository.update(
-            user, update_dict={"identity_verification_id": verification_session.id}
-        )
-
-        assert verification_session.client_secret is not None
-        return UserIdentityVerification(
-            id=verification_session.id, client_secret=verification_session.client_secret
-        )
-
-    async def identity_verification_verified(
-        self,
-        session: AsyncSession,
-        verification_session: stripe_lib.identity.VerificationSession,
-    ) -> User:
-        repository = UserRepository.from_session(session)
-        user = await repository.get_by_identity_verification_id(verification_session.id)
-        if user is None:
-            raise IdentityVerificationDoesNotExist(verification_session.id)
-
-        assert verification_session.status == "verified"
-        user = await repository.update(
-            user,
-            update_dict={
-                "identity_verification_status": IdentityVerificationStatus.verified
-            },
-        )
-
-        organization_repository = OrganizationRepository.from_session(session)
-        organizations = await organization_repository.get_all_by_owner_user(user.id)
-        for organization in organizations:
-            await organization_service.maybe_activate(session, organization)
-
-        return user
-
-    async def identity_verification_pending(
-        self,
-        session: AsyncSession,
-        verification_session: stripe_lib.identity.VerificationSession,
-    ) -> User:
-        repository = UserRepository.from_session(session)
-        user = await repository.get_by_identity_verification_id(verification_session.id)
-        if user is None:
-            raise IdentityVerificationDoesNotExist(verification_session.id)
-
-        # If the user is already verified, we don't need to update their status.
-        # Might happen if the webhook was delayed
-        if user.identity_verified:
-            return user
-
-        assert verification_session.status == "processing"
-        return await repository.update(
-            user,
-            update_dict={
-                "identity_verification_status": IdentityVerificationStatus.pending
-            },
-        )
-
-    async def identity_verification_failed(
-        self,
-        session: AsyncSession,
-        verification_session: stripe_lib.identity.VerificationSession,
-    ) -> User:
-        repository = UserRepository.from_session(session)
-        user = await repository.get_by_identity_verification_id(verification_session.id)
-        if user is None:
-            raise IdentityVerificationDoesNotExist(verification_session.id)
-
-        # TODO: should we send an email?
-
-        return await repository.update(
-            user,
-            update_dict={
-                "identity_verification_status": IdentityVerificationStatus.failed
-            },
-        )
-
-    async def get_identity_verified_country(self, user: User) -> str | None:
-        if user.identity_verification_id is None:
-            return None
-        try:
-            vs = await stripe_service.get_verification_session(
-                user.identity_verification_id,
-                expand=["verified_outputs", "last_verification_report"],
-            )
-            # Try verified address country first
-            verified_outputs = getattr(vs, "verified_outputs", None)
-            if verified_outputs:
-                address = getattr(verified_outputs, "address", None)
-                if address and address.country:
-                    return address.country
-            # Fall back to document issuing country from the verification report
-            report = getattr(vs, "last_verification_report", None)
-            if report:
-                document = getattr(report, "document", None)
-                if document:
-                    issuing_country = getattr(document, "issuing_country", None)
-                    if issuing_country:
-                        return issuing_country
-        except stripe_lib.StripeError:
-            log.warning(
-                "get_identity_verified_country.fetch_failed",
-                identity_verification_id=user.identity_verification_id,
-            )
-        return None
-
-    async def delete_identity_verification(
-        self, session: AsyncSession, user: User
-    ) -> User:
-        """Delete identity verification for a user.
-
-        Resets the user's identity verification status to unverified and
-        redacts the verification session in Stripe.
-        """
-        repository = UserRepository.from_session(session)
-
-        if user.identity_verification_id is not None:
-            try:
-                await stripe_service.redact_verification_session(
-                    user.identity_verification_id
-                )
-            except stripe_lib.InvalidRequestError as e:
-                log.warning(
-                    "stripe.identity.verification_session.redact.not_found",
-                    identity_verification_id=user.identity_verification_id,
-                    error=str(e),
-                )
-
-        return await repository.update(
-            user,
-            update_dict={
-                "identity_verification_status": IdentityVerificationStatus.unverified,
-                "identity_verification_id": None,
-            },
-        )
+        return await repository.update(user, update_dict=update_dict)
 
     async def check_can_delete(
         self,
@@ -379,8 +172,6 @@ class UserService:
         await repository.soft_delete(user)
 
         await self._delete_oauth_accounts(session, user)
-        await self._delete_notification_recipients(session, user)
-
         log.info("user.deleted", user_id=user.id)
 
         return user
@@ -389,25 +180,6 @@ class UserService:
         """Delete all OAuth accounts for a user."""
         for account in user.oauth_accounts:
             await session.delete(account)
-
-    async def _delete_notification_recipients(
-        self,
-        session: AsyncSession,
-        user: User,
-    ) -> None:
-        """Soft-delete all notification recipients for a user."""
-        stmt = (
-            update(NotificationRecipient)
-            .where(NotificationRecipient.user_id == user.id)
-            .where(NotificationRecipient.is_deleted.is_(False))
-            .values(deleted_at=func.now())
-        )
-        await session.execute(stmt)
-
-        log.info(
-            "user.notification_recipients_deleted",
-            user_id=user.id,
-        )
 
 
 user = UserService()

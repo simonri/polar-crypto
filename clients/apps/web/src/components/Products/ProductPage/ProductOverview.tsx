@@ -7,9 +7,7 @@ import { useSubscriptions } from '@/hooks/queries/subscriptions'
 import { getDiscountDisplay } from '@/utils/discount'
 import { schemas } from '@polar-sh/client'
 import { formatCurrency } from '@polar-sh/currency'
-import { Avatar } from '@polar-sh/orbit'
-import { Button } from '@polar-sh/orbit'
-import { DataTable, DataTableColumnHeader } from '@polar-sh/orbit'
+import { Button, DataTable, DataTableColumnHeader } from '@polar-sh/orbit'
 import FormattedDateTime from '@polar-sh/ui/components/atoms/FormattedDateTime'
 import Link from 'next/link'
 
@@ -121,14 +119,8 @@ export const ProductOverview = ({
                 cell: ({ row: { original: subscription } }) => {
                   const customer = subscription.customer
                   return (
-                    <div className="flex flex-row items-center gap-2">
-                      <Avatar
-                        avatar_url={customer.avatar_url}
-                        name={customer.email ?? customer.name ?? '—'}
-                      />
-                      <div className="fw-medium overflow-hidden text-ellipsis">
-                        {customer.email ?? '—'}
-                      </div>
+                    <div className="fw-medium overflow-hidden text-ellipsis">
+                      {customer.email ?? '—'}
                     </div>
                   )
                 },
@@ -235,15 +227,8 @@ export const ProductOverview = ({
               cell: (props) => {
                 const customer = props.getValue() as schemas['OrderCustomer']
                 return (
-                  <div className="flex flex-row items-center gap-2">
-                    <Avatar
-                      className="h-8 w-8"
-                      avatar_url={customer.avatar_url}
-                      name={customer.email ?? customer.name ?? '—'}
-                    />
-                    <div className="fw-medium truncate">
-                      {customer.email ?? '—'}
-                    </div>
+                  <div className="fw-medium truncate">
+                    {customer.email ?? '—'}
                   </div>
                 )
               },

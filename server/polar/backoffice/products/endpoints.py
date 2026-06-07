@@ -7,7 +7,7 @@ from sqlalchemy.orm import contains_eager, joinedload, selectinload
 from tagflow import tag, text
 
 from polar.kit.pagination import PaginationParamsQuery
-from polar.models import Organization, Product, ProductBenefit
+from polar.models import Organization, Product
 from polar.models.product_price import ProductPrice
 from polar.postgres import AsyncSession, get_db_read_session
 from polar.product import sorting
@@ -15,8 +15,6 @@ from polar.product.guard import (
     is_custom_price,
     is_fixed_price,
     is_free_price,
-    is_metered_price,
-    is_seat_price,
 )
 from polar.product.repository import ProductRepository
 from polar.product.sorting import ProductSortProperty
@@ -49,18 +47,6 @@ def _format_price_display(price: ProductPrice) -> str:
         return "Pay what you want" + (f" ({', '.join(parts)})" if parts else "")
     elif is_fixed_price(price):
         return formatters.currency(price.price_amount, price.price_currency)
-    elif is_seat_price(price):
-        tiers = price.seat_tiers.get("tiers", [])
-        if tiers:
-            first_tier = tiers[0]
-            price_display = formatters.currency(
-                first_tier["price_per_seat"], price.price_currency
-            )
-            if len(tiers) > 1:
-                return f"From {price_display} / seat"
-            return f"{price_display} / seat"
-    elif is_metered_price(price):
-        return f"{price.meter.name}: {formatters.currency(price.unit_amount, price.price_currency, decimal_quantization=False)} / unit"
     return "N/A"
 
 
@@ -164,7 +150,6 @@ async def get(
         options=(
             joinedload(Product.organization),
             selectinload(Product.all_prices),
-            selectinload(Product.product_benefits).joinedload(ProductBenefit.benefit),
         ),
     )
 
@@ -276,40 +261,3 @@ async def get(
                                             text(_format_price_display(price))
                                         with tag.td():
                                             text(str(price.is_archived))
-
-            # Benefits section
-            with tag.div(classes="flex flex-col gap-4 pt-8"):
-                with tag.h2(classes="text-2xl"):
-                    text("Benefits")
-                if not product.product_benefits:
-                    with tag.div(classes="text-gray-500"):
-                        text("No benefits attached to this product.")
-                else:
-                    with tag.div(classes="overflow-x-auto"):
-                        with tag.table(classes="table table-zebra w-full"):
-                            with tag.thead():
-                                with tag.tr():
-                                    with tag.th():
-                                        text("ID")
-                                    with tag.th():
-                                        text("Type")
-                                    with tag.th():
-                                        text("Description")
-                            with tag.tbody():
-                                for product_benefit in product.product_benefits:
-                                    benefit = product_benefit.benefit
-                                    with tag.tr():
-                                        with tag.td():
-                                            with tag.a(
-                                                href=str(
-                                                    request.url_for(
-                                                        "benefits:get", id=benefit.id
-                                                    )
-                                                ),
-                                                classes="link",
-                                            ):
-                                                text(str(benefit.id))
-                                        with tag.td():
-                                            text(benefit.type.get_display_name())
-                                        with tag.td():
-                                            text(benefit.description)

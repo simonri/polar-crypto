@@ -21,10 +21,8 @@ def create_expiration_dt(seconds: int) -> datetime:
 
 TYPE = Literal[
     "github_oauth",
-    "discord_oauth",
     "google_oauth",
     "apple_oauth",
-    "discord_guild_token",
     "auth",
     "github_repository_benefit_oauth",
     "customer_oauth",

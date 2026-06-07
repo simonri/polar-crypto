@@ -12,7 +12,7 @@ def register(app: typer.Typer, prompt_setup: callable) -> None:
     ) -> None:
         """Enable payments for an organization (dev only).
 
-        Creates a fake Stripe account, verifies the admin user's identity,
+        Creates a fake payout account and enables payments
         sets organization details, and marks the organization as ACTIVE.
         """
         result = run_command(

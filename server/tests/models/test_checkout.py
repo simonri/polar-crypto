@@ -52,17 +52,15 @@ async def test_checkout_expired_status_update(
 
 @pytest.mark.asyncio
 @pytest.mark.parametrize(
-    ("country", "require_billing_address", "expected_state_mode"),
+    ("country", "expected_state_mode"),
     [
-        ("FR", False, BillingAddressFieldMode.disabled),
-        ("FR", True, BillingAddressFieldMode.optional),
-        ("US", True, BillingAddressFieldMode.required),
-        ("CA", True, BillingAddressFieldMode.required),
+        ("FR", BillingAddressFieldMode.disabled),
+        ("US", BillingAddressFieldMode.required),
+        ("CA", BillingAddressFieldMode.required),
     ],
 )
 async def test_billing_address_fields(
     country: CountryAlpha2,
-    require_billing_address: bool,
     expected_state_mode: BillingAddressFieldMode,
     save_fixture: SaveFixture,
     product_one_time: Product,
@@ -70,7 +68,6 @@ async def test_billing_address_fields(
     checkout = await create_checkout(
         save_fixture,
         products=[product_one_time],
-        require_billing_address=require_billing_address,
         customer_billing_address=Address(country=country),
     )
 

@@ -4,19 +4,14 @@ import {
   EMBED_PAYMENT_METHOD_REDIRECT_STATUS_PARAM,
   PolarEmbedPaymentMethod,
 } from '@polar-sh/checkout/payment-method'
-import { createClient, schemas } from '@polar-sh/client'
 import {
   DEFAULT_LOCALE,
   useTranslations,
   type AcceptedLocale,
 } from '@polar-sh/i18n'
-import { getThemePreset } from '@polar-sh/ui/hooks/theming'
 import { X } from 'lucide-react'
-import { useCallback, useEffect, useMemo } from 'react'
-import {
-  PaymentMethodForm,
-  type CustomerBillingDetails,
-} from './PaymentMethodForm'
+import { useCallback, useEffect } from 'react'
+import { PaymentMethodForm } from './PaymentMethodForm'
 
 interface Props {
   sessionToken: string
@@ -27,30 +22,19 @@ interface Props {
   setAsDefault: boolean
   locale?: AcceptedLocale
   serverURL: string
-  customerBillingDetails: CustomerBillingDetails
   redirectStatus?: string
   setupIntentId?: string
 }
 
 export const PaymentMethodEmbed = ({
-  sessionToken,
   embedOrigin,
   embedReturnUrl,
   theme = 'light',
   mode,
-  setAsDefault,
   locale = DEFAULT_LOCALE,
-  serverURL,
-  customerBillingDetails,
   redirectStatus,
-  setupIntentId,
 }: Props) => {
   const t = useTranslations(locale)
-  const themePreset = useMemo(() => getThemePreset(theme), [theme])
-  const api = useMemo(
-    () => createClient(serverURL, sessionToken),
-    [serverURL, sessionToken],
-  )
 
   useEffect(() => {
     PolarEmbedPaymentMethod.postMessage({ event: 'loaded' }, embedOrigin)
@@ -74,10 +58,6 @@ export const PaymentMethodEmbed = ({
     PolarEmbedPaymentMethod.postMessage({ event: 'close' }, embedOrigin)
   }, [embedOrigin])
 
-  const handleProcessingStart = useCallback(() => {
-    PolarEmbedPaymentMethod.postMessage({ event: 'confirmed' }, embedOrigin)
-  }, [embedOrigin])
-
   const navigateBackIfStandalone = useCallback(
     (status: 'succeeded' | 'failed') => {
       if (window.parent !== window) return
@@ -87,25 +67,6 @@ export const PaymentMethodEmbed = ({
     },
     [embedReturnUrl],
   )
-
-  const handleSuccess = useCallback(
-    (paymentMethod: schemas['CustomerPaymentMethod']) => {
-      PolarEmbedPaymentMethod.postMessage(
-        { event: 'success', paymentMethodId: paymentMethod.id },
-        embedOrigin,
-      )
-      navigateBackIfStandalone('succeeded')
-    },
-    [embedOrigin, navigateBackIfStandalone],
-  )
-
-  const handleProcessingError = useCallback(() => {
-    PolarEmbedPaymentMethod.postMessage(
-      { event: 'error', code: 'processing_failed' },
-      embedOrigin,
-    )
-    navigateBackIfStandalone('failed')
-  }, [embedOrigin, navigateBackIfStandalone])
 
   useEffect(() => {
     if (mode !== 'modal') return
@@ -121,20 +82,9 @@ export const PaymentMethodEmbed = ({
     return () => layout?.removeEventListener('click', handleOutsideClick)
   }, [mode, handleClose])
 
-  const form = (
-    <PaymentMethodForm
-      api={api}
-      themePreset={themePreset}
-      setAsDefault={setAsDefault}
-      locale={locale}
-      customerBillingDetails={customerBillingDetails}
-      onProcessingStart={handleProcessingStart}
-      onPaymentMethodAdded={handleSuccess}
-      onProcessingError={handleProcessingError}
-      redirectStatus={redirectStatus}
-      setupIntentId={setupIntentId}
-    />
-  )
+  void navigateBackIfStandalone
+
+  const form = <PaymentMethodForm />
 
   if (redirectStatus) {
     return (

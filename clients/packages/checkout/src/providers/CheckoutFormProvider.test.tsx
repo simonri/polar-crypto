@@ -1,5 +1,4 @@
 import { act } from '@testing-library/react'
-import type { Stripe, StripeElements } from '@stripe/stripe-js'
 import { describe, expect, it, vi } from 'vitest'
 import { renderWithCheckout } from '../test-utils/renderWithCheckout'
 import type { CheckoutContextProps } from './CheckoutProvider'
@@ -173,8 +172,6 @@ describe('CheckoutFormProvider', () => {
       await act(async () => {
         result = await getCtx().confirm(
           { customer_email: 'ok@example.com' },
-          null,
-          null,
         )
       })
 
@@ -203,7 +200,7 @@ describe('CheckoutFormProvider', () => {
 
       await act(async () => {
         await expect(
-          getCtx().confirm({ customer_email: 'bad@invalid.test' }, null, null),
+          getCtx().confirm({ customer_email: 'bad@invalid.test' }),
         ).rejects.toBeDefined()
       })
 
@@ -231,7 +228,7 @@ describe('CheckoutFormProvider', () => {
 
       await act(async () => {
         await expect(
-          getCtx().confirm({ customer_email: 'a@b.com' }, null, null),
+          getCtx().confirm({ customer_email: 'a@b.com' }),
         ).rejects.toBeDefined()
       })
 
@@ -256,79 +253,13 @@ describe('CheckoutFormProvider', () => {
 
         await act(async () => {
           await expect(
-            getCtx().confirm({ customer_email: 'a@b.com' }, null, null),
+            getCtx().confirm({ customer_email: 'a@b.com' }),
           ).rejects.toBeDefined()
         })
 
         expect(getCtx().form.formState.errors).toEqual({})
       },
     )
-
-    it('throws when payment form is required but stripe/elements are missing', async () => {
-      const getCtx = renderWithCheckout({
-        checkout: { is_payment_form_required: true },
-        update: vi.fn(),
-        confirm: vi.fn(),
-      })
-
-      await act(async () => {
-        await expect(
-          getCtx().confirm({ customer_email: 'a@b.com' }, null, null),
-        ).rejects.toThrow('Stripe elements not provided')
-      })
-    })
-
-    it('sets root error when elements.submit() returns a non-validation error', async () => {
-      const elements = {
-        submit: vi.fn(async () => ({
-          error: { type: 'card_error', message: 'card declined' },
-        })),
-      } as unknown as StripeElements
-
-      const getCtx = renderWithCheckout({
-        checkout: { is_payment_form_required: true },
-        update: vi.fn(),
-        confirm: vi.fn(),
-      })
-
-      await act(async () => {
-        await expect(
-          getCtx().confirm(
-            { customer_email: 'a@b.com' },
-            {} as Stripe,
-            elements,
-          ),
-        ).rejects.toThrow('card declined')
-      })
-
-      expect(getCtx().form.formState.errors.root?.message).toBe('card declined')
-    })
-
-    it('does not set root error for validation errors from elements.submit()', async () => {
-      const elements = {
-        submit: vi.fn(async () => ({
-          error: { type: 'validation_error', message: 'card incomplete' },
-        })),
-      } as unknown as StripeElements
-
-      const getCtx = renderWithCheckout({
-        checkout: { is_payment_form_required: true },
-        update: vi.fn(),
-        confirm: vi.fn(),
-      })
-
-      await act(async () => {
-        await expect(
-          getCtx().confirm(
-            { customer_email: 'a@b.com' },
-            {} as Stripe,
-            elements,
-          ),
-        ).rejects.toThrow('card incomplete')
-      })
-
-      expect(getCtx().form.formState.errors.root).toBeUndefined()
-    })
 
     it('on TrialAlreadyRedeemed, sets root error and retries with allow_trial=false', async () => {
       const update = vi.fn<CheckoutContextProps['update']>(
@@ -349,7 +280,7 @@ describe('CheckoutFormProvider', () => {
 
       await act(async () => {
         await expect(
-          getCtx().confirm({ customer_email: 'a@b.com' }, null, null),
+          getCtx().confirm({ customer_email: 'a@b.com' }),
         ).rejects.toBeDefined()
       })
 

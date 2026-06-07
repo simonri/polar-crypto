@@ -15,7 +15,6 @@ describe('CheckoutPricing', () => {
         amount: 999,
         net_amount: 999,
         total_amount: 999,
-        tax_amount: null,
       })
 
       render(<CheckoutPricing checkout={checkout} locale="en" />)
@@ -29,7 +28,6 @@ describe('CheckoutPricing', () => {
       const checkout = createCheckout({
         amount: 999,
         net_amount: 999,
-        tax_amount: 250,
         total_amount: 1249,
       })
 
@@ -45,7 +43,6 @@ describe('CheckoutPricing', () => {
         amount: 1999,
         discount_amount: 400,
         net_amount: 1599,
-        tax_amount: null,
         total_amount: 1599,
         discount: {
           id: 'disc_1',
@@ -71,7 +68,6 @@ describe('CheckoutPricing', () => {
         amount: 1999,
         discount_amount: 400,
         net_amount: 1599,
-        tax_amount: 400,
         total_amount: 1999,
         discount: {
           id: 'disc_1',

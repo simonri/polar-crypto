@@ -22,9 +22,6 @@ class PayoutAccount(RecordModel):
 
     admin_id: Mapped[UUID] = mapped_column(Uuid, ForeignKey("users.id"))
 
-    stripe_id: Mapped[str | None] = mapped_column(
-        String(100), nullable=True, default=None
-    )
     open_collective_slug: Mapped[str | None] = mapped_column(
         String(255), nullable=True, default=None, deferred=True
     )
@@ -50,10 +47,4 @@ class PayoutAccount(RecordModel):
 
     @property
     def is_payout_ready(self) -> bool:
-        # For Stripe accounts, check if payouts are enabled
-        # and that a Stripe account is actually connected.
-        # After a disconnect, stripe_id is cleared but the account
-        # may still be active with is_payouts_enabled=True.
-        return self.type != PayoutAccountType.stripe or (
-            self.is_payouts_enabled and self.stripe_id is not None
-        )
+        return self.is_payouts_enabled

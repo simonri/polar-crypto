@@ -7,7 +7,6 @@ const priceDefaults = {
   id: 'price_1',
   source: 'catalog' as const,
   price_currency: 'usd',
-  tax_behavior: null,
   is_archived: false,
   product_id: 'prod_1',
   created_at: now.toISOString(),
@@ -48,43 +47,12 @@ export function createCustomPrice(
   }
 }
 
-export function createSeatBasedPrice(
-  overrides: Partial<schemas['ProductPriceSeatBased']> = {},
-): schemas['ProductPriceSeatBased'] {
-  return {
-    ...priceDefaults,
-    amount_type: 'seat_based',
-    seat_tiers: {
-      seat_tier_type: 'volume',
-      tiers: [{ min_seats: 1, max_seats: null, price_per_seat: 1000 }],
-      minimum_seats: 1,
-      maximum_seats: null,
-    },
-    ...overrides,
-  }
-}
-
-export function createMeteredPrice(
-  overrides: Partial<schemas['ProductPriceMeteredUnit']> = {},
-): schemas['ProductPriceMeteredUnit'] {
-  return {
-    ...priceDefaults,
-    id: 'price_metered_1',
-    amount_type: 'metered_unit',
-    unit_amount: '0.05',
-    cap_amount: null,
-    meter_id: 'meter_1',
-    meter: { id: 'meter_1', name: 'API Calls', unit: 'scalar' },
-    ...overrides,
-  }
-}
-
 const defaults: ProductCheckoutPublic = {
   // SDK CheckoutPublic required fields
   id: 'checkout_1',
   created_at: now.toISOString(),
   modified_at: null,
-  payment_processor: 'stripe',
+  payment_processor: 'crypto',
   status: 'open',
   client_secret: 'cs_test_123',
   url: 'https://checkout.example.com',
@@ -95,8 +63,6 @@ const defaults: ProductCheckoutPublic = {
   amount: 999,
   discount_amount: 0,
   net_amount: 999,
-  tax_amount: null,
-  tax_behavior: null,
   total_amount: 999,
   currency: 'usd',
   allow_trial: null,
@@ -108,7 +74,6 @@ const defaults: ProductCheckoutPublic = {
   product_price_id: 'price_1',
   discount_id: null,
   allow_discount_codes: true,
-  require_billing_address: false,
   is_discount_applicable: true,
   is_free_product_price: false,
   is_payment_required: true,
@@ -121,7 +86,6 @@ const defaults: ProductCheckoutPublic = {
   customer_ip_address: null,
   customer_billing_name: null,
   customer_billing_address: null,
-  customer_tax_id: null,
   payment_processor_metadata: {},
   billing_address_fields: {
     country: 'required',
@@ -137,10 +101,8 @@ const defaults: ProductCheckoutPublic = {
     id: 'org_1',
     slug: 'test-org',
     name: 'Test Org',
-    avatar_url: null,
     created_at: now.toISOString(),
     modified_at: null,
-    proration_behavior: 'invoice',
     allow_customer_updates: true,
   },
   attached_custom_fields: null,
@@ -156,7 +118,6 @@ const defaults: ProductCheckoutPublic = {
     trial_interval_count: null,
     visibility: 'public',
     prices: [],
-    benefits: [],
     medias: [],
     description: null,
     is_archived: false,

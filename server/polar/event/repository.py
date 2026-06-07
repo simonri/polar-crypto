@@ -8,7 +8,6 @@ from sqlalchemy import (
 )
 from sqlalchemy import (
     ColumnElement,
-    ColumnExpressionArgument,
     Numeric,
     Select,
     String,
@@ -39,10 +38,8 @@ from polar.models import (
     Customer,
     Event,
     EventType,
-    Meter,
 )
 from polar.models.event import EventSource
-from polar.models.product_price import ProductPriceMeteredUnit
 
 from .system import SystemEvent
 
@@ -277,22 +274,6 @@ class EventRepository(RepositoryBase[Event], RepositoryIDMixin[Event, UUID]):
         result = await self.session.execute(statement)
         return {row[0]: row[1] for row in result.all()}
 
-    async def get_latest_meter_reset(
-        self, customer: Customer, meter_id: UUID
-    ) -> Event | None:
-        statement = (
-            self.get_base_statement()
-            .where(
-                Event.customer_id == customer.id,
-                Event.source == EventSource.system,
-                Event.name == SystemEvent.meter_reset,
-                Event.user_metadata["meter_id"].as_string() == str(meter_id),
-            )
-            .order_by(Event.timestamp.desc())
-            .limit(1)
-        )
-        return await self.get_one_or_none(statement)
-
     def get_event_names_statement(
         self, org_ids: set[AccessibleOrganizationID]
     ) -> Select[tuple[str, EventSource, int, datetime, datetime]]:
@@ -337,26 +318,6 @@ class EventRepository(RepositoryBase[Event], RepositoryIDMixin[Event, UUID]):
             ),
         )
 
-    def get_meter_clause(self, meter: Meter) -> ColumnExpressionArgument[bool]:
-        return and_(
-            meter.filter.get_sql_clause(Event),
-            # Additional clauses to make sure we work on rows with the right type for aggregation
-            meter.aggregation.get_sql_clause(Event),
-        )
-
-    def get_meter_system_clause(self, meter: Meter) -> ColumnExpressionArgument[bool]:
-        return and_(
-            Event.source == EventSource.system,
-            Event.name.in_((SystemEvent.meter_credited, SystemEvent.meter_reset)),
-            Event.user_metadata["meter_id"].as_string() == str(meter.id),
-        )
-
-    def get_meter_statement(self, meter: Meter) -> Select[tuple[Event]]:
-        return self.get_base_statement().where(
-            Event.organization_id == meter.organization_id,
-            self.get_meter_clause(meter),
-        )
-
     def get_by_pending_entries_statement(
         self, subscription: UUID, price: UUID
     ) -> Select[tuple[Event]]:
@@ -367,29 +328,6 @@ class EventRepository(RepositoryBase[Event], RepositoryIDMixin[Event, UUID]):
                 BillingEntry.subscription_id == subscription,
                 BillingEntry.order_item_id.is_(None),
                 BillingEntry.product_price_id == price,
-            )
-            .order_by(Event.ingested_at.asc())
-        )
-
-    def get_by_pending_entries_for_meter_statement(
-        self, subscription: UUID, meter: UUID
-    ) -> Select[tuple[Event]]:
-        """
-        Get events for pending billing entries grouped by meter.
-        Used for non-summable aggregations where we need to compute across all events
-        in the period, regardless of which price was active when the event occurred.
-        """
-        return (
-            self.get_base_statement()
-            .join(BillingEntry, Event.id == BillingEntry.event_id)
-            .join(
-                ProductPriceMeteredUnit,
-                BillingEntry.product_price_id == ProductPriceMeteredUnit.id,
-            )
-            .where(
-                BillingEntry.subscription_id == subscription,
-                BillingEntry.order_item_id.is_(None),
-                ProductPriceMeteredUnit.meter_id == meter,
             )
             .order_by(Event.ingested_at.asc())
         )

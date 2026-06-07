@@ -174,13 +174,6 @@ export default function Index() {
             )}
           />
           <DetailRow
-            label="Tax"
-            value={formatCurrency('accounting')(
-              order.tax_amount,
-              order.currency,
-            )}
-          />
-          <DetailRow
             labelStyle={{ color: theme.colors.text }}
             label="Total"
             value={formatCurrency('accounting')(

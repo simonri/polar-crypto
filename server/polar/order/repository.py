@@ -85,16 +85,6 @@ class OrderRepository(
             statement = statement.where(Order.status == status)
         return await self.get_all(statement)
 
-    async def get_by_stripe_invoice_id(
-        self, stripe_invoice_id: str, *, options: Options = ()
-    ) -> Order | None:
-        statement = (
-            self.get_base_statement()
-            .where(Order.stripe_invoice_id == stripe_invoice_id)
-            .options(*options)
-        )
-        return await self.get_one_or_none(statement)
-
     async def get_earliest_by_checkout_id(
         self, checkout_id: UUID, *, options: Options = ()
     ) -> Order | None:
@@ -136,22 +126,6 @@ class OrderRepository(
             .options(*options)
         )
         return await self.get_one_or_none(statement)
-
-    async def lock_for_receipt_allocation(self, order_id: UUID) -> str | None:
-        """Lock the Order row and return its current ``receipt_number``.
-
-        Returns the scalar value rather than the ORM instance so the caller
-        sees the fresh, lock-protected number — the identity map would
-        otherwise hand back a stale cached ``Order``. Raises if the order
-        does not exist.
-        """
-        statement = (
-            select(Order.receipt_number)
-            .where(Order.id == order_id)
-            .with_for_update(of=Order)
-        )
-        result = await self.session.execute(statement)
-        return result.scalar_one()
 
     async def get_due_dunning_orders(self, *, options: Options = ()) -> Sequence[Order]:
         """Get orders that are due for dunning retry based on next_payment_attempt_at.
@@ -339,8 +313,6 @@ class OrderRepository(
                     (Order.status == OrderStatus.refunded, 3),
                     (Order.status == OrderStatus.partially_refunded, 4),
                 )
-            case OrderSortProperty.invoice_number:
-                return Order.invoice_number
             case OrderSortProperty.amount | OrderSortProperty.net_amount:
                 return Order.net_amount
             case OrderSortProperty.customer:

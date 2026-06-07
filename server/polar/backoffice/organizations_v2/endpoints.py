@@ -13,7 +13,6 @@ from collections.abc import Sequence
 from datetime import UTC, datetime, timedelta
 from typing import Any, cast
 
-import stripe as stripe_lib
 import structlog
 from fastapi import APIRouter, Depends, HTTPException, Query, Request
 from pydantic import UUID4, BaseModel, Field, ValidationError, field_validator
@@ -43,16 +42,11 @@ from polar.backoffice.organizations.forms import (
 )
 from polar.backoffice.organizations.orders_import import orders_import_sse
 from polar.config import settings
-from polar.enums import PayoutAccountType
-from polar.file.repository import FileRepository
-from polar.file.sorting import FileSortProperty
 from polar.integrations.plain.service import (
     AccountReviewThreadCreationError,
     plain_thread_url,
 )
 from polar.integrations.plain.service import plain as plain_service
-from polar.integrations.stripe.service import stripe as stripe_service
-from polar.kit.sorting import Sorting
 from polar.models import (
     AccountCredit,
     Organization,
@@ -61,40 +55,20 @@ from polar.models import (
     UserOrganization,
 )
 from polar.models.customer import Customer
-from polar.models.file import FileServiceTypes
 from polar.models.order import Order, OrderStatus
 from polar.models.organization import (
     CAPABILITY_METADATA,
     CAPABILITY_NAMES,
     CapabilityName,
     OrganizationStatus,
-    SnoozeType,
 )
-from polar.models.organization_agent_review import OrganizationAgentReview
-from polar.models.organization_review import OrganizationReview
 from polar.models.transaction import TransactionType
-from polar.models.user import IdentityVerificationStatus
 from polar.models.user_session import UserSession
 from polar.organization.repository import OrganizationRepository
 from polar.organization.schemas import OrganizationFeatureSettings
-from polar.organization.service import SNOOZE_MAX_DAYS, SNOOZE_MIN_DAYS
 from polar.organization.service import organization as organization_service
-from polar.organization_review.repository import OrganizationReviewRepository
-from polar.organization_review.schemas import (
-    DecisionType,
-    ReviewAgentReport,
-    ReviewContext,
-    ReviewVerdict,
-)
-from polar.payout.repository import PayoutRepository
 from polar.payout_account.service import payout_account as payout_account_service
 from polar.postgres import AsyncSession, get_db_session
-from polar.startup_program.service import (
-    StartupProgramError,
-)
-from polar.startup_program.service import (
-    startup_program as startup_program_service,
-)
 from polar.transaction.service.transaction import transaction as transaction_service
 from polar.worker import enqueue_job
 
@@ -103,9 +77,7 @@ from ..dependencies import get_admin
 from ..layout import layout
 from ..responses import HXRedirectResponse
 from ..toast import add_toast
-from . import priority as review_priority
 from .forms import UpdateAccountSettingsForm
-from .priority import Signals
 from .views.detail_view import OrganizationDetailView
 from .views.list_view import (
     DeletedFilter,
@@ -113,25 +85,15 @@ from .views.list_view import (
     apply_deleted_filter,
 )
 from .views.modals import DeletePayoutAccountModal, SetCapabilityModal
-from .views.sections._shared import RISK_LEVEL_BADGE, VERDICT_BADGE
 from .views.sections.account_section import AccountSection
-from .views.sections.files_section import FilesSection
 from .views.sections.overview_section import OverviewSection
 from .views.sections.payout_account_section import PayoutAccountSection
-from .views.sections.reviews_section import ReviewsSection
 from .views.sections.settings_section import SettingsSection
 from .views.sections.team_section import TeamSection
 
 router = APIRouter(prefix="/organizations", tags=["organizations"])
 
 logger = structlog.getLogger(__name__)
-
-REVIEW_TICKET_TITLE_PREFIX = "Ongoing organization review"
-
-
-def _default_review_ticket_title(organization: Organization) -> str:
-    name = organization.name or organization.slug
-    return f"{REVIEW_TICKET_TITLE_PREFIX} - {name}"
 
 
 class DeletePayoutAccountForm(BaseModel):
@@ -161,16 +123,6 @@ class SetCapabilityForm(BaseModel):
 
     @classmethod
     def model_validate_form(cls, data: Any) -> "SetCapabilityForm":
-        return cls.model_validate(dict(data))
-
-
-class SnoozeForm(BaseModel):
-    snooze_type: SnoozeType
-    days: int = Field(ge=SNOOZE_MIN_DAYS, le=SNOOZE_MAX_DAYS)
-    reason: str | None = None
-
-    @classmethod
-    def model_validate_form(cls, data: Any) -> "SnoozeForm":
         return cls.model_validate(dict(data))
 
 
@@ -237,65 +189,6 @@ async def count_test_sales(
     return orders_count, unrefunded_orders_count
 
 
-# Defensive cap on the Review-tab in-memory cohort when sorting by priority.
-REVIEW_TAB_MAX_COHORT = 2000
-
-
-async def _build_review_signals(
-    session: AsyncSession, orgs: Sequence[Organization]
-) -> dict[uuid.UUID, Signals]:
-    """Fetch each org's latest agent review, parse it, run ``priority.compute``."""
-    if not orgs:
-        return {}
-
-    org_ids = [o.id for o in orgs]
-    latest_review_stmt = (
-        select(OrganizationAgentReview)
-        .where(
-            OrganizationAgentReview.organization_id.in_(org_ids),
-            OrganizationAgentReview.deleted_at.is_(None),
-        )
-        .order_by(
-            OrganizationAgentReview.organization_id,
-            OrganizationAgentReview.reviewed_at.desc(),
-        )
-        .distinct(OrganizationAgentReview.organization_id)
-    )
-    result = await session.execute(latest_review_stmt)
-    latest_by_org: dict[uuid.UUID, OrganizationAgentReview] = {
-        ar.organization_id: ar for ar in result.scalars()
-    }
-
-    payout_repository = PayoutRepository.from_session(session)
-    held_counts = await payout_repository.get_held_counts_by_accounts(
-        [o.account_id for o in orgs]
-    )
-
-    signals: dict[uuid.UUID, Signals] = {}
-    for org in orgs:
-        metrics = None
-        risk_score = org.review.risk_score if org.review else None
-        agent_review = latest_by_org.get(org.id)
-        if agent_review is not None:
-            try:
-                report = agent_review.parsed_report
-            except Exception:
-                logger.exception(
-                    "agent_review_parse_failed", organization_id=str(org.id)
-                )
-                report = None
-            if report is not None:
-                metrics = report.data_snapshot.metrics
-                risk_score = report.report.overall_risk_score
-        signals[org.id] = review_priority.compute(
-            org,
-            metrics=metrics,
-            risk_score=risk_score,
-            held_payout_count=held_counts.get(org.account_id, 0),
-        )
-    return signals
-
-
 def _apply_sql_sort(stmt: Select[Any], sort: str, direction: str) -> Select[Any]:
     is_desc = direction == "desc"
     if sort == "name":
@@ -324,12 +217,6 @@ def _apply_sql_sort(stmt: Select[Any], sort: str, direction: str) -> Select[Any]
             if is_desc
             else Organization.status_updated_at.asc().nullsfirst()
         )
-    if sort == "risk":
-        return stmt.join(Organization.review).order_by(
-            OrganizationReview.risk_score.asc().nullsfirst()
-            if is_desc
-            else OrganizationReview.risk_score.desc().nullslast()
-        )
     if sort == "total_balance":
         return stmt.order_by(
             Organization.total_balance.desc().nullslast()
@@ -350,34 +237,22 @@ async def list_organizations(
     session: AsyncSession = Depends(get_db_session),
     status: str | None = Query(None),
     q: str | None = Query(None),
-    sort: str = Query("priority"),
+    sort: str = Query("created"),
     direction: str | None = Query(None),
     page: int = Query(1, ge=1),
     limit: int = Query(20, ge=1, le=100),
     # Advanced filters
     country: str | None = Query(""),
-    risk_level: str | None = Query(""),
     days_in_status: str | None = Query(""),
-    has_appeal: str | None = Query(""),
-    first_reviews: str | None = Query(""),
     deleted: DeletedFilter | None = Query(None),
 ) -> None:
     """
     List organizations with enhanced filtering and smart grouping.
-
-    Features:
-    - Status-based tabs with counts
-    - "Needs Attention" smart grouping
-    - Search across name, slug, email
-    - Advanced filters: country, risk, transfers, payments, appeals
-    - Column sorting
     """
     list_view = OrganizationListView(session)
 
     # Convert empty strings to None and parse numbers
     country = country if country else None
-    risk_level = risk_level if risk_level else None
-    has_appeal = has_appeal if has_appeal else None
     days_in_status_int = int(days_in_status) if days_in_status else None
     # When searching, include deleted so matches surface.
     deleted_filter: DeletedFilter = deleted or ("include" if q else "exclude")
@@ -406,7 +281,6 @@ async def list_organizations(
         .options(
             contains_eager(Organization.payout_account),
             joinedload(Organization.account),
-            joinedload(Organization.review),
         )
     )
 
@@ -441,34 +315,9 @@ async def list_organizations(
     if country:
         stmt = stmt.where(PayoutAccount.country == country)
 
-    # Risk level filter
-    if risk_level:
-        stmt = stmt.join(Organization.review)
-        if risk_level == "high":
-            stmt = stmt.where(OrganizationReview.risk_score >= 75)
-        elif risk_level == "medium":
-            stmt = stmt.where(
-                OrganizationReview.risk_score >= 50, OrganizationReview.risk_score < 75
-            )
-        elif risk_level == "low":
-            stmt = stmt.where(OrganizationReview.risk_score < 50)
-        elif risk_level == "unscored":
-            stmt = (
-                select(Organization)
-                .options(
-                    joinedload(Organization.account),
-                    joinedload(Organization.review),
-                )
-                .outerjoin(Organization.review)
-                .where(OrganizationReview.id.is_(None))
-            )
-
     # Days in status filter
     if days_in_status_int:
         threshold_date = datetime.now(UTC) - timedelta(days=days_in_status_int)
-        # Organizations in status for more than X days:
-        # - Either status_updated_at exists and is older than threshold
-        # - Or status_updated_at is NULL (never changed) and created_at is older than threshold
         stmt = stmt.where(
             or_(
                 Organization.status_updated_at <= threshold_date,
@@ -479,69 +328,19 @@ async def list_organizations(
             )
         )
 
-    # Appeal filter
-    if has_appeal:
-        stmt = stmt.join(Organization.review)
-        if has_appeal == "pending":
-            stmt = stmt.where(
-                OrganizationReview.appeal_submitted_at.is_not(None),
-                OrganizationReview.appeal_reviewed_at.is_(None),
-            )
-        elif has_appeal == "reviewed":
-            stmt = stmt.where(OrganizationReview.appeal_reviewed_at.is_not(None))
-        elif has_appeal == "none":
-            stmt = stmt.where(OrganizationReview.appeal_submitted_at.is_(None))
-
-    if first_reviews == "true":
-        stmt = stmt.where(Organization.is_first_review.is_(True))
-    elif first_reviews == "false":
-        stmt = stmt.where(Organization.is_first_review.is_(False))
-
     stmt = apply_deleted_filter(stmt, deleted_filter)
 
-    is_review_tab = status_filter == OrganizationStatus.REVIEW
-    priority_sort = is_review_tab and sort == "priority"
-
-    # Priority sort defaults to "desc" (highest urgency first); other sorts
-    # keep the historical "asc" default.
     if direction is None:
-        direction = "desc" if priority_sort else "asc"
+        direction = "desc"
 
-    signals_by_org: dict[uuid.UUID, Signals] = {}
-    organizations: list[Organization]
-
-    if priority_sort:
-        # Priority is a Python-computed composite, so we load the cohort,
-        # build signals, sort, and paginate in memory.
-        result = await session.execute(stmt.limit(REVIEW_TAB_MAX_COHORT + 1))
-        all_orgs = list(result.scalars().unique().all())
-        if len(all_orgs) > REVIEW_TAB_MAX_COHORT:
-            logger.warning(
-                "review_tab_cohort_truncated",
-                count=len(all_orgs),
-                cap=REVIEW_TAB_MAX_COHORT,
-            )
-            all_orgs = all_orgs[:REVIEW_TAB_MAX_COHORT]
-        signals_by_org = await _build_review_signals(session, all_orgs)
-        all_orgs.sort(
-            key=lambda o: signals_by_org[o.id].priority,
-            reverse=direction == "desc",
-        )
-        offset = (page - 1) * limit
-        page_slice = all_orgs[offset : offset + limit + 1]
-        has_more = len(page_slice) > limit
-        organizations = page_slice[:limit] if has_more else page_slice
-    else:
-        stmt = _apply_sql_sort(stmt, sort, direction)
-        offset = (page - 1) * limit
-        stmt = stmt.offset(offset).limit(limit + 1)
-        result = await session.execute(stmt)
-        organizations = list(result.scalars().unique().all())
-        has_more = len(organizations) > limit
-        if has_more:
-            organizations = organizations[:limit]
-        if is_review_tab:
-            signals_by_org = await _build_review_signals(session, organizations)
+    stmt = _apply_sql_sort(stmt, sort, direction)
+    offset = (page - 1) * limit
+    stmt = stmt.offset(offset).limit(limit + 1)
+    result = await session.execute(stmt)
+    organizations: list[Organization] = list(result.scalars().unique().all())
+    has_more = len(organizations) > limit
+    if has_more:
+        organizations = organizations[:limit]
 
     is_htmx_table_request = request.headers.get("HX-Target") == "org-list"
 
@@ -554,7 +353,6 @@ async def list_organizations(
             has_more,
             sort,
             direction,
-            signals_by_org=signals_by_org,
         ):
             pass
     else:
@@ -576,13 +374,9 @@ async def list_organizations(
                 direction,
                 countries,
                 country,
-                selected_first_reviews=first_reviews,
                 selected_q=q,
-                selected_risk_level=risk_level,
                 selected_days_in_status=days_in_status,
-                selected_has_appeal=has_appeal,
                 selected_deleted=deleted_filter,
-                signals_by_org=signals_by_org,
             ):
                 pass
 
@@ -592,8 +386,6 @@ async def get_organization_detail(
     request: Request,
     organization_id: UUID4,
     section: str = Query("overview"),
-    files_page: int = Query(1, ge=1),
-    files_limit: int = Query(10, ge=1, le=100),
     session: AsyncSession = Depends(get_db_session),
 ) -> None:
     """
@@ -612,7 +404,6 @@ async def get_organization_detail(
         .options(
             joinedload(Organization.account),
             joinedload(Organization.payout_account),
-            joinedload(Organization.review),
         )
         .where(Organization.id == organization_id)
     )
@@ -638,14 +429,6 @@ async def get_organization_detail(
     members = list(members_result.scalars().unique().all())
     organization.members = members  # type: ignore[attr-defined]
 
-    # Fetch AI verdict for action buttons (needed regardless of section)
-    review_repo = OrganizationReviewRepository.from_session(session)
-    agent_review = await review_repo.get_latest_agent_review(organization_id)
-    ai_verdict = ""
-    if agent_review:
-        parsed = agent_review.parsed_report
-        ai_verdict = parsed.report.verdict.value
-
     # Fetch owner user email for Plain search
     owner_user = await repository.get_owner_user(organization)
     owner_email = owner_user.email if owner_user else None
@@ -655,21 +438,11 @@ async def get_organization_detail(
     if not impersonate_user and members:
         impersonate_user = members[0].user
 
-    # Startup Program status is derived via the Polar API (customer +
-    # discount). The view only needs the resulting status string.
-    startup_program_status: str | None = None
-    if settings.STARTUP_PROGRAM_ENABLED:
-        startup_program_status = await startup_program_service.get_status(
-            organization.id
-        )
-
     # Create views
     detail_view = OrganizationDetailView(
         organization,
-        ai_verdict=ai_verdict,
         owner_email=owner_email,
         impersonate_user=impersonate_user,
-        startup_program_status=startup_program_status,
     )
 
     # Fetch analytics data for overview section
@@ -677,8 +450,6 @@ async def get_organization_detail(
     payment_stats = None
     orders_count = 0
     unrefunded_orders_count = 0
-    parsed_agent_report = None
-    agent_reviewed_at = None
     if section == "overview":
         setup_analytics = OrganizationSetupAnalyticsService(session)
         payment_analytics = PaymentAnalyticsService(session)
@@ -692,23 +463,8 @@ async def get_organization_detail(
             organization_id
         )
         products_count = await setup_analytics.get_products_count(organization_id)
-        benefits_count = await setup_analytics.get_benefits_count(organization_id)
-        enabled_benefits_count = await setup_analytics.get_enabled_benefits_count(
-            organization_id
-        )
-
-        user_verified_result = await session.execute(
-            select(User.identity_verification_status)
-            .join(UserOrganization, User.id == UserOrganization.user_id)
-            .where(UserOrganization.organization_id == organization_id)
-            .limit(1)
-        )
-        user_verified_row = user_verified_result.first()
-        user_verified = (
-            user_verified_row[0] == IdentityVerificationStatus.verified
-            if user_verified_row
-            else False
-        )
+        benefits_count = 0
+        enabled_benefits_count = 0
 
         payouts_enabled = await setup_analytics.check_payout_account_enabled(
             organization
@@ -721,7 +477,6 @@ async def get_organization_detail(
             api_keys_count,
             products_count,
             benefits_count,
-            user_verified,
             payouts_enabled,
         )
 
@@ -738,10 +493,8 @@ async def get_organization_detail(
             "products_count": products_count,
             "benefits_count": benefits_count,
             "enabled_benefits_count": enabled_benefits_count,
-            "user_verified": user_verified,
             "payouts_enabled": payouts_enabled,
             "payment_ready": payment_ready,
-            "next_review_threshold": organization.next_review_threshold,
             "total_transfer_sum": total_transfer_sum,
         }
 
@@ -798,15 +551,11 @@ async def get_organization_detail(
             "p50_risk": p50_risk,
             "p90_risk": p90_risk,
             "risk_scores_count": len(risk_scores),
-            "next_review_threshold": organization.next_review_threshold,
         }
 
         orders_count, unrefunded_orders_count = await count_test_sales(
             session, organization_id
         )
-
-        parsed_agent_report = agent_review.parsed_report if agent_review else None
-        agent_reviewed_at = agent_review.reviewed_at if agent_review else None
 
     # Render based on section
     with layout(
@@ -824,8 +573,6 @@ async def get_organization_detail(
                     organization,
                     orders_count=orders_count,
                     unrefunded_orders_count=unrefunded_orders_count,
-                    agent_report=parsed_agent_report,
-                    agent_reviewed_at=agent_reviewed_at,
                 )
                 with overview.render(
                     request, setup_data=setup_data, payment_stats=payment_stats
@@ -851,35 +598,6 @@ async def get_organization_detail(
                         pass
                     with payout_account_section.render(request):
                         pass
-            elif section == "files":
-                # Fetch downloadable files from repository with pagination
-                file_sorting: list[Sorting[FileSortProperty]] = [
-                    (FileSortProperty.created_at, True)
-                ]
-                file_repository = FileRepository(session)
-                files, files_count = await file_repository.paginate_by_organization(
-                    organization.id,
-                    service=FileServiceTypes.downloadable,
-                    sorting=file_sorting,
-                    limit=files_limit,
-                    page=files_page,
-                )
-                files_section = FilesSection(
-                    organization,
-                    files=files,
-                    page=files_page,
-                    limit=files_limit,
-                    total_count=files_count,
-                )
-                with files_section.render(request):
-                    pass
-            elif section == "reviews":
-                agent_reviews = await review_repo.get_all_agent_reviews(organization_id)
-                reviews_section = ReviewsSection(
-                    organization, agent_reviews=agent_reviews
-                )
-                with reviews_section.render(request):
-                    pass
             elif section == "history":
                 # TODO: Implement history section
                 with tag.div():
@@ -893,220 +611,28 @@ async def get_organization_detail(
                     text(f"Unknown section: {section}")
 
 
-def _get_review_report(
-    agent_review: OrganizationAgentReview | None,
-) -> ReviewAgentReport | None:
-    """Extract the ReviewAgentReport from an agent review.
-
-    Isolated in a helper so the explicit return type prevents Any-widening
-    in callers that also use untyped dict access (e.g. ``request.form()``).
-    """
-    if agent_review is None:
-        return None
-    return agent_review.parsed_report.report
-
-
-def _render_ai_review_summary(report: ReviewAgentReport) -> None:
-    """Render a compact AI review summary for use in approve/deny dialogs."""
-    verdict = report.verdict.value
-
-    badge_class = VERDICT_BADGE.get(verdict, "badge-ghost")
-
-    risk_level = report.overall_risk_level.value
-    risk_badge_class = RISK_LEVEL_BADGE.get(risk_level, "badge-ghost")
-
-    with tag.div(classes="bg-base-200 p-4 rounded-lg space-y-3"):
-        with tag.div(classes="flex items-center gap-3"):
-            with tag.span(classes="text-sm font-semibold"):
-                text("AI Verdict:")
-            with tag.div(classes=f"badge {badge_class} badge-sm"):
-                text(verdict)
-            with tag.span(classes="text-sm font-semibold"):
-                text("Risk:")
-            with tag.div(classes=f"badge {risk_badge_class} badge-sm"):
-                text(risk_level)
-
-        if report.summary:
-            with tag.p(classes="text-sm"):
-                text(report.summary)
-
-        if report.violated_sections:
-            with tag.div(classes="text-sm"):
-                with tag.span(classes="font-medium text-error"):
-                    text("Violated sections: ")
-                with tag.span():
-                    text(", ".join(report.violated_sections))
-
-
-@router.api_route(
+@router.post(
     "/{organization_id}/approve-dialog",
     name="organizations:approve_dialog",
-    methods=["GET", "POST"],
     response_model=None,
 )
 async def approve_dialog(
     request: Request,
     organization_id: UUID4,
     session: AsyncSession = Depends(get_db_session),
-    user_session: UserSession = Depends(get_admin),
-) -> HXRedirectResponse | None:
-    """Approve organization dialog and action."""
-    repository = OrganizationRepository(session)
-
-    organization = await repository.get_by_id(organization_id, include_blocked=True)
-    if not organization:
-        raise HTTPException(status_code=404, detail="Organization not found")
-
-    # Fetch AI review for context (needed for both POST validation and GET rendering)
-    review_repo = OrganizationReviewRepository.from_session(session)
-    agent_review = await review_repo.get_latest_agent_review(organization_id)
-    review_report = _get_review_report(agent_review)
-    verdict = review_report.verdict.value if review_report else ""
-    is_override = verdict == ReviewVerdict.DENY.value
-
-    # Suggested threshold: double current or $250 min
-    current_threshold = organization.next_review_threshold or 0
-    suggested_threshold_cents = max(25000, current_threshold * 2)
-    suggested_threshold_dollars = suggested_threshold_cents // 100
-
-    # When AI agrees with approval, process POST directly (1-click from button)
-    if not is_override and request.method == "POST":
-        data = await request.form()
-        raw_threshold = data.get("threshold", str(suggested_threshold_dollars))
-        threshold = int(float(str(raw_threshold)) * 100)
-
-        await review_repo.record_human_decision(
-            organization_id=organization_id,
-            reviewer_id=user_session.user.id,
-            decision=DecisionType.APPROVE,
-        )
-        await organization_service.confirm_organization_reviewed(
-            session, organization, threshold
-        )
-        return HXRedirectResponse(
-            request,
-            str(
-                request.url_for("organizations:detail", organization_id=organization_id)
-            ),
-            303,
-        )
-
-    # Override path: AI said DENY but human wants to APPROVE — show dialog
-    error_message: str | None = None
-
-    if request.method == "POST":
-        data = await request.form()
-        raw_threshold = data.get("threshold", str(suggested_threshold_dollars))
-        threshold = int(float(str(raw_threshold)) * 100)
-
-        override_reason = str(data.get("override_reason", "")).strip() or None
-
-        if not override_reason:
-            error_message = (
-                "A reason is required when overriding the AI recommendation."
-            )
-        else:
-            await review_repo.record_human_decision(
-                organization_id=organization_id,
-                reviewer_id=user_session.user.id,
-                decision=DecisionType.APPROVE,
-                reason=override_reason,
-            )
-            await organization_service.confirm_organization_reviewed(
-                session, organization, threshold
-            )
-            return HXRedirectResponse(
-                request,
-                str(
-                    request.url_for(
-                        "organizations:detail", organization_id=organization_id
-                    )
-                ),
-                303,
-            )
-
-    with modal("Approve Organization", open=True):
-        with tag.form(
-            hx_post=str(
-                request.url_for(
-                    "organizations:approve_dialog",
-                    organization_id=organization_id,
-                )
-            ),
-            hx_target="#modal",
-            classes="flex flex-col gap-4",
-        ):
-            if error_message:
-                with tag.div(classes="alert alert-error"):
-                    text(error_message)
-
-            if review_report:
-                _render_ai_review_summary(review_report)
-
-            with tag.div(classes="bg-base-200 p-4 rounded-lg"):
-                with tag.div(classes="form-control"):
-                    with tag.label(classes="label"):
-                        with tag.span(classes="label-text font-semibold"):
-                            text("Next Review Threshold (in dollars)")
-                    with tag.input(
-                        type="number",
-                        name="threshold",
-                        value=str(suggested_threshold_dollars),
-                        placeholder=str(suggested_threshold_dollars),
-                        classes="input input-bordered",
-                    ):
-                        pass
-                    with tag.label(classes="label"):
-                        with tag.span(classes="label-text-alt"):
-                            text("Amount in dollars that will trigger next review")
-
-            with tag.div(classes="form-control"):
-                with tag.label(classes="label"):
-                    with tag.span(classes="label-text"):
-                        text("Reason for override (required)")
-                with tag.textarea(
-                    name="override_reason",
-                    classes="textarea textarea-bordered w-full",
-                    placeholder="Why are you overriding the AI recommendation?",
-                    rows="3",
-                    required=True,
-                ):
-                    pass
-
-            with tag.div(classes="modal-action pt-6 border-t border-base-200"):
-                with tag.form(method="dialog"):
-                    with button(ghost=True):
-                        text("Cancel")
-                with button(variant="primary", type="submit"):
-                    text("Approve Organization")
-
-    return None
-
-
-@router.post(
-    "/{organization_id}/run-review-agent", name="organizations:run_review_agent"
-)
-async def run_review_agent(
-    request: Request,
-    organization_id: UUID4,
-    session: AsyncSession = Depends(get_db_session),
 ) -> HXRedirectResponse:
-    """Trigger the organization review agent as a background task."""
-    repository = OrganizationRepository.from_session(session)
+    """Approve organization — set status to ACTIVE."""
+    repository = OrganizationRepository(session)
     organization = await repository.get_by_id(organization_id, include_blocked=True)
     if not organization:
         raise HTTPException(status_code=404, detail="Organization not found")
 
-    enqueue_job(
-        "organization_review.run_agent",
-        organization_id=organization.id,
-        context=ReviewContext.MANUAL,
-    )
+    organization.set_status(OrganizationStatus.ACTIVE)
+    session.add(organization)
 
     return HXRedirectResponse(
         request,
-        str(request.url_for("organizations:detail", organization_id=organization_id))
-        + "?section=overview",
+        str(request.url_for("organizations:detail", organization_id=organization_id)),
         303,
     )
 
@@ -1121,7 +647,6 @@ async def deny_dialog(
     request: Request,
     organization_id: UUID4,
     session: AsyncSession = Depends(get_db_session),
-    user_session: UserSession = Depends(get_admin),
 ) -> HXRedirectResponse | None:
     """Deny organization dialog and action."""
     repository = OrganizationRepository(session)
@@ -1130,30 +655,25 @@ async def deny_dialog(
     if not organization:
         raise HTTPException(status_code=404, detail="Organization not found")
 
-    # Fetch AI review for context (needed for both POST validation and GET rendering)
-    review_repo = OrganizationReviewRepository.from_session(session)
-    agent_review = await review_repo.get_latest_agent_review(organization_id)
-    review_report = _get_review_report(agent_review)
-
     error_message: str | None = None
 
     if request.method == "POST":
         form_data = await request.form()
-        override_reason = str(form_data.get("override_reason", "")).strip() or None
+        reason = str(form_data.get("reason", "")).strip() or None
 
-        if not override_reason:
+        if not reason:
             error_message = "A reason is required when denying an organization."
         else:
-            # Record review decision before denying
-            await review_repo.record_human_decision(
-                organization_id=organization_id,
-                reviewer_id=user_session.user.id,
-                decision=DecisionType.DENY,
-                reason=override_reason,
+            organization.set_status(OrganizationStatus.DENIED)
+            note = f"[{datetime.now(UTC).strftime('%Y-%m-%d %H:%M UTC')}] Organization denied."
+            if reason:
+                note += f"\nReason: {reason}"
+            organization.internal_notes = (
+                f"{organization.internal_notes}\n\n{note}"
+                if organization.internal_notes
+                else note
             )
-
-            # Deny the organization
-            await organization_service.deny_organization(session, organization)
+            session.add(organization)
 
             return HXRedirectResponse(
                 request,
@@ -1164,14 +684,6 @@ async def deny_dialog(
                 ),
                 303,
             )
-
-    textarea_attrs: dict[str, Any] = {
-        "name": "override_reason",
-        "classes": "textarea textarea-bordered w-full",
-        "placeholder": "Why are you denying this organization?",
-        "rows": "3",
-        "required": True,
-    }
 
     with modal("Deny Organization", open=True):
         with tag.form(
@@ -1189,23 +701,19 @@ async def deny_dialog(
                     text(error_message)
 
             with tag.p(classes="font-semibold text-error"):
-                text("⚠️ Warning: Payments will be blocked")
-
-            if review_report:
-                _render_ai_review_summary(review_report)
-
-            with tag.div(classes="bg-base-200 p-4 rounded-lg"):
-                with tag.p(classes="mb-2"):
-                    text(
-                        "Denying this organization will prevent them from receiving payments. "
-                        "This action can be reversed, but the organization will need to be reviewed again."
-                    )
+                text("Warning: Payments will be blocked")
 
             with tag.div(classes="form-control"):
                 with tag.label(classes="label"):
                     with tag.span(classes="label-text"):
                         text("Reason for denial (required)")
-                with tag.textarea(**textarea_attrs):
+                with tag.textarea(
+                    name="reason",
+                    classes="textarea textarea-bordered w-full",
+                    placeholder="Why are you denying this organization?",
+                    rows="3",
+                    required=True,
+                ):
                     pass
 
             with tag.div(classes="modal-action pt-6 border-t border-base-200"):
@@ -1249,40 +757,26 @@ async def approve_denied_dialog(
             303,
         )
 
-    # Fetch AI review for context (needed for both POST validation and GET rendering)
-    review_repo = OrganizationReviewRepository.from_session(session)
-    agent_review = await review_repo.get_latest_agent_review(organization_id)
-    review_report = _get_review_report(agent_review)
-    verdict = review_report.verdict.value if review_report else ""
-    is_override = verdict == ReviewVerdict.DENY.value
-
     error_message: str | None = None
 
     if request.method == "POST":
         data = await request.form()
-        # Convert dollars to cents (user enters 250, we store 25000)
-        raw_threshold = data.get("threshold", "250")
-        threshold = int(float(str(raw_threshold)) * 100)
+        reason = str(data.get("reason", "")).strip() or None
 
-        override_reason = str(data.get("override_reason", "")).strip() or None
-
-        if not override_reason:
+        if not reason:
             error_message = (
                 "A reason is required when reactivating a denied organization."
             )
         else:
-            # Record review decision before approving denied org
-            await review_repo.record_human_decision(
-                organization_id=organization_id,
-                reviewer_id=user_session.user.id,
-                decision=DecisionType.APPROVE,
-                reason=override_reason,
+            organization.set_status(OrganizationStatus.ACTIVE)
+            note = f"[{datetime.now(UTC).strftime('%Y-%m-%d %H:%M UTC')}] Organization approved."
+            note += f"\nReason: {reason}"
+            organization.internal_notes = (
+                f"{organization.internal_notes}\n\n{note}"
+                if organization.internal_notes
+                else note
             )
-
-            # Approve the organization
-            await organization_service.backoffice_approve(
-                session, organization, threshold, reason=override_reason
-            )
+            session.add(organization)
 
             return HXRedirectResponse(
                 request,
@@ -1293,24 +787,6 @@ async def approve_denied_dialog(
                 ),
                 303,
             )
-
-    reason_label = (
-        "Reason for override (required)"
-        if is_override
-        else "Reason for reactivation (required)"
-    )
-    reason_placeholder = (
-        "Why are you overriding the AI recommendation?"
-        if is_override
-        else "Why are you reactivating this denied organization?"
-    )
-    textarea_attrs: dict[str, Any] = {
-        "name": "override_reason",
-        "classes": "textarea textarea-bordered w-full",
-        "placeholder": reason_placeholder,
-        "rows": "3",
-        "required": True,
-    }
 
     with modal("Approve Denied Organization", open=True):
         with tag.form(
@@ -1330,37 +806,17 @@ async def approve_denied_dialog(
             with tag.p(classes="font-semibold"):
                 text("Approve this previously denied organization")
 
-            if review_report:
-                _render_ai_review_summary(review_report)
-
-            with tag.div(classes="bg-base-200 p-4 rounded-lg"):
-                with tag.p(classes="mb-3"):
-                    text(
-                        "This will set the organization to ACTIVE status and allow them to receive payments. "
-                        "Make sure you've reviewed the organization details and any appeal information."
-                    )
-
-                with tag.div(classes="form-control"):
-                    with tag.label(classes="label"):
-                        with tag.span(classes="label-text font-semibold"):
-                            text("Next Review Threshold (in dollars)")
-                    with tag.input(
-                        type="number",
-                        name="threshold",
-                        value="250",
-                        placeholder="250",
-                        classes="input input-bordered",
-                    ):
-                        pass
-                    with tag.label(classes="label"):
-                        with tag.span(classes="label-text-alt"):
-                            text("Amount in dollars that will trigger next review")
-
             with tag.div(classes="form-control"):
                 with tag.label(classes="label"):
                     with tag.span(classes="label-text"):
-                        text(reason_label)
-                with tag.textarea(**textarea_attrs):
+                        text("Reason for reactivation (required)")
+                with tag.textarea(
+                    name="reason",
+                    classes="textarea textarea-bordered w-full",
+                    placeholder="Why are you reactivating this denied organization?",
+                    rows="3",
+                    required=True,
+                ):
                     pass
 
             with tag.div(classes="modal-action pt-6 border-t border-base-200"):
@@ -1369,122 +825,6 @@ async def approve_denied_dialog(
                         text("Cancel")
                 with button(variant="primary", type="submit"):
                     text("Approve Organization")
-
-    return None
-
-
-@router.api_route(
-    "/{organization_id}/deny-appeal-dialog",
-    name="organizations:deny_appeal_dialog",
-    methods=["GET", "POST"],
-    response_model=None,
-)
-async def deny_appeal_dialog(
-    request: Request,
-    organization_id: UUID4,
-    session: AsyncSession = Depends(get_db_session),
-    user_session: UserSession = Depends(get_admin),
-) -> HXRedirectResponse | None:
-    """Deny an organization's appeal dialog and action."""
-    repository = OrganizationRepository(session)
-
-    organization = await repository.get_by_id(
-        organization_id,
-        include_blocked=True,
-        options=(joinedload(Organization.review),),
-    )
-    if not organization:
-        raise HTTPException(status_code=404, detail="Organization not found")
-
-    # Fetch AI review for context
-    review_repo = OrganizationReviewRepository.from_session(session)
-    agent_review = await review_repo.get_latest_agent_review(organization_id)
-    review_report = _get_review_report(agent_review)
-
-    error_message: str | None = None
-
-    if request.method == "POST":
-        form_data = await request.form()
-        reason = str(form_data.get("reason", "")).strip() or None
-
-        # Record review decision
-        await review_repo.record_human_decision(
-            organization_id=organization_id,
-            reviewer_id=user_session.user.id,
-            decision=DecisionType.DENY,
-            review_context=ReviewContext.APPEAL,
-            reason=reason,
-        )
-
-        # Deny the appeal
-        await organization_service.deny_appeal(session, organization)
-
-        return HXRedirectResponse(
-            request,
-            str(
-                request.url_for("organizations:detail", organization_id=organization_id)
-            ),
-            303,
-        )
-
-    # Show appeal reason if available
-    appeal_reason = None
-    if organization.review and organization.review.appeal_reason:
-        appeal_reason = organization.review.appeal_reason
-
-    with modal("Deny Appeal", open=True):
-        with tag.div(classes="flex flex-col gap-4"):
-            with tag.p(classes="font-semibold text-error"):
-                text("⚠️ This will reject the organization's appeal")
-
-            if error_message:
-                with tag.div(classes="alert alert-error"):
-                    text(error_message)
-
-            if review_report:
-                _render_ai_review_summary(review_report)
-
-            if appeal_reason:
-                with tag.div(classes="bg-base-200 p-4 rounded-lg"):
-                    with tag.p(classes="font-semibold text-sm mb-2"):
-                        text("Appeal Reason")
-                    with tag.p(classes="text-sm whitespace-pre-wrap"):
-                        text(appeal_reason)
-
-            with tag.div(classes="bg-base-200 p-4 rounded-lg"):
-                with tag.p():
-                    text(
-                        "Denying the appeal will keep the organization in DENIED status. "
-                        "They will not be able to receive payments."
-                    )
-
-            with tag.form(
-                hx_post=str(
-                    request.url_for(
-                        "organizations:deny_appeal_dialog",
-                        organization_id=organization_id,
-                    )
-                ),
-                classes="flex flex-col gap-4",
-            ):
-                with tag.div(classes="form-control"):
-                    with tag.label(classes="label"):
-                        with tag.span(classes="label-text"):
-                            text("Reason for denying appeal (optional)")
-                    with tag.textarea(
-                        name="reason",
-                        classes="textarea textarea-bordered w-full",
-                        placeholder="Why are you denying this appeal?",
-                        rows="3",
-                    ):
-                        pass
-
-                with tag.div(classes="modal-action pt-6 border-t border-base-200"):
-                    with tag.form(method="dialog"):
-                        with button(ghost=True):
-                            text("Cancel")
-                    with button(variant="error", type="submit"):
-                        text("Deny Appeal")
 
     return None
 
@@ -1508,37 +848,17 @@ async def unblock_approve_dialog(
     if not organization:
         raise HTTPException(status_code=404, detail="Organization not found")
 
-    # Fetch AI review for context (needed for both POST validation and GET rendering)
-    review_repo = OrganizationReviewRepository.from_session(session)
-    agent_review = await review_repo.get_latest_agent_review(organization_id)
-    review_report = _get_review_report(agent_review)
-    verdict = review_report.verdict.value if review_report else ""
-    is_override = verdict == ReviewVerdict.DENY.value
-
     error_message: str | None = None
 
     if request.method == "POST":
         data = await request.form()
-        # Convert dollars to cents (user enters 250, we store 25000)
-        raw_threshold = data.get("threshold", "250")
-        threshold = int(float(str(raw_threshold)) * 100)
-
         override_reason = str(data.get("override_reason", "")).strip() or None
 
         if not override_reason:
             error_message = "A reason is required when unblocking an organization."
         else:
-            # Record review decision before unblocking
-            await review_repo.record_human_decision(
-                organization_id=organization_id,
-                reviewer_id=user_session.user.id,
-                decision=DecisionType.APPROVE,
-                reason=override_reason,
-            )
-
-            # Approve the organization
             await organization_service.backoffice_approve(
-                session, organization, threshold, reason=override_reason
+                session, organization, reason=override_reason
             )
 
             return HXRedirectResponse(
@@ -1550,24 +870,6 @@ async def unblock_approve_dialog(
                 ),
                 303,
             )
-
-    reason_label = (
-        "Reason for override (required)"
-        if is_override
-        else "Reason for unblocking (required)"
-    )
-    reason_placeholder = (
-        "Why are you overriding the AI recommendation?"
-        if is_override
-        else "Why are you unblocking this organization?"
-    )
-    textarea_attrs: dict[str, Any] = {
-        "name": "override_reason",
-        "classes": "textarea textarea-bordered w-full",
-        "placeholder": reason_placeholder,
-        "rows": "3",
-        "required": True,
-    }
 
     with modal("Unblock & Approve Organization", open=True):
         with tag.form(
@@ -1587,9 +889,6 @@ async def unblock_approve_dialog(
             with tag.p(classes="font-semibold"):
                 text("Unblock and approve this organization")
 
-            if review_report:
-                _render_ai_review_summary(review_report)
-
             with tag.div(classes="bg-base-200 p-4 rounded-lg"):
                 with tag.p(classes="mb-3"):
                     text(
@@ -1597,27 +896,17 @@ async def unblock_approve_dialog(
                         "The organization will be able to receive payments again."
                     )
 
-                with tag.div(classes="form-control"):
-                    with tag.label(classes="label"):
-                        with tag.span(classes="label-text font-semibold"):
-                            text("Next Review Threshold (in dollars)")
-                    with tag.input(
-                        type="number",
-                        name="threshold",
-                        value="250",
-                        placeholder="250",
-                        classes="input input-bordered",
-                    ):
-                        pass
-                    with tag.label(classes="label"):
-                        with tag.span(classes="label-text-alt"):
-                            text("Amount in dollars that will trigger next review")
-
             with tag.div(classes="form-control"):
                 with tag.label(classes="label"):
                     with tag.span(classes="label-text"):
-                        text(reason_label)
-                with tag.textarea(**textarea_attrs):
+                        text("Reason for unblocking (required)")
+                with tag.textarea(
+                    name="override_reason",
+                    classes="textarea textarea-bordered w-full",
+                    placeholder="Why are you unblocking this organization?",
+                    rows="3",
+                    required=True,
+                ):
                     pass
 
             with tag.div(classes="modal-action pt-6 border-t border-base-200"):
@@ -1701,363 +990,6 @@ async def block_dialog(
 
 
 @router.api_route(
-    "/{organization_id}/under-review-dialog",
-    name="organizations:under_review_dialog",
-    methods=["GET", "POST"],
-    response_model=None,
-)
-async def under_review_dialog(
-    request: Request,
-    organization_id: UUID4,
-    session: AsyncSession = Depends(get_db_session),
-) -> HXRedirectResponse | None:
-    """Set organization under review dialog and action."""
-    repository = OrganizationRepository(session)
-
-    organization = await repository.get_by_id(organization_id, include_blocked=True)
-    if not organization:
-        raise HTTPException(status_code=404, detail="Organization not found")
-
-    if request.method == "POST":
-        await organization_service.set_organization_under_review(
-            session, organization, enqueue_review=False
-        )
-
-        return HXRedirectResponse(
-            request,
-            str(
-                request.url_for("organizations:detail", organization_id=organization_id)
-            ),
-            303,
-        )
-
-    with modal("Set Under Review", open=True):
-        with tag.div(classes="flex flex-col gap-4"):
-            with tag.p(classes="font-semibold text-warning"):
-                text("Set Organization Under Review")
-
-            with tag.div(
-                classes="bg-warning/10 border border-warning/20 p-4 rounded-lg"
-            ):
-                with tag.p(classes="font-semibold mb-2"):
-                    text("This action will:")
-                with tag.ul(classes="list-disc list-inside space-y-1 text-sm"):
-                    with tag.li():
-                        text("Change the organization status to Ongoing Review")
-                    with tag.li():
-                        text(
-                            "Hold any payout requests for review instead of paying "
-                            "them out immediately. Held payouts are released "
-                            "automatically once the organization is approved."
-                        )
-
-            with tag.div(classes="modal-action pt-6 border-t border-base-200"):
-                with tag.form(method="dialog"):
-                    with button(ghost=True):
-                        text("Cancel")
-                with tag.form(
-                    hx_post=str(
-                        request.url_for(
-                            "organizations:under_review_dialog",
-                            organization_id=organization_id,
-                        )
-                    ),
-                ):
-                    with button(variant="warning", type="submit"):
-                        text("Set Under Review")
-
-    return None
-
-
-@router.api_route(
-    "/{organization_id}/snooze-dialog",
-    name="organizations:snooze_dialog",
-    methods=["GET", "POST"],
-    response_model=None,
-)
-async def snooze_dialog(
-    request: Request,
-    organization_id: UUID4,
-    session: AsyncSession = Depends(get_db_session),
-    user_session: UserSession = Depends(get_admin),
-) -> HXRedirectResponse | None:
-    """Snooze an organization under review."""
-    repository = OrganizationRepository(session)
-
-    organization = await repository.get_by_id(organization_id, include_blocked=True)
-    if not organization:
-        raise HTTPException(status_code=404, detail="Organization not found")
-
-    if request.method == "POST":
-        form_data = await request.form()
-        try:
-            form = SnoozeForm.model_validate_form(form_data)
-        except ValidationError as e:
-            detail = [{"loc": err["loc"], "msg": err["msg"]} for err in e.errors()]
-            raise HTTPException(status_code=400, detail=detail) from e
-
-        reason = (form.reason or "").strip() or None
-
-        review_repo = OrganizationReviewRepository(session)
-        await review_repo.record_human_decision(
-            organization_id=organization_id,
-            reviewer_id=user_session.user.id,
-            decision=DecisionType.SNOOZE,
-            reason=reason,
-        )
-
-        await organization_service.snooze_organization(
-            session,
-            organization,
-            days=form.days,
-            snooze_type=form.snooze_type,
-            reason=reason,
-        )
-
-        return HXRedirectResponse(
-            request,
-            str(
-                request.url_for("organizations:detail", organization_id=organization_id)
-            ),
-            303,
-        )
-
-    with modal("Snooze Organization", open=True):
-        with tag.form(
-            hx_post=str(
-                request.url_for(
-                    "organizations:snooze_dialog",
-                    organization_id=organization_id,
-                )
-            ),
-            classes="flex flex-col gap-4",
-        ):
-            with tag.p(classes="font-semibold text-warning"):
-                text("Snooze Organization")
-
-            if organization.snooze_count > 0:
-                with tag.div(classes="bg-info/10 border border-info/20 p-3 rounded-lg"):
-                    with tag.p(classes="text-sm"):
-                        text(
-                            f"This organization has been snoozed {organization.snooze_count} time(s) before."
-                        )
-
-            with tag.div(
-                classes="bg-warning/10 border border-warning/20 p-4 rounded-lg"
-            ):
-                with tag.p(classes="font-semibold mb-2"):
-                    text("This action will:")
-                with tag.ul(classes="list-disc list-inside space-y-1 text-sm"):
-                    with tag.li():
-                        text("Change the organization status to Snoozed")
-                    with tag.li():
-                        text("Payments will continue to be accepted")
-                    with tag.li():
-                        text("Payouts remain blocked")
-                    with tag.li():
-                        text(
-                            "Org returns to Review based on the trigger you "
-                            "select below"
-                        )
-
-            snooze_options = [
-                (
-                    SnoozeType.NEXT_SALE,
-                    "On next sale after X days",
-                    "Stays snoozed past the deadline until the next sale arrives.",
-                ),
-                (
-                    SnoozeType.TIME_BASED,
-                    "Auto re-review after X days",
-                    "Pops back into the queue automatically once the deadline passes.",
-                ),
-            ]
-            with tag.div(classes="form-control"):
-                with tag.label(classes="label"):
-                    with tag.span(classes="label-text font-semibold"):
-                        text("Re-review trigger")
-                with tag.div(classes="flex flex-col gap-2"):
-                    for option_type, option_label, option_desc in snooze_options:
-                        with tag.label(classes="flex items-start gap-2 cursor-pointer"):
-                            input_attrs: dict[str, Any] = {
-                                "type": "radio",
-                                "name": "snooze_type",
-                                "value": option_type.value,
-                                "classes": "radio radio-sm mt-0.5",
-                            }
-                            if option_type == SnoozeType.NEXT_SALE:
-                                input_attrs["checked"] = "checked"
-                            with tag.input(**input_attrs):
-                                pass
-                            with tag.div(classes="flex flex-col"):
-                                with tag.span(classes="text-sm font-medium"):
-                                    text(option_label)
-                                with tag.span(classes="text-xs text-base-content/70"):
-                                    text(option_desc)
-
-            with tag.div(classes="form-control"):
-                with tag.label(classes="label"):
-                    with tag.span(classes="label-text font-semibold"):
-                        text(f"Days ({SNOOZE_MIN_DAYS}–{SNOOZE_MAX_DAYS})")
-                with tag.input(
-                    type="number",
-                    name="days",
-                    value=str(SNOOZE_MIN_DAYS),
-                    min=str(SNOOZE_MIN_DAYS),
-                    max=str(SNOOZE_MAX_DAYS),
-                    required="required",
-                    classes="input input-bordered w-full",
-                ):
-                    pass
-
-            with tag.div(classes="form-control"):
-                with tag.label(classes="label"):
-                    with tag.span(classes="label-text"):
-                        text("Reason for snoozing (optional)")
-                with tag.textarea(
-                    name="reason",
-                    classes="textarea textarea-bordered w-full",
-                    placeholder="e.g. Merchant not responding to review questions",
-                    rows="3",
-                ):
-                    pass
-
-            with tag.div(classes="modal-action pt-6 border-t border-base-200"):
-                with tag.form(method="dialog"):
-                    with button(ghost=True):
-                        text("Cancel")
-                with button(variant="warning", type="submit"):
-                    text("Snooze")
-
-    return None
-
-
-@router.post(
-    "/{organization_id}/unsnooze",
-    name="organizations:unsnooze",
-    response_model=None,
-)
-async def unsnooze(
-    request: Request,
-    organization_id: UUID4,
-    session: AsyncSession = Depends(get_db_session),
-    user_session: UserSession = Depends(get_admin),
-) -> HXRedirectResponse:
-    """Unsnooze an organization back to review (direct action, no modal)."""
-    repository = OrganizationRepository(session)
-
-    organization = await repository.get_by_id(organization_id, include_blocked=True)
-    if not organization:
-        raise HTTPException(status_code=404, detail="Organization not found")
-
-    review_repo = OrganizationReviewRepository(session)
-    await review_repo.record_human_decision(
-        organization_id=organization_id,
-        reviewer_id=user_session.user.id,
-        decision=DecisionType.ESCALATE,
-    )
-
-    await organization_service.unsnooze_organization(session, organization)
-
-    return HXRedirectResponse(
-        request,
-        str(request.url_for("organizations:detail", organization_id=organization_id)),
-        303,
-    )
-
-
-@router.post(
-    "/{organization_id}/startup-program/mark-invited",
-    name="organizations:startup_program_mark_invited",
-    response_model=None,
-)
-async def startup_program_mark_invited(
-    request: Request,
-    organization_id: UUID4,
-    session: AsyncSession = Depends(get_db_session),
-    user_session: UserSession = Depends(get_admin),
-) -> HXRedirectResponse | None:
-    """Invite the organization to the Startup Program.
-
-    Resolves the Polar-for-Polar customer (in Polar's org, with
-    ``external_id`` equal to the organization id) and eagerly creates its
-    dedicated 100% Scale discount.
-    """
-    del user_session  # admin gate only
-
-    detail_url = str(
-        request.url_for("organizations:detail", organization_id=organization_id)
-    )
-
-    if not settings.STARTUP_PROGRAM_ENABLED:
-        await add_toast(request, "Startup Program is not configured.", "error")
-        return None
-
-    organization = await OrganizationRepository.from_session(session).get_by_id(
-        organization_id, include_blocked=True
-    )
-    if organization is None:
-        await add_toast(request, "Organization not found.", "error")
-        return None
-
-    try:
-        discount = await startup_program_service.mark_invited(organization)
-    except StartupProgramError as e:
-        await add_toast(request, str(e), "error")
-        return None
-
-    await add_toast(
-        request,
-        f"Invited. Created discount {discount.id}.",
-        "success",
-    )
-    return HXRedirectResponse(request, detail_url, 303)
-
-
-@router.post(
-    "/{organization_id}/startup-program/uninvite",
-    name="organizations:startup_program_uninvite",
-    response_model=None,
-)
-async def startup_program_uninvite(
-    request: Request,
-    organization_id: UUID4,
-    session: AsyncSession = Depends(get_db_session),
-    user_session: UserSession = Depends(get_admin),
-) -> HXRedirectResponse | None:
-    """Revoke an organization's unused Startup Program discount.
-
-    Only valid while the discount is unused — once it's been redeemed the
-    discount is part of billing history and can't be removed.
-    """
-    del user_session  # admin gate only
-
-    detail_url = str(
-        request.url_for("organizations:detail", organization_id=organization_id)
-    )
-
-    if not settings.STARTUP_PROGRAM_ENABLED:
-        await add_toast(request, "Startup Program is not configured.", "error")
-        return None
-
-    organization = await OrganizationRepository.from_session(session).get_by_id(
-        organization_id, include_blocked=True
-    )
-    if organization is None:
-        await add_toast(request, "Organization not found.", "error")
-        return None
-
-    try:
-        await startup_program_service.uninvite(organization)
-    except StartupProgramError as e:
-        await add_toast(request, str(e), "error")
-        return None
-
-    await add_toast(request, "Uninvited.", "success")
-    return HXRedirectResponse(request, detail_url, 303)
-
-
-@router.api_route(
     "/{organization_id}/review-ticket",
     name="organizations:create_review_ticket",
     methods=["GET", "POST"],
@@ -2078,7 +1010,7 @@ async def create_review_ticket(
         await add_toast(request, "No owner user found for this organization.", "error")
         return
 
-    default_title = _default_review_ticket_title(organization)
+    default_title = f"Review: {organization.name}"
 
     if request.method == "POST":
         form_data = await request.form()
@@ -2196,14 +1128,6 @@ async def offboard_dialog(
     if request.method == "POST":
         form_data = await request.form()
         reason = str(form_data.get("reason", "")).strip() or None
-
-        review_repo = OrganizationReviewRepository.from_session(session)
-        await review_repo.record_human_decision(
-            organization_id=organization_id,
-            reviewer_id=user_session.user.id,
-            decision=DecisionType.DENY,
-            reason=reason,
-        )
 
         await organization_service.set_organization_offboarding(
             session, organization, reason=reason
@@ -2332,12 +1256,11 @@ async def edit_organization(
     form_data = {
         "name": organization.name,
         "slug": organization.slug,
-        "customer_invoice_prefix": organization.customer_invoice_prefix,
     }
 
     with modal("Edit Basic Settings", open=True):
         with tag.p(classes="text-sm text-base-content/60 mb-4"):
-            text("Update organization name, slug, and customer invoice prefix")
+            text("Update organization name and slug")
 
         with UpdateOrganizationBasicForm.render(
             data=form_data,
@@ -2444,94 +1367,6 @@ async def edit_details(
 
 
 @router.api_route(
-    "/{organization_id}/edit-order-settings",
-    name="organizations:edit_order_settings",
-    methods=["GET", "POST"],
-    response_model=None,
-)
-async def edit_order_settings(
-    request: Request,
-    organization_id: UUID4,
-    session: AsyncSession = Depends(get_db_session),
-) -> HXRedirectResponse | None:
-    """Edit organization order settings."""
-    repository = OrganizationRepository(session)
-
-    organization = await repository.get_by_id(organization_id, include_blocked=True)
-    if not organization:
-        raise HTTPException(status_code=404, detail="Organization not found")
-
-    if request.method == "POST":
-        data = await request.form()
-        updated_order_settings = {
-            **organization.order_settings,
-            "invoice_numbering": data.get("invoice_numbering", "organization"),
-        }
-        await repository.update(
-            organization, update_dict={"order_settings": updated_order_settings}
-        )
-        return HXRedirectResponse(
-            request,
-            str(
-                request.url_for("organizations:detail", organization_id=organization_id)
-            )
-            + "?section=settings",
-            303,
-        )
-
-    current = organization.order_settings.get("invoice_numbering", "organization")
-
-    with modal("Edit Order Settings", open=True):
-        with tag.p(classes="text-sm text-base-content/60 mb-4"):
-            text("Configure how invoice numbers are generated")
-
-        with tag.form(
-            hx_post=str(
-                request.url_for(
-                    "organizations:edit_order_settings",
-                    organization_id=organization_id,
-                )
-            ),
-            hx_target="#modal",
-            classes="space-y-4",
-        ):
-            with tag.div(classes="space-y-3"):
-                for value, label, desc in [
-                    (
-                        "organization",
-                        "Organization-wide",
-                        "Sequential numbering across all customers",
-                    ),
-                    ("customer", "Per-customer", "Separate numbering per customer"),
-                ]:
-                    with tag.label(
-                        classes="label cursor-pointer justify-start gap-3 p-3 border border-base-300 rounded-lg hover:bg-base-200"
-                    ):
-                        with tag.input(
-                            type="radio",
-                            name="invoice_numbering",
-                            value=value,
-                            classes="radio radio-sm",
-                            **{"checked": ""} if current == value else {},
-                        ):
-                            pass
-                        with tag.div():
-                            with tag.div(classes="font-semibold text-sm"):
-                                text(label)
-                            with tag.div(classes="text-xs text-base-content/60"):
-                                text(desc)
-
-            with tag.div(classes="modal-action pt-6 border-t border-base-200"):
-                with tag.form(method="dialog"):
-                    with button(ghost=True):
-                        text("Cancel")
-                with button(type="submit", variant="primary"):
-                    text("Save Changes")
-
-    return None
-
-
-@router.api_route(
     "/{organization_id}/edit-rate-limit-group",
     name="organizations:edit_rate_limit_group",
     methods=["GET", "POST"],
@@ -2619,7 +1454,6 @@ async def edit_socials(
     PLATFORM_THREADS = "threads"
     PLATFORM_TIKTOK = "tiktok"
     PLATFORM_GITHUB = "github"
-    PLATFORM_DISCORD = "discord"
     PLATFORM_OTHER = "other"
 
     repository = OrganizationRepository(session)
@@ -2667,10 +1501,6 @@ async def edit_socials(
                 socials.append(
                     {"platform": PLATFORM_GITHUB, "url": str(form.github_url)}
                 )
-            if form.discord_url:
-                socials.append(
-                    {"platform": PLATFORM_DISCORD, "url": str(form.discord_url)}
-                )
             if form.other_url:
                 socials.append({"platform": PLATFORM_OTHER, "url": str(form.other_url)})
 
@@ -2703,7 +1533,6 @@ async def edit_socials(
         "threads_url": None,
         "tiktok_url": None,
         "github_url": None,
-        "discord_url": None,
         "other_url": None,
     }
     for social in existing_socials:
@@ -2725,8 +1554,6 @@ async def edit_socials(
             form_data["tiktok_url"] = url
         elif platform == PLATFORM_GITHUB:
             form_data["github_url"] = url
-        elif platform == PLATFORM_DISCORD:
-            form_data["discord_url"] = url
         elif platform == PLATFORM_OTHER:
             form_data["other_url"] = url
 
@@ -3504,59 +2331,6 @@ async def setup_account(
     return None
 
 
-@router.post(
-    "/{organization_id}/resync-stripe-account",
-    name="organizations:resync_stripe_account",
-    response_model=None,
-)
-async def resync_stripe_account(
-    request: Request,
-    organization_id: UUID4,
-    session: AsyncSession = Depends(get_db_session),
-    user_session: UserSession = Depends(get_admin),
-) -> HXRedirectResponse:
-    repository = OrganizationRepository(session)
-    organization = await repository.get_by_id_with_payout_account(organization_id)
-
-    if not organization:
-        raise HTTPException(status_code=404, detail="Organization not found")
-
-    payout_account = organization.payout_account
-
-    if payout_account is None:
-        raise HTTPException(
-            status_code=400, detail="Organization has no payout account"
-        )
-
-    if (
-        payout_account.type != PayoutAccountType.stripe
-        or payout_account.stripe_id is None
-    ):
-        raise HTTPException(
-            status_code=400, detail="Payout account is not a Stripe account"
-        )
-
-    stripe_account = await stripe_lib.Account.retrieve_async(payout_account.stripe_id)
-    await payout_account_service.update_account_from_stripe(
-        session, stripe_account=stripe_account
-    )
-
-    logger.info(
-        "Stripe account resynced from backoffice",
-        organization_id=str(organization_id),
-        stripe_id=payout_account.stripe_id,
-        admin_user_id=str(user_session.user_id),
-    )
-
-    await add_toast(request, "Account resynced from Stripe", variant="success")
-
-    redirect_url = (
-        str(request.url_for("organizations:detail", organization_id=organization_id))
-        + "?section=account"
-    )
-    return HXRedirectResponse(request, redirect_url, 303)
-
-
 @router.api_route(
     "/{organization_id}/delete-payout-account",
     name="organizations:delete_payout_account",
@@ -3589,7 +2363,6 @@ async def delete_payout_account(
             form = DeletePayoutAccountForm.model_validate_form(data)
 
             account_type = payout_account.type
-            stripe_id = payout_account.stripe_id
 
             await payout_account_service.delete(session, payout_account)
 
@@ -3597,8 +2370,6 @@ async def delete_payout_account(
             delete_note = (
                 f"[{timestamp}] Payout account deleted.\nType: {account_type.value}\n"
             )
-            if account_type == PayoutAccountType.stripe and stripe_id:
-                delete_note += f"Stripe ID: {stripe_id}\n"
             delete_note += f"Reason: {form.reason.strip()}"
 
             if organization.internal_notes:
@@ -3710,7 +2481,6 @@ async def grant_credit(
             title=title,
             expires_at=expires_at,
             notes=str(notes) if notes else None,
-            organization=organization,
         )
 
         await add_toast(
@@ -3928,7 +2698,6 @@ async def import_orders(
                     session,
                     organization,
                     form.file,
-                    invoice_number_prefix=form.invoice_number_prefix,
                 )
             )
         except ValidationError as e:
@@ -3936,7 +2705,7 @@ async def import_orders(
 
     with modal("Import Orders", open=True):
         with OrganizationOrdersImportForm.render(
-            {"invoice_number_prefix": "IMPORTED-"},
+            {},
             action=str(request.url),
             method="POST",
             classes="flex flex-col",
@@ -3979,30 +2748,16 @@ async def add_payment_method_domain(
         try:
             form = AddPaymentMethodDomainForm.model_validate_form(data)
 
-            await stripe_service.create_payment_method_domain(form.domain_name)
-
+            # Payment method domain allowlist (Stripe) removed
             await add_toast(
                 request,
-                f"Successfully added {form.domain_name} to allowlist",
-                variant="success",
+                "Payment method domain allowlist is not available (Stripe removed).",
+                variant="error",
             )
             return
 
         except ValidationError as e:
             validation_error = e
-        except stripe_lib.InvalidRequestError as e:
-            logger.error(
-                "Invalid request to Stripe API",
-                organization_id=organization_id,
-                domain=data.get("domain_name"),
-                error=str(e),
-                error_code=e.code if hasattr(e, "code") else None,
-            )
-            error_message = (
-                "Unable to add domain to allowlist. "
-                "Please verify the domain and try again."
-            )
-            await add_toast(request, error_message, variant="error")
 
     with modal("Add Domain to Allowlist", open=True):
         with tag.p(classes="text-sm text-base-content-secondary mb-4"):

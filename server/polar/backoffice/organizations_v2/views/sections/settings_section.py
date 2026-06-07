@@ -56,46 +56,6 @@ class SettingsSection:
                             with tag.div(classes="font-mono text-sm"):
                                 text(self.org.slug)
 
-                    with tag.div():
-                        with tag.div(classes="text-sm text-base-content/60 mb-1"):
-                            text("Customer Invoice Prefix")
-                        with tag.div(classes="font-mono text-sm"):
-                            text(self.org.customer_invoice_prefix)
-
-            # Order settings card
-            with card(bordered=True):
-                with tag.div(classes="flex items-center justify-between mb-4"):
-                    with tag.h2(classes="text-lg font-bold"):
-                        text("Order Settings")
-                    with button(
-                        variant="secondary",
-                        size="sm",
-                        ghost=True,
-                        hx_get=str(
-                            request.url_for(
-                                "organizations:edit_order_settings",
-                                organization_id=self.org.id,
-                            )
-                        ),
-                        hx_target="#modal",
-                    ):
-                        text("Edit")
-
-                with tag.div(classes="space-y-4"):
-                    with tag.div():
-                        with tag.div(classes="text-sm text-base-content/60 mb-1"):
-                            text("Invoice Numbering")
-                        with tag.div(classes="text-sm"):
-                            invoice_numbering = self.org.order_settings.get(
-                                "invoice_numbering", "organization"
-                            )
-                            numbering_label = (
-                                "Organization-wide"
-                                if invoice_numbering == "organization"
-                                else "Per-customer"
-                            )
-                            text(numbering_label)
-
             # Checkout settings card
             with card(bordered=True):
                 with tag.div(classes="flex items-center justify-between mb-4"):

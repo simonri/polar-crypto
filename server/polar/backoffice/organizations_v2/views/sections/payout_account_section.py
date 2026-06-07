@@ -46,7 +46,7 @@ class PayoutAccountSection:
                                 ):
                                     text("Type")
                                 with tag.div():
-                                    if payout_account.type == PayoutAccountType.stripe:
+                                    if payout_account.type == PayoutAccountType.crypto:
                                         with tag.span(classes="badge badge-primary"):
                                             text("Stripe")
                                     else:
@@ -80,8 +80,8 @@ class PayoutAccountSection:
 
                         # Stripe-specific details
                         if (
-                            payout_account.type == PayoutAccountType.stripe
-                            and payout_account.stripe_id
+                            payout_account.type == PayoutAccountType.crypto
+                            and False  # stripe_id removed
                         ):
                             with tag.div(classes="pt-4 border-t border-base-300"):
                                 with tag.div(
@@ -93,10 +93,10 @@ class PayoutAccountSection:
                                         ):
                                             text("Stripe Account ID")
                                         with tag.div(classes="font-mono text-sm"):
-                                            text(payout_account.stripe_id)
+                                            text("(removed)")
 
                                     with tag.a(
-                                        href=f"https://dashboard.stripe.com/connect/accounts/{payout_account.stripe_id}",
+                                        href="#",
                                         target="_blank",
                                         classes="btn btn-secondary btn-sm",
                                     ):
@@ -135,8 +135,8 @@ class PayoutAccountSection:
                                 text("Actions")
 
                             if (
-                                payout_account.type == PayoutAccountType.stripe
-                                and payout_account.stripe_id
+                                payout_account.type == PayoutAccountType.crypto
+                                and False  # stripe_id removed
                             ):
                                 with button(
                                     variant="warning",

@@ -277,7 +277,6 @@ export default {
     github_repository: 'Toegang tot GitHub-repository',
     discord: 'Discord-uitnodiging',
     downloadables: 'Bestandsdownloads',
-    meter_credit: 'Verbruikstegoed',
     feature_flag: 'Feature flag',
   },
   ordinal: {

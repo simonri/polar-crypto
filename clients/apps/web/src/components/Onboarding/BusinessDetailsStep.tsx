@@ -133,9 +133,7 @@ function CurrencyAndCountryFields() {
     name: 'country',
   })
 
-  const isUnsupportedCountry =
-    country !== '' &&
-    !(enums.stripeAccountCountryValues as readonly string[]).includes(country)
+  const isUnsupportedCountry = country !== '' && !false
 
   const countryDisplayName = useMemo(() => {
     if (!country) return ''

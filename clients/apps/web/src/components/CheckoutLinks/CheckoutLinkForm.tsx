@@ -80,7 +80,6 @@ export const CheckoutLinkForm = ({
         ),
         products: checkoutLink.products.map(({ id }) => id),
         allow_discount_codes: checkoutLink.allow_discount_codes ?? true,
-        require_billing_address: checkoutLink.require_billing_address ?? false,
         success_url: checkoutLink.success_url ?? '',
         return_url: checkoutLink.return_url ?? '',
         discount_id: checkoutLink.discount_id ?? '',
@@ -92,7 +91,6 @@ export const CheckoutLinkForm = ({
       metadata: [],
       products: productIds ?? [],
       allow_discount_codes: true,
-      require_billing_address: false,
       success_url: '',
       return_url: '',
       discount_id: '',
@@ -171,7 +169,7 @@ export const CheckoutLinkForm = ({
   const onSubmit: SubmitHandler<CheckoutLinkCreateForm> = useCallback(
     async (data) => {
       const body: schemas['CheckoutLinkCreateProducts'] = {
-        payment_processor: 'stripe',
+        payment_processor: 'crypto',
         ...data,
         discount_id: data.discount_id || null,
         success_url: data.success_url || null,
@@ -403,32 +401,6 @@ export const CheckoutLinkForm = ({
             )
           }}
         />
-        <FormField
-          control={control}
-          name="require_billing_address"
-          render={({ field }) => {
-            return (
-              <FormItem>
-                <div className="flex flex-row items-center justify-between space-y-0 space-x-2">
-                  <FormLabel>Require billing address</FormLabel>
-                  <FormControl>
-                    <Switch
-                      checked={field.value}
-                      onCheckedChange={field.onChange}
-                    />
-                  </FormControl>
-                </div>
-                <FormMessage />
-                <FormDescription>
-                  {field.value
-                    ? 'Customers will need to provide their full billing address at checkout.'
-                    : 'Customers will just need to provide their country at checkout.'}
-                </FormDescription>
-              </FormItem>
-            )
-          }}
-        />
-
         {hasRecurringProducts && (
           <TrialConfigurationForm bottomText="This will override the trial configuration set on products." />
         )}

@@ -7,5 +7,3 @@ actions:
     remove: true
   - target: "$.paths['/v1/metrics/export'].get.parameters[?(@.name=='timezone')].schema.enum"
     remove: true
-  - target: "$.paths['/v1/meters/{id}/quantities'].get.parameters[?(@.name=='timezone')].schema.enum"
-    remove: true

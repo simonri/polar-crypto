@@ -14,7 +14,6 @@ import { OrganizationAccessTokenLeaked } from './organization_access_token_leake
 import { OrganizationAccountUnlink } from './organization_account_unlink'
 import { OrganizationInvite } from './organization_invite'
 import { PersonalAccessTokenLeaked } from './personal_access_token_leaked'
-import { PolarSelfStartupProgramWelcome } from './polar_self_startup_program_welcome'
 import { PolarSelfSubscriptionConfirmation } from './polar_self_subscription_confirmation'
 import { PolarSelfSubscriptionCycled } from './polar_self_subscription_cycled'
 import { SeatInvitation } from './seat_invitation'
@@ -63,7 +62,6 @@ const TEMPLATES: Record<string, React.FC<never>> = {
   notification_credits_granted: NotificationCreditsGranted,
   polar_self_subscription_confirmation: PolarSelfSubscriptionConfirmation,
   polar_self_subscription_cycled: PolarSelfSubscriptionCycled,
-  polar_self_startup_program_welcome: PolarSelfStartupProgramWelcome,
 }
 
 export default TEMPLATES

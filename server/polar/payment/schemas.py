@@ -20,7 +20,7 @@ PaymentID = Annotated[UUID4, Path(description="The payment ID.")]
 
 class PaymentBase(IDSchema, TimestampedSchema):
     processor: PaymentProcessor = Field(
-        description="The payment processor.", examples=[PaymentProcessor.stripe]
+        description="The payment processor.", examples=[PaymentProcessor.crypto]
     )
     status: PaymentStatus = Field(
         description="The payment status.", examples=[PaymentStatus.succeeded]

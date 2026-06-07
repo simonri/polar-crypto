@@ -1,18 +1,6 @@
 import { getPublicServerURL, getServerURL } from '@/utils/api'
-import { Client, operations, schemas } from '@polar-sh/client'
+import { Client, schemas } from '@polar-sh/client'
 import { redirect } from 'next/navigation'
-
-export const getGitHubAuthorizeLoginURL = (): string => {
-  return `${getPublicServerURL()}/v1/auth/github/authorize`
-}
-
-export const getGitHubAuthorizeLinkURL = (return_to?: string): string => {
-  const searchParams = new URLSearchParams()
-  if (return_to) {
-    searchParams.set('return_to', return_to)
-  }
-  return `${getPublicServerURL()}/v1/auth/github/link/authorize?${searchParams}`
-}
 
 export const getGoogleAuthorizeLoginURL = (): string => {
   return `${getPublicServerURL()}/v1/auth/google/authorize`
@@ -24,34 +12,6 @@ export const getGoogleAuthorizeLinkURL = (return_to?: string): string => {
     searchParams.set('return_to', return_to)
   }
   return `${getPublicServerURL()}/v1/auth/google/link/authorize?${searchParams}`
-}
-
-export const getAppleAuthorizeURL = (): string => {
-  return `${getPublicServerURL()}/v1/auth/apple/authorize`
-}
-
-export const getBotDiscordAuthorizeURL = (
-  params: NonNullable<
-    operations['integrations_discord:integrations.discord.bot_authorize']['parameters']['query']
-  >,
-): string => {
-  const searchParams = new URLSearchParams()
-  if (params.return_to) {
-    searchParams.set('return_to', params.return_to)
-  }
-  return `${getPublicServerURL()}/v1/integrations/discord/bot/authorize?${searchParams}`
-}
-
-export const getGitHubRepositoryBenefitAuthorizeURL = (
-  params: NonNullable<
-    operations['integrations_github_repository_benefit:integrations.github_repository_benefit.user_authorize']['parameters']['query']
-  >,
-): string => {
-  const searchParams = new URLSearchParams()
-  if (params.return_to) {
-    searchParams.set('return_to', params.return_to)
-  }
-  return `${getPublicServerURL()}/v1/integrations/github_repository_benefit/user/authorize?${searchParams}`
 }
 
 export const checkAuthenticationSession = async (

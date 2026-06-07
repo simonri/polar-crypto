@@ -337,8 +337,6 @@ class DescriptionListSocialsItem[M](DescriptionListItem[M]):
                                     text("Instagram:")
                                 elif platform.lower() == "facebook":
                                     text("Facebook:")
-                                elif platform.lower() == "discord":
-                                    text("Discord:")
                                 else:
                                     text(f"{platform.title()}:")
                             with tag.a(

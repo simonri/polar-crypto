@@ -1,6 +1,6 @@
 import { Heading, Markdown, Section } from 'react-email'
 import { schemas } from '../types'
-import { Check, Discord, Download, Gauge, GitHub, Key } from './Icons'
+import { Check, Discord, Download, GitHub, Key } from './Icons'
 
 const BenefitIcon = ({
   benefit: { type },
@@ -20,8 +20,6 @@ const BenefitIcon = ({
       return <Download width={width} height={height} />
     case 'license_keys':
       return <Key width={width} height={height} />
-    case 'meter_credit':
-      return <Gauge width={width} height={height} />
     default:
       return <Check width={width} height={height} />
   }

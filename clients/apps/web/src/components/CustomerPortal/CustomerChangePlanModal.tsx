@@ -2,7 +2,6 @@
 
 import { InlineModalHeader } from '@/components/Modal/InlineModal'
 import {
-  useCustomerPaymentMethods,
   useCustomerUpdateSubscription,
 } from '@/hooks/queries/customerPortal'
 import { hasLegacyRecurringPrices } from '@/utils/product'
@@ -13,7 +12,6 @@ import { List, ListItem } from '@polar-sh/ui/components/atoms/List'
 import { Checkbox } from '@polar-sh/ui/components/ui/checkbox'
 import { useRouter } from 'next/navigation'
 import { useCallback, useMemo, useState } from 'react'
-import { resolveBenefitIcon } from '../Benefit/utils'
 import ProductPriceLabel from '../Products/ProductPriceLabel'
 import { toast } from '../Toast/use-toast'
 
@@ -69,42 +67,7 @@ const CustomerChangePlanModal = ({
     schemas['CustomerProduct'] | null
   >(null)
 
-  const paymentMethods = useCustomerPaymentMethods(api)
-
-  const hasPaymentMethod = useMemo(() => {
-    return paymentMethods.data?.items.length ?? 0 > 0
-  }, [paymentMethods.data])
-
-  const needToAddPaymentMethod = useMemo(() => {
-    if (!selectedProduct) return false
-
-    const selectedPlanIsFree = selectedProduct?.prices.some(
-      (p) => p.amount_type === 'free',
-    )
-
-    if (selectedPlanIsFree) return false
-
-    return !hasPaymentMethod
-  }, [selectedProduct, hasPaymentMethod])
-
-  const addedBenefits = useMemo(() => {
-    if (!selectedProduct) return []
-    return selectedProduct.benefits.filter(
-      (benefit) =>
-        !subscription.product.benefits.some((b) => b.id === benefit.id),
-    )
-  }, [selectedProduct, subscription])
-  const removedBenefits = useMemo(() => {
-    if (!selectedProduct) return []
-    return subscription.product.benefits.filter(
-      (benefit) => !selectedProduct.benefits.some((b) => b.id === benefit.id),
-    )
-  }, [selectedProduct, subscription])
-
-  const prorationBehavior = useMemo(
-    () => organization.proration_behavior,
-    [organization],
-  )
+  const needToAddPaymentMethod = false
 
   const trialOutcome = useTrialChangeOutcome(subscription, selectedProduct)
 
@@ -117,7 +80,6 @@ const CustomerChangePlanModal = ({
     if (isTrialing) return [false, null]
 
     const willTrigger =
-      prorationBehavior !== 'next_period' &&
       selectedProduct.recurring_interval !==
         subscription.product.recurring_interval
 
@@ -136,7 +98,7 @@ const CustomerChangePlanModal = ({
     const chargeOrCredit = newPrice > currentPrice ? 'charge' : 'credit'
 
     return [willTrigger, chargeOrCredit]
-  }, [selectedProduct, prorationBehavior, subscription, isTrialing])
+  }, [selectedProduct, subscription, isTrialing])
 
   const invoicingMessage = useMemo(() => {
     if (!selectedProduct) return null
@@ -160,17 +122,9 @@ const CustomerChangePlanModal = ({
       }
     }
 
-    switch (prorationBehavior) {
-      case 'invoice':
-        return "I'll be charged immediately with a proration for the current month."
-      case 'prorate':
-        return 'Your next invoice will include the new plan plus the proration for the current month.'
-      case 'next_period':
-        return 'The new plan will be applied on your next billing cycle.'
-    }
+    return 'Your next invoice will include the new plan plus the proration for the current month.'
   }, [
     selectedProduct,
-    prorationBehavior,
     willTriggerImmediateCycle,
     nextInvoiceType,
     trialOutcome,
@@ -178,8 +132,7 @@ const CustomerChangePlanModal = ({
 
   const willIssueInvoice =
     trialOutcome?.kind === 'ends' ||
-    willTriggerImmediateCycle ||
-    prorationBehavior === 'invoice'
+    willTriggerImmediateCycle
   const [approveImmediateInvoice, setApproveImmediateInvoice] = useState(false)
 
   const canChangePlan = useMemo(() => {
@@ -195,9 +148,8 @@ const CustomerChangePlanModal = ({
 
     if (selectedPlanIsFree) return true
 
-    return hasPaymentMethod
+    return true
   }, [
-    hasPaymentMethod,
     selectedProduct,
     subscription,
     willIssueInvoice,
@@ -287,40 +239,6 @@ const CustomerChangePlanModal = ({
           </List>
         )}
         <div className="flex flex-col gap-y-6">
-          {addedBenefits.length > 0 && (
-            <div className="flex flex-col gap-y-4">
-              <h3 className="text-sm font-medium text-green-400">
-                You&apos;ll get access to the following benefits
-              </h3>
-              <div className="flex flex-col gap-y-2">
-                {addedBenefits.map((benefit) => (
-                  <div key={benefit.id} className="flex flex-row align-middle">
-                    <span className="dark:bg-polar-700 flex h-6 w-6 shrink-0 flex-row items-center justify-center rounded-full bg-blue-50 text-2xl text-blue-500 dark:text-white">
-                      {resolveBenefitIcon(benefit.type, 'h-3 w-3')}
-                    </span>
-                    <span className="ml-2 text-sm">{benefit.description}</span>
-                  </div>
-                ))}
-              </div>
-            </div>
-          )}
-          {removedBenefits.length > 0 && (
-            <div className="flex flex-col gap-y-4">
-              <h3 className="text-sm font-medium text-red-400">
-                You&apos;ll lose access to the following benefits
-              </h3>
-              <div className="flex flex-col gap-y-2">
-                {removedBenefits.map((benefit) => (
-                  <div key={benefit.id} className="flex flex-row align-middle">
-                    <span className="dark:bg-polar-700 flex h-6 w-6 shrink-0 flex-row items-center justify-center rounded-full bg-blue-50 text-2xl text-blue-500 dark:text-white">
-                      {resolveBenefitIcon(benefit.type, 'h-3 w-3')}
-                    </span>
-                    <span className="ml-2 text-sm">{benefit.description}</span>
-                  </div>
-                ))}
-              </div>
-            </div>
-          )}
           {invoicingMessage && (
             <label className="flex flex-row items-start gap-x-2">
               {willIssueInvoice && (

@@ -1,10 +1,10 @@
 """Docker-based isolated development environment.
 
-One shared infra stack (db, redis, minio, tinybird, optional prometheus/
+One shared infra stack (db, redis, tinybird, optional prometheus/
 grafana) is brought up per machine; each worktree gets its own per-instance
-app stack (api, worker, web) using its own postgres DB, Redis DB index, and
-S3 bucket pair. Service-aware commands auto-route by service name to the
-right project. `dev docker up` starts shared (if needed) then this instance.
+app stack (api, worker, web) using its own postgres DB and Redis DB index.
+Service-aware commands auto-route by service name to the right project.
+`dev docker up` starts shared (if needed) then this instance.
 """
 
 import json
@@ -67,69 +67,11 @@ def redis_db(instance: int) -> int:
     return instance
 
 
-def s3_bucket(instance: int) -> str:
-    return f"polar-s3-{instance}"
-
-
-def s3_public_bucket(instance: int) -> str:
-    return f"polar-s3-public-{instance}"
-
-
-# Host ports for the per-instance app stack. Only api and web publish host
-# ports (shared infra is reached by container name). Each instance gets one
-# port per service from a tight band whose trailing two digits are the
-# instance number; both bands stay clear of every RESERVED_HOST_PORT.
-# Instance 0 uses the legacy defaults.
-API_PORT_BASE = 8100  # instance 1..99 → 8101..8199
-WEB_PORT_BASE = 3100  # instance 1..99 → 3101..3199
-
-# Host ports published by the shared infra and the non-Docker dev tooling.
-# Per-instance app ports must never collide with these.
-RESERVED_HOST_PORTS = frozenset(
-    {
-        DEFAULT_API_PORT,  # 8000 — non-Docker / legacy api
-        DEFAULT_WEB_PORT,  # 3000 — non-Docker / legacy web
-        3001,  # grafana
-        5432,  # postgres
-        6379,  # redis
-        7181,  # tinybird
-        7182,  # tinybird admin
-        9000,  # minio api
-        9001,  # minio console
-        9090,  # prometheus
-    }
-)
-
-
-def api_port(instance: int) -> int:
-    return DEFAULT_API_PORT if instance == 0 else API_PORT_BASE + instance
-
-
-def web_port(instance: int) -> int:
-    return DEFAULT_WEB_PORT if instance == 0 else WEB_PORT_BASE + instance
-
-
-def _assert_ports_free(instance: int) -> None:
-    """Fail fast if an instance's api or web port falls on a reserved infra port."""
-    if instance == 0:
-        return  # instance 0 uses the reserved legacy defaults by design
-    for label, port in (("API", api_port(instance)), ("web", web_port(instance))):
-        if port in RESERVED_HOST_PORTS:
-            console.print(
-                f"[red]Instance {instance} maps {label} to reserved infra port "
-                f"{port}. This is a bug in the port scheme (dev/cli/commands/"
-                f"docker.py); please report it.[/red]"
-            )
-            raise typer.Exit(1)
-
-
 APP_SERVICES = frozenset(("api", "worker", "web"))
 SHARED_SERVICES = frozenset(
     (
         "db",
         "redis",
-        "minio",
-        "minio-setup",
         "tinybird",
         "prometheus",
         "grafana",
@@ -435,14 +377,13 @@ def _shared_is_running() -> bool:
 def _drop_instance_data(instance: int) -> None:
     """Best-effort cleanup of per-instance state in the shared infra.
 
-    Drops the postgres database, flushes the redis DB, and removes the S3
-    buckets. Each step is non-fatal — a missing DB or bucket is fine since the
-    api auto-creates them on next boot.
+    Drops the postgres database and flushes the redis DB.
+    Each step is non-fatal — a missing DB is fine since the api auto-creates it on next boot.
     """
     if not _shared_is_running():
         console.print(
             f"[yellow]Shared infra not running — skipping data cleanup for instance {instance}. "
-            "Start it with `dev docker up` and re-run prune to drop the DB / buckets.[/yellow]"
+            "Start it with `dev docker up` and re-run prune to drop the DB.[/yellow]"
         )
         return
 
@@ -481,28 +422,6 @@ def _drop_instance_data(instance: int) -> None:
         capture=True,
     )
 
-    bucket = s3_bucket(instance)
-    public_bucket = s3_public_bucket(instance)
-    console.print(f"[dim]  Removing S3 buckets {bucket}, {public_bucket}...[/dim]")
-    # `set -e` aborts on alias-set failure (e.g. minio unreachable) so the user
-    # sees the error. `|| true` on rb makes a missing bucket non-fatal — that's
-    # the expected case for any instance that never created buckets.
-    run_command(
-        _shared_compose_cmd()
-        + [
-            "run",
-            "--rm",
-            "--entrypoint",
-            "sh",
-            "minio-setup",
-            "-c",
-            'set -e; mc alias set local http://minio:9000 "$MINIO_ROOT_USER" "$MINIO_ROOT_PASSWORD"; '
-            f"mc rb --force local/{bucket} || true; "
-            f"mc rb --force local/{public_bucket} || true",
-        ],
-        capture=True,
-    )
-
 
 # --------------------------------------------------------------------------- #
 # Per-instance compose helpers
@@ -523,8 +442,6 @@ def _build_compose_env(instance: int) -> dict[str, str]:
         "WEB_PORT": str(web_port(instance)),
         "POLAR_POSTGRES_DATABASE": db_name(instance),
         "POLAR_REDIS_DB": str(redis_db(instance)),
-        "POLAR_S3_FILES_BUCKET_NAME": s3_bucket(instance),
-        "POLAR_S3_FILES_PUBLIC_BUCKET_NAME": s3_public_bucket(instance),
     }
 
 
@@ -559,8 +476,7 @@ def _print_access_info(ctx: typer.Context, instance: int) -> None:
     console.print("[bold]Polar Docker Development Environment[/bold]")
     console.print(f"Instance: {instance} (project {app_project(instance)})")
     console.print(
-        f"Database: {db_name(instance)}  Redis DB: {redis_db(instance)}  "
-        f"Buckets: {s3_bucket(instance)}, {s3_public_bucket(instance)}"
+        f"Database: {db_name(instance)}  Redis DB: {redis_db(instance)}"
     )
     console.print()
     console.print("[bold]App services:[/bold]")
@@ -605,7 +521,7 @@ def register(app: typer.Typer, prompt_setup: callable) -> None:
     ) -> None:
         """Isolated Docker development environment.
 
-        One shared infra stack (postgres/redis/minio/tinybird) lives on the
+        One shared infra stack (postgres/redis/tinybird) lives on the
         machine; each worktree gets its own api/worker/web on offset ports.
         Service-aware commands (logs, exec, restart, ...) auto-route to the
         right project based on the service name.
@@ -634,7 +550,7 @@ def register(app: typer.Typer, prompt_setup: callable) -> None:
     def _route(service: str | None, instance: int) -> tuple[list[str], dict[str, str]]:
         """Pick the right (compose_cmd, env) for a service.
 
-        - shared services (db, redis, minio, tinybird, prometheus, grafana) →
+        - shared services (db, redis, tinybird, prometheus, grafana) →
           the machine-wide `polar-shared` project
         - app services (api, worker, web) or no service → this instance's
           `polar-app-N` project
@@ -900,7 +816,7 @@ def register(app: typer.Typer, prompt_setup: callable) -> None:
         if not force:
             if all_:
                 console.print(
-                    "[red bold]This destroys ALL postgres data, MinIO objects, Tinybird events, prometheus/grafana state.[/red bold]"
+                    "[red bold]This destroys ALL postgres data, Tinybird events, prometheus/grafana state.[/red bold]"
                 )
                 console.print(
                     "[red]Every instance on this machine will be wiped.[/red]"
@@ -912,7 +828,7 @@ def register(app: typer.Typer, prompt_setup: callable) -> None:
                     "[yellow]This will remove this instance's api/worker/web containers and their build/cache volumes.[/yellow]"
                 )
                 console.print(
-                    "[dim]Shared infra (postgres, redis, minio, tinybird) is left untouched. Use --all to wipe that too.[/dim]"
+                    "[dim]Shared infra (postgres, redis, tinybird) is left untouched. Use --all to wipe that too.[/dim]"
                 )
                 if not typer.confirm("Continue?"):
                     raise typer.Abort()
@@ -977,8 +893,7 @@ def register(app: typer.Typer, prompt_setup: callable) -> None:
             f"DB=5432 (shared)[/dim]"
         )
         console.print(
-            f"[dim]Database: {db_name(instance)}, Redis DB: {redis_db(instance)}, "
-            f"Buckets: {s3_bucket(instance)}, {s3_public_bucket(instance)}[/dim]"
+            f"[dim]Database: {db_name(instance)}, Redis DB: {redis_db(instance)}[/dim]"
         )
 
     @docker_app.command("clear-instance")
@@ -1051,9 +966,8 @@ def register(app: typer.Typer, prompt_setup: callable) -> None:
         """Drop registry entries whose path no longer exists, plus all their data.
 
         For each stale entry: stops + removes its app stack (containers and
-        per-instance build volumes), drops its postgres database, flushes its
-        redis DB, and removes its S3 buckets. The shared infra itself is left
-        running.
+        per-instance build volumes), drops its postgres database, and flushes
+        its redis DB. The shared infra itself is left running.
         """
         data = _load_registry()
         stale = [e for e in data["instances"] if not Path(e["path"]).exists()]
@@ -1068,7 +982,7 @@ def register(app: typer.Typer, prompt_setup: callable) -> None:
             console.print(f"  Instance {entry['instance']}: {entry['path']}")
         console.print(
             "[red bold]This will drop their app containers, build volumes, "
-            "postgres databases, redis data, and S3 buckets. Data will be lost.[/red bold]"
+            "postgres databases, and redis data. Data will be lost.[/red bold]"
         )
 
         if not force and not typer.confirm("Continue?"):

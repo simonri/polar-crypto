@@ -5,7 +5,6 @@ from httpx import AsyncClient
 
 from polar.member.repository import MemberRepository
 from polar.models import (
-    Benefit,
     Customer,
     Organization,
     Product,
@@ -13,12 +12,9 @@ from polar.models import (
 )
 from polar.models.subscription import SubscriptionStatus
 from polar.postgres import AsyncSession
-from polar.tax.tax_id import TaxIDFormat
 from tests.fixtures.auth import AuthSubjectFixture
 from tests.fixtures.database import SaveFixture
 from tests.fixtures.random_objects import (
-    create_active_subscription,
-    create_benefit_grant,
     create_customer,
     create_payment_method,
     create_subscription,
@@ -297,50 +293,6 @@ class TestGetState:
         response = await client.get(f"/v1/customers/{uuid.uuid4()}/state")
 
         assert response.status_code == 404
-
-    @pytest.mark.auth
-    async def test_valid(
-        self,
-        save_fixture: SaveFixture,
-        client: AsyncClient,
-        user_organization: UserOrganization,
-        customer: Customer,
-        product: Product,
-        benefit_organization: Benefit,
-    ) -> None:
-        subscription = await create_active_subscription(
-            save_fixture, product=product, customer=customer
-        )
-        grant = await create_benefit_grant(
-            save_fixture,
-            customer,
-            benefit_organization,
-            granted=True,
-            subscription=subscription,
-        )
-        revoked_grant = await create_benefit_grant(
-            save_fixture,
-            customer,
-            benefit_organization,
-            granted=False,
-        )
-
-        response = await client.get(f"/v1/customers/{customer.id}/state")
-
-        assert response.status_code == 200
-
-        json = response.json()
-
-        assert len(json["active_subscriptions"]) == 1
-        assert json["active_subscriptions"][0]["id"] == str(subscription.id)
-
-        assert len(json["granted_benefits"]) == 1
-        assert json["granted_benefits"][0]["id"] == str(grant.id)
-        assert json["granted_benefits"][0]["benefit_type"] == benefit_organization.type
-        assert (
-            json["granted_benefits"][0]["benefit_metadata"]
-            == benefit_organization.user_metadata
-        )
 
 
 @pytest.mark.asyncio
@@ -785,42 +737,6 @@ class TestDeleteCustomerWithAnonymize:
 
         # Customer should be marked as deleted
         assert deleted.deleted_at is not None
-
-    @pytest.mark.auth
-    async def test_business_customer_preserves_name(
-        self,
-        save_fixture: SaveFixture,
-        session: AsyncSession,
-        client: AsyncClient,
-        organization: Organization,
-        user_organization: UserOrganization,
-    ) -> None:
-        """Business customers (has tax_id) should have name preserved."""
-        customer = await create_customer(
-            save_fixture,
-            organization=organization,
-            email="business@example.com",
-            name="Acme Corp",
-            tax_id=("DE123456789", TaxIDFormat.eu_vat),
-        )
-
-        response = await client.delete(f"/v1/customers/{customer.id}?anonymize=true")
-
-        assert response.status_code == 204
-
-        # Verify by fetching directly from DB
-        deleted = await session.get(Customer, customer.id)
-        assert deleted is not None
-
-        # Email should be hashed
-        assert deleted.email is not None
-        assert deleted.email.endswith("@anonymized.polar.sh")
-
-        # Name should be PRESERVED for businesses
-        assert deleted.name == "Acme Corp"
-
-        # Tax ID should be PRESERVED
-        assert deleted.tax_id is not None
 
     @pytest.mark.auth
     async def test_preserves_external_id(

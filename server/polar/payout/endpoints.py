@@ -20,7 +20,7 @@ from polar.routing import APIRouter
 from . import auth as payouts_auth
 from . import sorting
 from .schemas import Payout as PayoutSchema
-from .schemas import PayoutCreate, PayoutEstimate, PayoutGenerateInvoice, PayoutInvoice
+from .schemas import PayoutCreate, PayoutEstimate
 from .service import InsufficientBalance
 from .service import payout as payout_service
 
@@ -150,36 +150,3 @@ async def get_csv(
     )
 
 
-@router.post("/{id}/invoice", status_code=202)
-async def generate_invoice(
-    id: UUID4,
-    payout_generate_invoice: PayoutGenerateInvoice,
-    auth_subject: payouts_auth.PayoutsWrite,
-    session: AsyncSession = Depends(get_db_session),
-) -> None:
-    """Trigger generation of an order's invoice."""
-    payout = await payout_service.get(
-        session, auth_subject, id, permission=OrganizationPermission.finance_manage
-    )
-
-    if payout is None:
-        raise ResourceNotFound()
-
-    await payout_service.trigger_invoice_generation(
-        session, payout, payout_generate_invoice
-    )
-
-
-@router.get("/{id}/invoice")
-async def invoice(
-    id: UUID4,
-    auth_subject: payouts_auth.PayoutsRead,
-    session: AsyncSession = Depends(get_db_session),
-) -> PayoutInvoice:
-    """Get an order's invoice data."""
-    payout = await payout_service.get(session, auth_subject, id)
-
-    if payout is None:
-        raise ResourceNotFound()
-
-    return await payout_service.get_invoice(payout)

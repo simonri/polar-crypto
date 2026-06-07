@@ -1,34 +1,27 @@
 import uuid
-from decimal import Decimal
-from typing import Any
-from unittest.mock import AsyncMock, call
+from unittest.mock import AsyncMock
 
 import pytest
 from pytest_mock import MockerFixture
 
 from polar.auth.models import AuthSubject
-from polar.enums import SubscriptionRecurringInterval, TaxBehaviorOption
+from polar.enums import SubscriptionRecurringInterval
 from polar.exceptions import PolarRequestValidationError
 from polar.kit.currency import PresentmentCurrency
 from polar.kit.pagination import PaginationParams
 from polar.kit.trial import TrialInterval
 from polar.models import (
-    Benefit,
-    File,
-    Meter,
     Organization,
     Product,
     User,
     UserOrganization,
 )
-from polar.models.benefit import BenefitType
-from polar.models.file import FileServiceTypes, ProductMediaFile
 from polar.models.product_price import (
     ProductPriceAmountType,
     ProductPriceFixed,
 )
 from polar.postgres import AsyncSession
-from polar.product.guard import is_metered_price, is_static_price
+from polar.product.guard import is_static_price
 from polar.product.schemas import (
     ExistingProductPrice,
     ProductCreate,
@@ -37,10 +30,6 @@ from polar.product.schemas import (
     ProductPriceCustomCreate,
     ProductPriceFixedCreate,
     ProductPriceFreeCreate,
-    ProductPriceMeteredUnitCreate,
-    ProductPriceSeatBasedCreate,
-    ProductPriceSeatTier,
-    ProductPriceSeatTiers,
     ProductUpdate,
 )
 from polar.product.service import product as product_service
@@ -48,11 +37,8 @@ from polar.product.sorting import ProductSortProperty
 from tests.fixtures.auth import AuthSubjectFixture
 from tests.fixtures.database import SaveFixture
 from tests.fixtures.random_objects import (
-    METER_ID,
-    create_benefit,
     create_checkout_link,
     create_product,
-    set_product_benefits,
 )
 
 
@@ -230,42 +216,6 @@ class TestList:
         assert count == 1
         assert len(results) == 1
         assert results[0].id == archived_product.id
-
-    @pytest.mark.auth
-    async def test_filter_benefit_id(
-        self,
-        save_fixture: SaveFixture,
-        auth_subject: AuthSubject[User],
-        session: AsyncSession,
-        organization: Organization,
-        products: list[Product],
-        benefit_organization: Benefit,
-        benefit_organization_second: Benefit,
-        user_organization: UserOrganization,
-    ) -> None:
-        for product in products[:2]:
-            await set_product_benefits(
-                save_fixture,
-                product=product,
-                benefits=[benefit_organization, benefit_organization_second],
-            )
-
-        # then
-        session.expunge_all()
-
-        results, count = await product_service.list(
-            session,
-            auth_subject,
-            organization_id=[organization.id],
-            benefit_id=[benefit_organization.id],
-            pagination=PaginationParams(1, 10),
-            sorting=[(ProductSortProperty.created_at, False)],
-        )
-
-        assert count == 2
-        assert len(results) == 2
-        assert results[0].id == products[0].id
-        assert results[1].id == products[1].id
 
 
 @pytest.mark.asyncio
@@ -471,122 +421,6 @@ class TestCreate:
         product = await product_service.create(session, create_schema, auth_subject)
         assert product.organization_id == organization.id
 
-    @pytest.mark.auth
-    async def test_not_existing_media(
-        self,
-        auth_subject: AuthSubject[Organization],
-        session: AsyncSession,
-        organization: Organization,
-        user_organization: UserOrganization,
-    ) -> None:
-        create_schema = ProductCreateRecurring(
-            name="Product",
-            organization_id=organization.id,
-            recurring_interval=SubscriptionRecurringInterval.month,
-            prices=[
-                ProductPriceFixedCreate(
-                    amount_type=ProductPriceAmountType.fixed,
-                    price_amount=1000,
-                    price_currency=PresentmentCurrency.usd,
-                )
-            ],
-            medias=[uuid.uuid4()],
-        )
-
-        with pytest.raises(PolarRequestValidationError):
-            await product_service.create(session, create_schema, auth_subject)
-
-    @pytest.mark.auth
-    @pytest.mark.parametrize(
-        "file_kwargs",
-        [
-            {"service": FileServiceTypes.downloadable},
-            {"is_enabled": False},
-            {"is_uploaded": False},
-        ],
-    )
-    async def test_invalid_media(
-        self,
-        file_kwargs: dict[str, Any],
-        save_fixture: SaveFixture,
-        auth_subject: AuthSubject[Organization],
-        session: AsyncSession,
-        organization: Organization,
-        user_organization: UserOrganization,
-    ) -> None:
-        file = File(
-            **{
-                "organization": organization,
-                "name": "Product Cover",
-                "path": "/product-cover.jpg",
-                "mime_type": "image/jpeg",
-                "size": 1024,
-                "service": FileServiceTypes.product_media,
-                "is_enabled": True,
-                "is_uploaded": True,
-                **file_kwargs,
-            }
-        )
-        await save_fixture(file)
-
-        create_schema = ProductCreateRecurring(
-            name="Product",
-            organization_id=organization.id,
-            recurring_interval=SubscriptionRecurringInterval.month,
-            prices=[
-                ProductPriceFixedCreate(
-                    amount_type=ProductPriceAmountType.fixed,
-                    price_amount=1000,
-                    price_currency=PresentmentCurrency.usd,
-                )
-            ],
-            medias=[file.id],
-        )
-
-        with pytest.raises(PolarRequestValidationError):
-            await product_service.create(session, create_schema, auth_subject)
-
-    @pytest.mark.auth
-    async def test_valid_media(
-        self,
-        save_fixture: SaveFixture,
-        auth_subject: AuthSubject[Organization],
-        session: AsyncSession,
-        organization: Organization,
-        user_organization: UserOrganization,
-    ) -> None:
-        file = ProductMediaFile(
-            **{
-                "organization": organization,
-                "name": "Product Cover",
-                "path": "/product-cover.jpg",
-                "mime_type": "image/jpeg",
-                "size": 1024,
-                "service": FileServiceTypes.product_media,
-                "is_enabled": True,
-                "is_uploaded": True,
-            }
-        )
-        await save_fixture(file)
-
-        create_schema = ProductCreateRecurring(
-            name="Product",
-            organization_id=organization.id,
-            recurring_interval=SubscriptionRecurringInterval.month,
-            prices=[
-                ProductPriceFixedCreate(
-                    amount_type=ProductPriceAmountType.fixed,
-                    price_amount=1000,
-                    price_currency=PresentmentCurrency.usd,
-                )
-            ],
-            medias=[file.id],
-        )
-
-        product = await product_service.create(session, create_schema, auth_subject)
-
-        assert len(product.medias) == 1
-
     @pytest.mark.parametrize(
         "create_schema",
         [
@@ -629,18 +463,6 @@ class TestCreate:
                     )
                 ],
             ),
-            ProductCreateRecurring(
-                name="Recurring metered unit",
-                recurring_interval=SubscriptionRecurringInterval.month,
-                prices=[
-                    ProductPriceMeteredUnitCreate(
-                        amount_type=ProductPriceAmountType.metered_unit,
-                        price_currency=PresentmentCurrency.usd,
-                        unit_amount=Decimal(100),
-                        meter_id=METER_ID,
-                    )
-                ],
-            ),
         ],
     )
     @pytest.mark.auth
@@ -651,7 +473,6 @@ class TestCreate:
         session: AsyncSession,
         organization: Organization,
         user_organization: UserOrganization,
-        meter: Meter,
     ) -> None:
         create_schema.organization_id = organization.id
         product = await product_service.create(session, create_schema, auth_subject)
@@ -666,7 +487,6 @@ class TestCreate:
         session: AsyncSession,
         organization: Organization,
         user_organization: UserOrganization,
-        meter: Meter,
     ) -> None:
         with pytest.raises(PolarRequestValidationError):
             await product_service.create(
@@ -683,94 +503,6 @@ class TestCreate:
                             amount_type=ProductPriceAmountType.fixed,
                             price_amount=2000,
                             price_currency=PresentmentCurrency.usd,
-                        ),
-                    ],
-                    organization_id=organization.id,
-                ),
-                auth_subject,
-            )
-
-    @pytest.mark.auth
-    async def test_invalid_metered_not_existing_meter(
-        self,
-        auth_subject: AuthSubject[User],
-        session: AsyncSession,
-        organization: Organization,
-        user_organization: UserOrganization,
-    ) -> None:
-        with pytest.raises(PolarRequestValidationError):
-            await product_service.create(
-                session,
-                ProductCreateRecurring(
-                    name="Product",
-                    recurring_interval=SubscriptionRecurringInterval.month,
-                    prices=[
-                        ProductPriceMeteredUnitCreate(
-                            amount_type=ProductPriceAmountType.metered_unit,
-                            price_currency=PresentmentCurrency.usd,
-                            unit_amount=Decimal(100),
-                            meter_id=uuid.uuid4(),
-                        ),
-                    ],
-                    organization_id=organization.id,
-                ),
-                auth_subject,
-            )
-
-    @pytest.mark.auth
-    async def test_invalid_metered_one_time_product(
-        self,
-        auth_subject: AuthSubject[User],
-        session: AsyncSession,
-        organization: Organization,
-        user_organization: UserOrganization,
-        meter: Meter,
-    ) -> None:
-        with pytest.raises(PolarRequestValidationError):
-            await product_service.create(
-                session,
-                ProductCreateOneTime(
-                    name="Product",
-                    prices=[
-                        ProductPriceMeteredUnitCreate(
-                            amount_type=ProductPriceAmountType.metered_unit,
-                            price_currency=PresentmentCurrency.usd,
-                            unit_amount=Decimal(100),
-                            meter_id=meter.id,
-                        ),
-                    ],
-                    organization_id=organization.id,
-                ),
-                auth_subject,
-            )
-
-    @pytest.mark.auth
-    async def test_invalid_metered_duplicate_meters(
-        self,
-        auth_subject: AuthSubject[User],
-        session: AsyncSession,
-        organization: Organization,
-        user_organization: UserOrganization,
-        meter: Meter,
-    ) -> None:
-        with pytest.raises(PolarRequestValidationError):
-            await product_service.create(
-                session,
-                ProductCreateRecurring(
-                    name="Product",
-                    recurring_interval=SubscriptionRecurringInterval.month,
-                    prices=[
-                        ProductPriceMeteredUnitCreate(
-                            amount_type=ProductPriceAmountType.metered_unit,
-                            price_currency=PresentmentCurrency.usd,
-                            unit_amount=Decimal(100),
-                            meter_id=meter.id,
-                        ),
-                        ProductPriceMeteredUnitCreate(
-                            amount_type=ProductPriceAmountType.metered_unit,
-                            price_currency=PresentmentCurrency.usd,
-                            unit_amount=Decimal(200),
-                            meter_id=meter.id,
                         ),
                     ],
                     organization_id=organization.id,
@@ -816,7 +548,6 @@ class TestCreate:
         session: AsyncSession,
         organization: Organization,
         user_organization: UserOrganization,
-        meter: Meter,
     ) -> None:
         """Test that each currency must have the same set of prices"""
         with pytest.raises(PolarRequestValidationError):
@@ -831,18 +562,17 @@ class TestCreate:
                             price_amount=1000,
                             price_currency=PresentmentCurrency.usd,
                         ),
-                        ProductPriceMeteredUnitCreate(
-                            amount_type=ProductPriceAmountType.metered_unit,
+                        ProductPriceCustomCreate(
+                            amount_type=ProductPriceAmountType.custom,
                             price_currency=PresentmentCurrency.usd,
-                            unit_amount=Decimal(100),
-                            meter_id=meter.id,
+                            minimum_amount=100,
                         ),
                         ProductPriceFixedCreate(
                             amount_type=ProductPriceAmountType.fixed,
                             price_amount=900,
                             price_currency=PresentmentCurrency.eur,
                         ),
-                        # Missing metered price for EUR - should fail
+                        # Missing custom price for EUR - should fail
                     ],
                     organization_id=organization.id,
                 ),
@@ -856,7 +586,6 @@ class TestCreate:
         session: AsyncSession,
         organization: Organization,
         user_organization: UserOrganization,
-        meter: Meter,
     ) -> None:
         """Test that the default presentment currency is included in the product prices"""
         with pytest.raises(PolarRequestValidationError):
@@ -884,7 +613,6 @@ class TestCreate:
         session: AsyncSession,
         organization: Organization,
         user_organization: UserOrganization,
-        meter: Meter,
     ) -> None:
         """Test that a product with multiple currencies is valid when each currency has the same price structure"""
         product = await product_service.create(
@@ -899,11 +627,10 @@ class TestCreate:
                         price_amount=1000,
                         price_currency=PresentmentCurrency.usd,
                     ),
-                    ProductPriceMeteredUnitCreate(
-                        amount_type=ProductPriceAmountType.metered_unit,
+                    ProductPriceCustomCreate(
+                        amount_type=ProductPriceAmountType.custom,
                         price_currency=PresentmentCurrency.usd,
-                        unit_amount=Decimal(100),
-                        meter_id=meter.id,
+                        minimum_amount=100,
                     ),
                     # EUR prices (same structure as USD)
                     ProductPriceFixedCreate(
@@ -911,11 +638,10 @@ class TestCreate:
                         price_amount=900,
                         price_currency=PresentmentCurrency.eur,
                     ),
-                    ProductPriceMeteredUnitCreate(
-                        amount_type=ProductPriceAmountType.metered_unit,
+                    ProductPriceCustomCreate(
+                        amount_type=ProductPriceAmountType.custom,
                         price_currency=PresentmentCurrency.eur,
-                        unit_amount=Decimal(90),
-                        meter_id=meter.id,
+                        minimum_amount=100,
                     ),
                     # GBP prices (same structure as USD and EUR)
                     ProductPriceFixedCreate(
@@ -923,11 +649,10 @@ class TestCreate:
                         price_amount=800,
                         price_currency=PresentmentCurrency.gbp,
                     ),
-                    ProductPriceMeteredUnitCreate(
-                        amount_type=ProductPriceAmountType.metered_unit,
+                    ProductPriceCustomCreate(
+                        amount_type=ProductPriceAmountType.custom,
                         price_currency=PresentmentCurrency.gbp,
-                        unit_amount=Decimal(80),
-                        meter_id=meter.id,
+                        minimum_amount=100,
                     ),
                 ],
                 organization_id=organization.id,
@@ -938,7 +663,7 @@ class TestCreate:
         assert product.organization_id == organization.id
         assert len(product.prices) == 6  # 2 price types × 3 currencies
 
-        # Verify each currency has both fixed and metered prices
+        # Verify each currency has both fixed and custom prices
         for currency in ["usd", "eur", "gbp"]:
             currency_prices = [
                 p for p in product.prices if p.price_currency == currency
@@ -946,157 +671,14 @@ class TestCreate:
             assert len(currency_prices) == 2
 
             fixed_prices = [p for p in currency_prices if is_static_price(p)]
-            metered_prices = [p for p in currency_prices if is_metered_price(p)]
+            custom_prices = [
+                p
+                for p in currency_prices
+                if p.amount_type == ProductPriceAmountType.custom
+            ]
 
             assert len(fixed_prices) == 1
-            assert len(metered_prices) == 1
-
-    @pytest.mark.auth
-    async def test_seat_based_price_feature_disabled(
-        self,
-        auth_subject: AuthSubject[User],
-        session: AsyncSession,
-        organization: Organization,
-        user_organization: UserOrganization,
-    ) -> None:
-        create_schema = ProductCreateRecurring(
-            name="Product",
-            organization_id=organization.id,
-            recurring_interval=SubscriptionRecurringInterval.month,
-            prices=[
-                ProductPriceSeatBasedCreate(
-                    amount_type=ProductPriceAmountType.seat_based,
-                    price_currency=PresentmentCurrency.usd,
-                    seat_tiers=ProductPriceSeatTiers(
-                        tiers=[
-                            ProductPriceSeatTier(
-                                min_seats=1,
-                                max_seats=None,
-                                price_per_seat=1000,
-                            )
-                        ]
-                    ),
-                )
-            ],
-        )
-
-        with pytest.raises(PolarRequestValidationError):
-            await product_service.create(session, create_schema, auth_subject)
-
-    @pytest.mark.auth
-    async def test_seat_based_price_feature_enabled(
-        self,
-        auth_subject: AuthSubject[User],
-        session: AsyncSession,
-        organization: Organization,
-        user_organization: UserOrganization,
-    ) -> None:
-        organization.feature_settings = {"seat_based_pricing_enabled": True}
-        session.add(organization)
-        await session.flush()
-
-        create_schema = ProductCreateRecurring(
-            name="Product",
-            organization_id=organization.id,
-            recurring_interval=SubscriptionRecurringInterval.month,
-            prices=[
-                ProductPriceSeatBasedCreate(
-                    amount_type=ProductPriceAmountType.seat_based,
-                    price_currency=PresentmentCurrency.usd,
-                    seat_tiers=ProductPriceSeatTiers(
-                        tiers=[
-                            ProductPriceSeatTier(
-                                min_seats=1,
-                                max_seats=None,
-                                price_per_seat=1000,
-                            )
-                        ]
-                    ),
-                )
-            ],
-        )
-
-        product = await product_service.create(session, create_schema, auth_subject)
-        assert product.organization_id == organization.id
-        assert len(product.prices) == 1
-
-    @pytest.mark.auth
-    async def test_invalid_inconsistent_tax_behavior_same_currency(
-        self,
-        auth_subject: AuthSubject[User],
-        session: AsyncSession,
-        organization: Organization,
-        user_organization: UserOrganization,
-        meter: Meter,
-    ) -> None:
-        """Test that prices for the same currency must have the same tax_behavior"""
-        with pytest.raises(PolarRequestValidationError):
-            await product_service.create(
-                session,
-                ProductCreateRecurring(
-                    name="Product",
-                    recurring_interval=SubscriptionRecurringInterval.month,
-                    prices=[
-                        ProductPriceFixedCreate(
-                            amount_type=ProductPriceAmountType.fixed,
-                            price_amount=1000,
-                            price_currency=PresentmentCurrency.usd,
-                            tax_behavior=TaxBehaviorOption.inclusive,
-                        ),
-                        ProductPriceMeteredUnitCreate(
-                            amount_type=ProductPriceAmountType.metered_unit,
-                            price_currency=PresentmentCurrency.usd,
-                            unit_amount=Decimal(100),
-                            meter_id=meter.id,
-                            tax_behavior=TaxBehaviorOption.exclusive,
-                        ),
-                    ],
-                    organization_id=organization.id,
-                ),
-                auth_subject,
-            )
-
-    @pytest.mark.auth
-    async def test_valid_consistent_tax_behavior_same_currency(
-        self,
-        auth_subject: AuthSubject[User],
-        session: AsyncSession,
-        organization: Organization,
-        user_organization: UserOrganization,
-        meter: Meter,
-    ) -> None:
-        """Test that prices for the same currency with the same tax_behavior are valid"""
-        product = await product_service.create(
-            session,
-            ProductCreateRecurring(
-                name="Product",
-                recurring_interval=SubscriptionRecurringInterval.month,
-                prices=[
-                    ProductPriceFixedCreate(
-                        amount_type=ProductPriceAmountType.fixed,
-                        price_amount=1000,
-                        price_currency=PresentmentCurrency.usd,
-                        tax_behavior=TaxBehaviorOption.inclusive,
-                    ),
-                    ProductPriceMeteredUnitCreate(
-                        amount_type=ProductPriceAmountType.metered_unit,
-                        price_currency=PresentmentCurrency.usd,
-                        unit_amount=Decimal(100),
-                        meter_id=meter.id,
-                        tax_behavior=TaxBehaviorOption.inclusive,
-                    ),
-                ],
-                organization_id=organization.id,
-            ),
-            auth_subject,
-        )
-
-        assert product.organization_id == organization.id
-        assert len(product.prices) == 2
-        assert all(
-            p.tax_behavior == TaxBehaviorOption.inclusive for p in product.prices
-        )
-
+            assert len(custom_prices) == 1
 
 @pytest.mark.asyncio
 class TestUpdate:
@@ -1323,109 +905,6 @@ class TestUpdate:
         AuthSubjectFixture(subject="user"),
         AuthSubjectFixture(subject="organization"),
     )
-    async def test_not_existing_media(
-        self,
-        auth_subject: AuthSubject[User],
-        session: AsyncSession,
-        product: Product,
-        user_organization: UserOrganization,
-    ) -> None:
-        update_schema = ProductUpdate(medias=[uuid.uuid4()])
-        with pytest.raises(PolarRequestValidationError):
-            await product_service.update(
-                session,
-                product,
-                update_schema,
-                auth_subject,
-            )
-
-    @pytest.mark.auth(
-        AuthSubjectFixture(subject="user"),
-        AuthSubjectFixture(subject="organization"),
-    )
-    @pytest.mark.parametrize(
-        "file_kwargs",
-        [
-            {"service": FileServiceTypes.downloadable},
-            {"is_enabled": False},
-            {"is_uploaded": False},
-        ],
-    )
-    async def test_invalid_media(
-        self,
-        file_kwargs: dict[str, Any],
-        save_fixture: SaveFixture,
-        auth_subject: AuthSubject[User],
-        session: AsyncSession,
-        product: Product,
-        organization: Organization,
-        user_organization: UserOrganization,
-    ) -> None:
-        file = File(
-            **{
-                "organization": organization,
-                "name": "Product Cover",
-                "path": "/product-cover.jpg",
-                "mime_type": "image/jpeg",
-                "size": 1024,
-                "service": FileServiceTypes.product_media,
-                "is_enabled": True,
-                "is_uploaded": True,
-                **file_kwargs,
-            }
-        )
-        await save_fixture(file)
-
-        update_schema = ProductUpdate(medias=[file.id])
-        with pytest.raises(PolarRequestValidationError):
-            await product_service.update(
-                session,
-                product,
-                update_schema,
-                auth_subject,
-            )
-
-    @pytest.mark.auth(
-        AuthSubjectFixture(subject="user"),
-        AuthSubjectFixture(subject="organization"),
-    )
-    async def test_valid_media(
-        self,
-        save_fixture: SaveFixture,
-        auth_subject: AuthSubject[User],
-        session: AsyncSession,
-        product: Product,
-        organization: Organization,
-        user_organization: UserOrganization,
-    ) -> None:
-        file = ProductMediaFile(
-            **{
-                "organization": organization,
-                "name": "Product Cover",
-                "path": "/product-cover.jpg",
-                "mime_type": "image/jpeg",
-                "size": 1024,
-                "service": FileServiceTypes.product_media,
-                "is_enabled": True,
-                "is_uploaded": True,
-            }
-        )
-        await save_fixture(file)
-
-        update_schema = ProductUpdate(medias=[file.id])
-        updated_product = await product_service.update(
-            session,
-            product,
-            update_schema,
-            auth_subject,
-        )
-
-        assert len(updated_product.medias) == 1
-
-    @pytest.mark.auth(
-        AuthSubjectFixture(subject="user"),
-        AuthSubjectFixture(subject="organization"),
-    )
     async def test_invalid_change_recurring_interval_on_non_legacy_product(
         self,
         session: AsyncSession,
@@ -1578,35 +1057,6 @@ class TestUpdate:
         AuthSubjectFixture(subject="user"),
         AuthSubjectFixture(subject="organization"),
     )
-    async def test_invalid_metered_not_existing_meter(
-        self,
-        auth_subject: AuthSubject[User],
-        session: AsyncSession,
-        product: Product,
-        user_organization: UserOrganization,
-    ) -> None:
-        update_schema = ProductUpdate(
-            prices=[
-                ProductPriceMeteredUnitCreate(
-                    amount_type=ProductPriceAmountType.metered_unit,
-                    price_currency=PresentmentCurrency.usd,
-                    unit_amount=Decimal(100),
-                    meter_id=uuid.uuid4(),
-                ),
-            ]
-        )
-        with pytest.raises(PolarRequestValidationError):
-            await product_service.update(
-                session,
-                product,
-                update_schema,
-                auth_subject,
-            )
-
-    @pytest.mark.auth(
-        AuthSubjectFixture(subject="user"),
-        AuthSubjectFixture(subject="organization"),
-    )
     async def test_invalid_trial_configuration_on_non_recurring(
         self,
         session: AsyncSession,
@@ -1650,399 +1100,3 @@ class TestUpdate:
         assert product.trial_interval_count is None
 
 
-@pytest.mark.asyncio
-class TestUpdateBenefits:
-    @pytest.mark.auth(
-        AuthSubjectFixture(subject="user"),
-        AuthSubjectFixture(subject="organization"),
-    )
-    async def test_not_existing_benefit(
-        self,
-        session: AsyncSession,
-        save_fixture: SaveFixture,
-        auth_subject: AuthSubject[User | Organization],
-        user_organization: UserOrganization,
-        product: Product,
-        benefits: list[Benefit],
-    ) -> None:
-        product = await set_product_benefits(
-            save_fixture, product=product, benefits=benefits
-        )
-        assert len(product.product_benefits) == len(benefits)
-
-        with pytest.raises(PolarRequestValidationError):
-            await product_service.update_benefits(
-                session,
-                product,
-                [uuid.uuid4()],
-                auth_subject,
-            )
-
-        assert len(product.product_benefits) == len(benefits)
-
-    @pytest.mark.auth(AuthSubjectFixture(subject="user"))
-    async def test_benefit_from_another_organization(
-        self,
-        session: AsyncSession,
-        save_fixture: SaveFixture,
-        auth_subject: AuthSubject[User],
-        user: User,
-        user_organization: UserOrganization,
-        organization_second: Organization,
-        product: Product,
-    ) -> None:
-        benefit_other_organization = await create_benefit(
-            save_fixture, organization=organization_second
-        )
-        await save_fixture(
-            UserOrganization(user=user, organization=organization_second)
-        )
-
-        with pytest.raises(PolarRequestValidationError, match="same organization"):
-            await product_service.update_benefits(
-                session,
-                product,
-                [benefit_other_organization.id],
-                auth_subject,
-            )
-
-    @pytest.mark.auth(
-        AuthSubjectFixture(subject="user"),
-        AuthSubjectFixture(subject="organization"),
-    )
-    async def test_added_benefits(
-        self,
-        save_fixture: SaveFixture,
-        session: AsyncSession,
-        enqueue_job_mock: AsyncMock,
-        auth_subject: AuthSubject[User | Organization],
-        user_organization: UserOrganization,
-        product: Product,
-        benefits: list[Benefit],
-    ) -> None:
-        await set_product_benefits(save_fixture, product=product, benefits=[])
-
-        (
-            product,
-            added,
-            deleted,
-        ) = await product_service.update_benefits(
-            session,
-            product,
-            [benefit.id for benefit in benefits],
-            auth_subject,
-        )
-        await session.flush()
-
-        assert len(product.product_benefits) == len(benefits)
-        for i, product_benefit in enumerate(product.product_benefits):
-            assert product_benefit.order == i
-            assert benefits[i].id == product_benefit.benefit_id
-
-        assert len(added) == len(benefits)
-        assert len(deleted) == 0
-
-        enqueue_job_mock.assert_has_calls(
-            [
-                call(
-                    "subscription.subscription.update_product_benefits_grants",
-                    product.id,
-                ),
-                call("order.update_product_benefits_grants", product.id),
-                call(
-                    "customer_seat.update_product_benefits_grants",
-                    product.id,
-                ),
-            ]
-        )
-
-    @pytest.mark.auth(
-        AuthSubjectFixture(subject="user"),
-        AuthSubjectFixture(subject="organization"),
-    )
-    async def test_order(
-        self,
-        save_fixture: SaveFixture,
-        session: AsyncSession,
-        enqueue_job_mock: AsyncMock,
-        auth_subject: AuthSubject[User | Organization],
-        user_organization: UserOrganization,
-        product: Product,
-        benefits: list[Benefit],
-    ) -> None:
-        await set_product_benefits(save_fixture, product=product, benefits=[])
-
-        (
-            product,
-            added,
-            deleted,
-        ) = await product_service.update_benefits(
-            session,
-            product,
-            [benefit.id for benefit in benefits[::-1]],
-            auth_subject,
-        )
-        await session.flush()
-
-        assert len(product.product_benefits) == len(benefits)
-        for i, product_benefit in enumerate(product.product_benefits):
-            assert product_benefit.order == i
-            assert benefits[-i - 1].id == product_benefit.benefit_id
-
-        assert len(added) == len(benefits)
-        assert len(deleted) == 0
-
-        enqueue_job_mock.assert_has_calls(
-            [
-                call(
-                    "subscription.subscription.update_product_benefits_grants",
-                    product.id,
-                ),
-                call("order.update_product_benefits_grants", product.id),
-                call(
-                    "customer_seat.update_product_benefits_grants",
-                    product.id,
-                ),
-            ]
-        )
-
-    @pytest.mark.auth(
-        AuthSubjectFixture(subject="user"),
-        AuthSubjectFixture(subject="organization"),
-    )
-    async def test_deleted(
-        self,
-        session: AsyncSession,
-        save_fixture: SaveFixture,
-        enqueue_job_mock: AsyncMock,
-        auth_subject: AuthSubject[User | Organization],
-        user_organization: UserOrganization,
-        product: Product,
-        benefits: list[Benefit],
-    ) -> None:
-        product = await set_product_benefits(
-            save_fixture,
-            product=product,
-            benefits=benefits,
-        )
-
-        (
-            product,
-            added,
-            deleted,
-        ) = await product_service.update_benefits(session, product, [], auth_subject)
-        await session.flush()
-
-        assert len(product.product_benefits) == 0
-        assert len(added) == 0
-        assert len(deleted) == len(benefits)
-
-        enqueue_job_mock.assert_has_calls(
-            [
-                call(
-                    "subscription.subscription.update_product_benefits_grants",
-                    product.id,
-                ),
-                call("order.update_product_benefits_grants", product.id),
-                call(
-                    "customer_seat.update_product_benefits_grants",
-                    product.id,
-                ),
-            ]
-        )
-
-    @pytest.mark.auth(
-        AuthSubjectFixture(subject="user"),
-        AuthSubjectFixture(subject="organization"),
-    )
-    async def test_reordering(
-        self,
-        session: AsyncSession,
-        save_fixture: SaveFixture,
-        enqueue_job_mock: AsyncMock,
-        auth_subject: AuthSubject[User | Organization],
-        user_organization: UserOrganization,
-        product: Product,
-        benefits: list[Benefit],
-    ) -> None:
-        product = await set_product_benefits(
-            save_fixture,
-            product=product,
-            benefits=benefits,
-        )
-
-        (
-            product,
-            added,
-            deleted,
-        ) = await product_service.update_benefits(
-            session,
-            product,
-            [benefit.id for benefit in benefits[::-1]],
-            auth_subject,
-        )
-
-        assert len(product.product_benefits) == len(benefits)
-        for i, product_benefit in enumerate(product.product_benefits):
-            assert product_benefit.order == i
-            assert benefits[-i - 1].id == product_benefit.benefit_id
-
-        assert len(added) == 0
-        assert len(deleted) == 0
-
-        # Reordering the same set of benefits should not trigger grants update
-        enqueue_job_mock.assert_not_called()
-
-    @pytest.mark.auth(
-        AuthSubjectFixture(subject="user"),
-        AuthSubjectFixture(subject="organization"),
-    )
-    async def test_add_not_selectable(
-        self,
-        session: AsyncSession,
-        save_fixture: SaveFixture,
-        auth_subject: AuthSubject[User | Organization],
-        user_organization: UserOrganization,
-        organization: Organization,
-        product: Product,
-    ) -> None:
-        not_selectable_benefit = await create_benefit(
-            save_fixture,
-            type=BenefitType.custom,
-            is_tax_applicable=True,
-            organization=organization,
-            selectable=False,
-            properties={"note": None},
-        )
-
-        with pytest.raises(PolarRequestValidationError):
-            await product_service.update_benefits(
-                session,
-                product,
-                [not_selectable_benefit.id],
-                auth_subject,
-            )
-
-    @pytest.mark.auth(
-        AuthSubjectFixture(subject="user"),
-        AuthSubjectFixture(subject="organization"),
-    )
-    async def test_remove_not_selectable(
-        self,
-        session: AsyncSession,
-        save_fixture: SaveFixture,
-        auth_subject: AuthSubject[User | Organization],
-        user_organization: UserOrganization,
-        organization: Organization,
-        product: Product,
-    ) -> None:
-        not_selectable_benefit = await create_benefit(
-            save_fixture,
-            type=BenefitType.custom,
-            is_tax_applicable=True,
-            organization=organization,
-            selectable=False,
-            properties={"note": None},
-        )
-
-        product = await set_product_benefits(
-            save_fixture,
-            product=product,
-            benefits=[not_selectable_benefit],
-        )
-
-        with pytest.raises(PolarRequestValidationError):
-            await product_service.update_benefits(
-                session,
-                product,
-                [],
-                auth_subject,
-            )
-
-    @pytest.mark.auth(
-        AuthSubjectFixture(subject="user"),
-        AuthSubjectFixture(subject="organization"),
-    )
-    async def test_add_with_existing_not_selectable(
-        self,
-        session: AsyncSession,
-        save_fixture: SaveFixture,
-        enqueue_job_mock: AsyncMock,
-        auth_subject: AuthSubject[User | Organization],
-        user_organization: UserOrganization,
-        organization: Organization,
-        product: Product,
-    ) -> None:
-        not_selectable_benefit = await create_benefit(
-            save_fixture,
-            type=BenefitType.custom,
-            is_tax_applicable=True,
-            organization=organization,
-            selectable=False,
-            properties={"note": None},
-        )
-        selectable_benefit = await create_benefit(
-            save_fixture,
-            type=BenefitType.custom,
-            is_tax_applicable=True,
-            organization=organization,
-            description="SELECTABLE",
-        )
-        product = await set_product_benefits(
-            save_fixture,
-            product=product,
-            benefits=[not_selectable_benefit],
-        )
-
-        (
-            _,
-            added,
-            deleted,
-        ) = await product_service.update_benefits(
-            session,
-            product,
-            [not_selectable_benefit.id, selectable_benefit.id],
-            auth_subject,
-        )
-        assert len(added) == 1
-        assert selectable_benefit.id in [a.id for a in added]
-        assert len(deleted) == 0
-
-        enqueue_job_mock.assert_has_calls(
-            [
-                call(
-                    "subscription.subscription.update_product_benefits_grants",
-                    product.id,
-                ),
-                call("order.update_product_benefits_grants", product.id),
-                call(
-                    "customer_seat.update_product_benefits_grants",
-                    product.id,
-                ),
-            ]
-        )
-
-
-@pytest.mark.asyncio
-class TestProductProperties:
-    async def test_has_seat_based_price(
-        self,
-        session: AsyncSession,
-        save_fixture: SaveFixture,
-        organization: Organization,
-    ) -> None:
-        product_with_seats = await create_product(
-            save_fixture,
-            organization=organization,
-            recurring_interval=SubscriptionRecurringInterval.month,
-            prices=[("seat", 1000, "usd")],
-        )
-
-        product_without_seats = await create_product(
-            save_fixture,
-            organization=organization,
-            recurring_interval=SubscriptionRecurringInterval.month,
-        )
-
-        assert product_with_seats.has_seat_based_price is True
-        assert product_without_seats.has_seat_based_price is False

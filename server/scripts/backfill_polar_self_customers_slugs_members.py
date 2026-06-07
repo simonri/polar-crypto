@@ -33,8 +33,6 @@ class BackfillResult:
 
 
 def _derive_member_name(user: User) -> str:
-    if user.full_name is not None:
-        return user.full_name
     return user.email.split("@", 1)[0]
 
 

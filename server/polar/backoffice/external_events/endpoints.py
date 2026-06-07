@@ -14,7 +14,6 @@ from polar.external_event.sorting import ExternalEventSortProperty
 from polar.kit.pagination import PaginationParamsQuery
 from polar.kit.schemas import empty_str_to_none
 from polar.models import ExternalEvent
-from polar.models.external_event import ExternalEventSource
 from polar.postgres import AsyncSession, get_db_read_session, get_db_session
 
 from ..components import button, datatable, input, modal
@@ -125,15 +124,7 @@ async def list(
                     sorting=ExternalEventSortProperty.handled_at,
                 ),
                 datatable.DatatableAttrColumn("source", "Source"),
-                datatable.DatatableAttrColumn(
-                    "external_id",
-                    "External ID",
-                    external_href=lambda _, item: (
-                        f"https://dashboard.stripe.com/events/{item.external_id}"
-                        if item.source == ExternalEventSource.stripe
-                        else None
-                    ),
-                ),
+                datatable.DatatableAttrColumn("external_id", "External ID"),
                 datatable.DatatableAttrColumn("task_name", "Task Name", clipboard=True),
             ).render(request, items, sorting=sorting):
                 pass

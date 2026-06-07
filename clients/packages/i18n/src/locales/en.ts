@@ -321,7 +321,6 @@ export default {
     discord: 'Discord invite',
     downloadables: 'File downloads',
     custom: 'Custom',
-    meter_credit: 'Meter credits',
     feature_flag: 'Feature flag',
   },
   ordinal: {

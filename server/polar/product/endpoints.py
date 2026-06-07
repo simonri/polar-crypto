@@ -3,7 +3,6 @@ from typing import Annotated
 
 from fastapi import Depends, Query
 
-from polar.benefit.schemas import BenefitID
 from polar.exceptions import NotPermitted, ResourceNotFound
 from polar.kit.metadata import MetadataQuery, get_metadata_query_openapi_schema
 from polar.kit.pagination import ListResource, PaginationParamsQuery
@@ -23,7 +22,7 @@ from polar.routing import APIRouter
 
 from . import auth
 from .schemas import Product as ProductSchema
-from .schemas import ProductBenefitsUpdate, ProductCreate, ProductID, ProductUpdate
+from .schemas import ProductCreate, ProductID, ProductUpdate
 from .service import product as product_service
 from .sorting import ProductSortProperty
 
@@ -71,11 +70,6 @@ async def list(
             "If `false`, only one-time purchase products are returned. "
         ),
     ),
-    benefit_id: MultipleQueryFilter[BenefitID] | None = Query(
-        None,
-        title="BenefitID Filter",
-        description="Filter products granting specific benefit.",
-    ),
     visibility: builtins.list[ProductVisibility] | None = Query(
         default=None,
         description="Filter by visibility.",
@@ -92,7 +86,6 @@ async def list(
         is_archived=is_archived,
         is_recurring=is_recurring,
         visibility=visibility,
-        benefit_id=benefit_id,
         metadata=metadata,
         pagination=pagination,
         sorting=sorting,
@@ -167,34 +160,3 @@ async def update(
         raise ResourceNotFound()
 
     return await product_service.update(session, product, product_update, auth_subject)
-
-
-@router.post(
-    "/{id}/benefits",
-    response_model=ProductSchema,
-    summary="Update Product Benefits",
-    responses={
-        200: {"description": "Product benefits updated."},
-        403: {
-            "description": "You don't have the permission to update this product.",
-            "model": NotPermitted.schema(),
-        },
-        404: ProductNotFound,
-    },
-)
-async def update_benefits(
-    id: ProductID,
-    benefits_update: ProductBenefitsUpdate,
-    auth_subject: auth.CreatorProductsWrite,
-    session: AsyncSession = Depends(get_db_session),
-) -> Product:
-    """Update benefits granted by a product."""
-    product = await product_service.get(session, auth_subject, id)
-
-    if product is None:
-        raise ResourceNotFound()
-
-    product, _, _ = await product_service.update_benefits(
-        session, product, benefits_update.benefits, auth_subject
-    )
-    return product

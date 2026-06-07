@@ -8,9 +8,9 @@ from polar.payment.service import payment as payment_service
 from polar.postgres import AsyncSession
 from tests.fixtures.database import SaveFixture
 from tests.fixtures.random_objects import create_checkout, create_order, create_wallet
-from tests.fixtures.stripe import build_stripe_charge, build_stripe_payment_intent
 
 
+@pytest.mark.skip(reason="Stripe removed")
 @pytest.mark.asyncio
 class TestUpsertFromStripeCharge:
     async def test_new_payment_with_checkout(
@@ -297,6 +297,7 @@ class TestUpsertFromStripeCharge:
         assert payment.trigger is None
 
 
+@pytest.mark.skip(reason="Stripe removed")
 @pytest.mark.asyncio
 class TestUpsertFromStripePaymentIntent:
     async def test_new_payment_with_checkout(

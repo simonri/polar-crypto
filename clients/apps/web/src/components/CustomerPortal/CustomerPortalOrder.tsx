@@ -1,18 +1,12 @@
 'use client'
 
-import { canRetryOrderPayment } from '@/utils/order'
 import { Client, schemas } from '@polar-sh/client'
 import { formatCurrency } from '@polar-sh/currency'
-import { Button } from '@polar-sh/orbit'
 import { Status } from '@polar-sh/ui/components/atoms/Status'
 import { ThemingPresetProps } from '@polar-sh/ui/hooks/theming'
-import { useMemo, useState } from 'react'
+import { useMemo } from 'react'
 import { twMerge } from 'tailwind-merge'
-import { OrderDownloadActions } from '../Orders/OrderDownloadActions'
 import { DetailRow } from '../Shared/DetailRow'
-import { CustomerPortalGrants } from './CustomerPortalGrants'
-import { OrderPaymentRetryModal } from './OrderPaymentRetryModal'
-import { SeatManagementTable } from './SeatManagementTable'
 
 const OrderStatusDisplayTitle: Record<schemas['Order']['status'], string> = {
   draft: 'Draft',
@@ -38,26 +32,15 @@ const OrderStatusDisplayColor: Record<schemas['Order']['status'], string> = {
 const CustomerPortalOrder = ({
   api,
   order,
-  customerSessionToken,
   themingPreset,
 }: {
   api: Client
   order: schemas['CustomerOrder']
-  customerSessionToken: string
   themingPreset: ThemingPresetProps
 }) => {
-  const [isPaymentModalOpen, setIsPaymentModalOpen] = useState(false)
-
   const isPartiallyOrFullyRefunded = useMemo(() => {
     return order.status === 'partially_refunded' || order.status === 'refunded'
   }, [order])
-
-  // Seats management
-  const hasSeatBasedOrder = order.seats && order.seats > 0
-
-  // Check customer portal settings for seat management visibility
-  const portalSettings = order.product?.organization.customer_portal_settings
-  const showSeatManagement = portalSettings?.subscription.update_seats === true
 
   return (
     <div className="flex flex-col gap-12">
@@ -69,16 +52,6 @@ const CustomerPortalOrder = ({
             className={twMerge(OrderStatusDisplayColor[order.status])}
           />
 
-          {/* Retry button */}
-          {canRetryOrderPayment(order) && (
-            <Button
-              variant="default"
-              size="sm"
-              onClick={() => setIsPaymentModalOpen(true)}
-            >
-              Retry payment
-            </Button>
-          )}
         </div>
 
         <div className="flex flex-col gap-8">
@@ -89,7 +62,6 @@ const CustomerPortalOrder = ({
                 value={<span>{order.product.name}</span>}
               />
             )}
-            <DetailRow label="Invoice number" value={order.invoice_number} />
             <DetailRow
               label="Date"
               value={
@@ -161,18 +133,6 @@ const CustomerPortalOrder = ({
               valueClassName="justify-end"
             />
             <DetailRow
-              label="Tax"
-              value={
-                <span>
-                  {formatCurrency('accounting')(
-                    order.tax_amount,
-                    order.currency,
-                  )}
-                </span>
-              }
-              valueClassName="justify-end"
-            />
-            <DetailRow
               label="Total"
               value={
                 <span>
@@ -228,40 +188,10 @@ const CustomerPortalOrder = ({
               />
             )}
           </div>
-          {order.paid && (
-            <OrderDownloadActions
-              order={order}
-              customerSessionToken={customerSessionToken}
-            />
-          )}
         </div>
 
-        {hasSeatBasedOrder && showSeatManagement && (
-          <SeatManagementTable
-            api={api}
-            identifier={
-              order.subscription_id
-                ? { subscriptionId: order.subscription_id }
-                : { orderId: order.id }
-            }
-          />
-        )}
-
-        <CustomerPortalGrants
-          api={api}
-          subscriptionId={order.subscription_id ?? undefined}
-          orderId={order.id}
-        />
       </div>
 
-      {/* Payment Retry Modal */}
-      <OrderPaymentRetryModal
-        order={order}
-        api={api}
-        isOpen={isPaymentModalOpen}
-        onClose={() => setIsPaymentModalOpen(false)}
-        themingPreset={themingPreset}
-      />
     </div>
   )
 }

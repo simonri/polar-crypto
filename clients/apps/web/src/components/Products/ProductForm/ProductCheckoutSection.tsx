@@ -18,7 +18,6 @@ import {
 import Link from 'next/link'
 import { useFormContext } from 'react-hook-form'
 import { twMerge } from 'tailwind-merge'
-import ProductMediasField from '../ProductMediasField'
 import { ProductCustomFieldSection } from './ProductCustomFieldSection'
 import { ProductFormType } from './ProductForm'
 
@@ -61,27 +60,6 @@ export const ProductCheckoutSection = ({
                         className="min-h-44 resize-none rounded-2xl font-mono text-xs!"
                         {...field}
                         value={field.value || ''}
-                      />
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-
-              <FormField
-                control={control}
-                name="full_medias"
-                render={({ field }) => (
-                  <FormItem className="flex w-full flex-col gap-2">
-                    <div className="flex flex-row items-center justify-between">
-                      <FormLabel>Product images</FormLabel>
-                    </div>
-
-                    <FormControl>
-                      <ProductMediasField
-                        organization={organization}
-                        value={field.value}
-                        onChange={field.onChange}
                       />
                     </FormControl>
                     <FormMessage />

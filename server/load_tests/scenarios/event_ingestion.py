@@ -4,7 +4,7 @@ Event ingestion load test scenarios.
 Simulates production event ingestion patterns based on observed Mycheli.AI traffic:
 - Power-law customer distribution (top 1 = 35%, top 5 = 78%, top 10 = 90%)
 - Event types: generate.text (70%) and generate.image (30%)
-- Meter slugs: v1:meter:pack (60%) and v1:meter:tier (40%)
+- Usage categories: pack (60%) and tier (40%)
 """
 
 from locust import HttpUser, TaskSet, between, task

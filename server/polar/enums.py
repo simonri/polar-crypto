@@ -11,47 +11,17 @@ class Platforms(StrEnum):
 
 
 class PaymentProcessor(StrEnum):
-    stripe = "stripe"
-
-
-class TaxProcessor(StrEnum):
-    stripe = "stripe"
-    numeral = "numeral"
-
-
-class TaxBehavior(StrEnum):
-    inclusive = "inclusive"
-    exclusive = "exclusive"
-
-    def to_option(self) -> "TaxBehaviorOption":
-        match self:
-            case TaxBehavior.inclusive:
-                return TaxBehaviorOption.inclusive
-            case TaxBehavior.exclusive:
-                return TaxBehaviorOption.exclusive
-
-    def to_stripe(self) -> Literal["inclusive", "exclusive"]:
-        match self:
-            case TaxBehavior.inclusive:
-                return "inclusive"
-            case TaxBehavior.exclusive:
-                return "exclusive"
-
-
-class TaxBehaviorOption(StrEnum):
-    location = "location"
-    inclusive = "inclusive"
-    exclusive = "exclusive"
+    crypto = "crypto"
 
 
 class PayoutAccountType(StrEnum):
-    stripe = "stripe"
     manual = "manual"
+    crypto = "crypto"
 
     def get_display_name(self) -> str:
         return {
-            PayoutAccountType.stripe: "Stripe Connect Express",
             PayoutAccountType.manual: "Manual",
+            PayoutAccountType.crypto: "Crypto",
         }[self]
 
 
@@ -112,11 +82,6 @@ PublicSubscriptionProrationBehavior = Literal[
 ]
 
 
-class InvoiceNumbering(StrEnum):
-    organization = "organization"
-    customer = "customer"
-
-
 class TokenType(StrEnum):
     client_secret = "polar_client_secret"
     client_registration_token = "polar_client_registration_token"
@@ -151,13 +116,9 @@ class PaymentMode(StrEnum):
     sync = "sync"
     """
     The payment is processed synchronously, and fails the operation if the payment fails.
-
-    Typical mode for subscription updates that require immediate payment.
     """
 
     background = "background"
     """
-    The payment is processed asynchronously in the background, and doesn't affect the operation's result.
-
-    Typical mode for subscription cycle orders that can be retried.
+    The payment is processed asynchronously in the background.
     """

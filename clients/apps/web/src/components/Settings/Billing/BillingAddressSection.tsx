@@ -38,7 +38,6 @@ export const BillingAddressSection = ({
     useOrganizationBillingDetails(organizationId)
   const lines = formatAddress(details)
   const hasAddress = lines.length > 0
-  const taxId = details?.tax_id
 
   return (
     <Box display="flex" flexDirection="column" rowGap="l">
@@ -75,7 +74,6 @@ export const BillingAddressSection = ({
                 {line}
               </Text>
             ))}
-            {taxId && <Text color="muted">Tax ID: {taxId}</Text>}
           </Box>
         ) : (
           <Box paddingVertical="l" textAlign="center">

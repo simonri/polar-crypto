@@ -50,7 +50,6 @@ class CustomerOrderRepository(
             joinedload(Order.discount),
             joinedload(Order.subscription).joinedload(Subscription.customer),
             product_load.options(
-                selectinload(Product.product_medias),
                 joinedload(Product.organization),
             ),
             selectinload(Order.items)

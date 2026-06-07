@@ -38,7 +38,6 @@ const UpcomingChargeCard = ({
     (price) => price.amount_type === 'free',
   )
 
-  const hasMeters = subscription.meters.length > 0
   const hasTaxes = chargePreview && chargePreview.tax_amount > 0
   const hasDiscount = chargePreview && chargePreview.discount_amount > 0
 
@@ -58,7 +57,7 @@ const UpcomingChargeCard = ({
     dateLabel = 'Subscription Ends'
   }
 
-  const hasNextInvoice = !isFreeProduct || hasMeters
+  const hasNextInvoice = !isFreeProduct
 
   if (!hasNextInvoice) {
     return null
@@ -94,25 +93,6 @@ const UpcomingChargeCard = ({
                 )
               }
             />
-          )}
-
-          {hasMeters && (
-            <>
-              <div className="mt-2">
-                <span className="font-medium">Metered Charges</span>
-              </div>
-
-              {subscription.meters.map((meter) => (
-                <DetailRow
-                  key={meter.id}
-                  label={meter.meter.name}
-                  value={formatCurrency('compact')(
-                    meter.amount,
-                    subscription.currency,
-                  )}
-                />
-              ))}
-            </>
           )}
 
           <div className="dark:border-polar-700 mt-2 border-t border-gray-200 pt-2">
@@ -163,12 +143,7 @@ const UpcomingChargeCard = ({
                   )}
 
                   <DetailRow
-                    label={[
-                      hasMeters && 'Estimated',
-                      isCancelingAtPeriodEnd ? 'Final Charge' : 'Total',
-                    ]
-                      .filter(Boolean)
-                      .join(' ')}
+                    label={isCancelingAtPeriodEnd ? 'Final Charge' : 'Total'}
                     value={
                       <span className="text-lg font-semibold">
                         {formatCurrency('accounting')(
@@ -184,18 +159,6 @@ const UpcomingChargeCard = ({
                   {isCancelingAtPeriodEnd && (
                     <p className="max-w-sm text-xs text-gray-500">
                       This will be the final charge when the subscription ends.
-                      {hasMeters &&
-                        ' Final amount may vary based on usage until the end of the billing period.'}
-                    </p>
-                  )}
-
-                  {!isCancelingAtPeriodEnd && hasMeters && (
-                    <p className="max-w-sm text-xs text-gray-500">
-                      {isActive
-                        ? 'Final charges may vary based on usage until the end of the billing period.'
-                        : isTrialing
-                          ? 'Final charges may vary based on usage during the trial period.'
-                          : 'Final charges may vary.'}
                     </p>
                   )}
                 </>

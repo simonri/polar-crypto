@@ -1,13 +1,11 @@
 import { useAuth } from '@/hooks'
 import { useOrganizationKYC } from '@/hooks/queries/org'
 import { useUpdateOrganization } from '@/hooks/queries'
-import { api } from '@/utils/client'
 import { useAutoSave } from '@/hooks/useAutoSave'
 import { useURLValidation } from '@/hooks/useURLValidation'
 import { setValidationErrors } from '@/utils/api/errors'
 import { containsBlockedWord } from '@/utils/blocked-words'
 import AddOutlined from '@mui/icons-material/AddOutlined'
-import AddPhotoAlternateOutlined from '@mui/icons-material/AddPhotoAlternateOutlined'
 import CloseOutlined from '@mui/icons-material/CloseOutlined'
 import Facebook from '@mui/icons-material/Facebook'
 import GitHub from '@mui/icons-material/GitHub'
@@ -17,7 +15,6 @@ import Public from '@mui/icons-material/Public'
 import X from '@mui/icons-material/X'
 import YouTube from '@mui/icons-material/YouTube'
 import { enums, isValidationError, schemas } from '@polar-sh/client'
-import { Avatar } from '@polar-sh/orbit'
 import { Button } from '@polar-sh/orbit'
 import CopyToClipboardInput from '@polar-sh/ui/components/atoms/CopyToClipboardInput'
 import CountryPicker from '@polar-sh/ui/components/atoms/CountryPicker'
@@ -38,17 +35,13 @@ import {
 } from '@polar-sh/ui/components/ui/form'
 import { AlertTriangle, CheckCircle, Loader2 } from 'lucide-react'
 import { useRouter } from 'next/navigation'
-import React, { useCallback } from 'react'
-import { FileRejection } from 'react-dropzone'
+import React from 'react'
 import {
   ControllerRenderProps,
   FieldValues,
   useForm,
   useFormContext,
-  useWatch,
 } from 'react-hook-form'
-import { twMerge } from 'tailwind-merge'
-import { FileObject, useFileUpload } from '../FileUpload'
 import { toast } from '../Toast/use-toast'
 import ConfirmationButton from '../ui/ConfirmationButton'
 import {
@@ -83,8 +76,6 @@ const SOCIAL_PLATFORM_DOMAINS: Record<string, string> = {
   'github.com': 'github',
   'threads.net': 'threads',
   'tiktok.com': 'tiktok',
-  'discord.gg': 'discord',
-  'discord.com': 'discord',
 }
 
 interface OrganizationSocialLinksProps {
@@ -254,118 +245,39 @@ const OrganizationDetailsForm: React.FC<OrganizationDetailsFormProps> = ({
   inKYCMode,
   readOnly,
 }) => {
-  const { control, setError, setValue } =
-    useFormContext<schemas['OrganizationUpdate']>()
-  const { name, avatar_url: avatarURL } = useWatch({ control })
+  const { control, setValue } = useFormContext<schemas['OrganizationUpdate']>()
 
   const { status: urlStatus, validateURL } = useURLValidation({
     organizationId: organization.id,
-  })
-
-  const onFilesUpdated = useCallback(
-    (files: FileObject<schemas['OrganizationAvatarFileRead']>[]) => {
-      if (files.length === 0) {
-        return
-      }
-      const lastFile = files[files.length - 1]
-      setValue('avatar_url', lastFile.public_url, { shouldDirty: true })
-    },
-    [setValue],
-  )
-  const onFilesRejected = useCallback(
-    (rejections: FileRejection[]) => {
-      rejections.forEach((rejection) => {
-        setError('avatar_url', { message: rejection.errors[0].message })
-      })
-    },
-    [setError],
-  )
-  const { getRootProps, getInputProps, isDragActive } = useFileUpload({
-    organization: organization,
-    service: 'organization_avatar',
-    accept: {
-      'image/jpeg': [],
-      'image/png': [],
-      'image/gif': [],
-      'image/webp': [],
-      'image/svg+xml': [],
-    },
-    maxSize: 1 * 1024 * 1024,
-    onFilesUpdated,
-    onFilesRejected,
-    initialFiles: [],
-    disabled: readOnly,
   })
 
   return (
     <div className="space-y-8">
       {/* Basic Info - Always Visible */}
       <div className="space-y-6">
-        <div className="grid grid-cols-1 gap-6 sm:grid-cols-12">
-          <div className="sm:col-span-2">
-            <label className="mb-2 block text-sm font-medium">Logo</label>
-            <FormField
-              control={control}
-              name="avatar_url"
-              render={() => (
-                <div>
-                  <div
-                    {...getRootProps()}
-                    className={twMerge(
-                      'relative',
-                      readOnly ? 'cursor-not-allowed' : 'cursor-pointer',
-                      isDragActive && 'opacity-50',
-                    )}
-                  >
-                    <input {...getInputProps()} />
-                    <Avatar
-                      avatar_url={avatarURL ?? ''}
-                      name={name ?? ''}
-                      className={twMerge(
-                        'h-10 w-10 transition-opacity',
-                        !readOnly && 'hover:opacity-75',
-                      )}
-                    />
-                    {!readOnly && (
-                      <div className="absolute inset-0 flex items-center justify-center opacity-0 transition-opacity hover:opacity-100">
-                        <AddPhotoAlternateOutlined className="dark:text-polar-400 text-gray-600" />
-                      </div>
-                    )}
-                  </div>
-                  <FormMessage className="mt-2 text-xs/snug" />
-                </div>
-              )}
-            />
-          </div>
-
-          <div className="space-y-4 sm:col-span-10">
-            <div>
-              <label className="mb-2 block text-sm font-medium">
-                Organization Name *
-              </label>
-              <FormField
-                control={control}
-                name="name"
-                rules={{
-                  required: 'Organization name is required',
-                  validate: (v) =>
-                    !containsBlockedWord(v ?? '') ||
-                    'This name is not allowed.',
-                }}
-                render={({ field }) => (
-                  <div>
-                    <Input
-                      {...field}
-                      value={field.value || ''}
-                      placeholder="Acme Inc"
-                      disabled={readOnly}
-                    />
-                    <FormMessage />
-                  </div>
-                )}
-              />
-            </div>
-          </div>
+        <div>
+          <label className="mb-2 block text-sm font-medium">
+            Organization Name *
+          </label>
+          <FormField
+            control={control}
+            name="name"
+            rules={{
+              required: 'Organization name is required',
+              validate: (v) =>
+                !containsBlockedWord(v ?? '') || 'This name is not allowed.',
+            }}
+            render={({ field }) => (
+              <div>
+                <Input
+                  {...field}
+                  value={field.value || ''}
+                  placeholder="Acme Inc"
+                />
+                <FormMessage />
+              </div>
+            )}
+          />
         </div>
 
         <div>
@@ -685,59 +597,13 @@ const OrganizationProfileSettings: React.FC<
       return
     }
 
-    if (inKYCMode) {
-      const submitReviewResult = await api.POST(
-        '/v1/organizations/{id}/submit-review',
-        {
-          params: { path: { id: organization.id } },
-        },
-      )
-      const { data: submittedOrganization, error: submitError } =
-        submitReviewResult
-
-      if (submitError) {
-        const errorMessage = Array.isArray(submitError.detail)
-          ? submitError.detail[0]?.msg ||
-            'An error occurred while submitting the organization for review'
-          : typeof submitError.detail === 'string'
-            ? submitError.detail
-            : 'An error occurred while submitting the organization for review'
-
-        if (isValidationError(submitError.detail)) {
-          setValidationErrors(submitError.detail, setError)
-        } else {
-          setError('root', { message: errorMessage })
-        }
-
-        toast({
-          title: 'Review Submission Failed',
-          description: errorMessage,
-        })
-
-        return
-      }
-
-      reset({
-        ...submittedOrganization,
-        default_presentment_currency:
-          submittedOrganization.default_presentment_currency as schemas['PresentmentCurrency'],
-        country: submittedOrganization.country as
-          | schemas['CountryAlpha2Input']
-          | undefined,
-        socials: [...(submittedOrganization.socials || []), ...emptySocials],
-        details: cleanedBody.details,
-      })
-    }
-
-    if (!inKYCMode) {
-      reset({
-        ...data,
-        default_presentment_currency:
-          data.default_presentment_currency as schemas['PresentmentCurrency'],
-        country: data.country as schemas['CountryAlpha2Input'] | undefined,
-        socials: [...(data.socials || []), ...emptySocials],
-      })
-    }
+    reset({
+      ...data,
+      default_presentment_currency:
+        data.default_presentment_currency as schemas['PresentmentCurrency'],
+      country: data.country as schemas['CountryAlpha2Input'] | undefined,
+      socials: [...(data.socials || []), ...emptySocials],
+    })
 
     // Refresh the router to get the updated organization data from the server
     router.refresh()

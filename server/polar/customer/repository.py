@@ -69,11 +69,6 @@ class CustomerRepository(
         yield customer
         assert customer.id is not None, "Customer.id is None"
 
-        # If the customer has an external_id, enqueue a meter update job
-        # to create meters for any pre-existing events with that external_id.
-        if customer.external_id is not None:
-            enqueue_job("customer_meter.update_customer", customer.id)
-
         enqueue_job("customer.webhook", WebhookEventType.customer_created, customer.id)
         enqueue_job("customer.event", customer.id, SystemEvent.customer_created)
 
@@ -109,10 +104,6 @@ class CustomerRepository(
                     updated_fields["billing_address"] = Address.model_validate(
                         value
                     ).to_dict()
-
-            changed, value = _get_changed_value(inspection, "tax_id")
-            if changed:
-                updated_fields["tax_id"] = value[0] if value else None
 
             changed, value = _get_changed_value(inspection, "user_metadata")
             if changed:
@@ -173,15 +164,6 @@ class CustomerRepository(
     ) -> Customer | None:
         statement = self.get_base_statement().where(
             Customer.external_id == external_id,
-            Customer.organization_id == organization_id,
-        )
-        return await self.get_one_or_none(statement)
-
-    async def get_by_stripe_customer_id_and_organization(
-        self, stripe_customer_id: str, organization_id: UUID
-    ) -> Customer | None:
-        statement = self.get_base_statement().where(
-            Customer.stripe_customer_id == stripe_customer_id,
             Customer.organization_id == organization_id,
         )
         return await self.get_one_or_none(statement)
@@ -306,30 +288,3 @@ class CustomerRepository(
         )
         return subscription_exists if active else ~subscription_exists
 
-    async def increment_invoice_next_number(self, customer_id: UUID) -> int:
-        """
-        Atomically increment invoice_next_number and return the value before increment.
-        """
-        stmt = (
-            update(Customer)
-            .where(Customer.id == customer_id)
-            .values(invoice_next_number=Customer.invoice_next_number + 1)
-            .returning(Customer.invoice_next_number)
-        )
-        result = await self.session.execute(stmt)
-        next_number = result.scalar_one()
-        return next_number - 1
-
-    async def increment_receipt_next_number(self, customer_id: UUID) -> int:
-        """
-        Atomically increment receipt_next_number and return the value before increment.
-        """
-        stmt = (
-            update(Customer)
-            .where(Customer.id == customer_id)
-            .values(receipt_next_number=Customer.receipt_next_number + 1)
-            .returning(Customer.receipt_next_number)
-        )
-        result = await self.session.execute(stmt)
-        next_number = result.scalar_one()
-        return next_number - 1

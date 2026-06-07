@@ -4,7 +4,6 @@ from typing import Annotated
 from fastapi import Path
 from pydantic import UUID4, Field
 
-from polar.dispute.schemas import DisputeBase
 from polar.kit.currency import format_currency
 from polar.kit.metadata import (
     MetadataInputMixin,
@@ -19,13 +18,6 @@ from polar.models.refund import (
 RefundID = Annotated[UUID4, Path(description="The refund ID.")]
 
 
-class RefundDispute(DisputeBase):
-    """
-    Dispute associated with a refund,
-    in case we prevented a dispute by issuing a refund.
-    """
-
-
 class Refund(MetadataOutputMixin, IDSchema, TimestampedSchema):
     status: RefundStatus
     reason: RefundReason
@@ -37,7 +29,6 @@ class Refund(MetadataOutputMixin, IDSchema, TimestampedSchema):
     subscription_id: UUID4 | None
     customer_id: UUID4
     revoke_benefits: bool
-    dispute: RefundDispute | None
 
     def get_amount_display(self) -> str:
         return format_currency(self.amount, self.currency)

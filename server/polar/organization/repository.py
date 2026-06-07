@@ -1,5 +1,4 @@
 from collections.abc import Sequence
-from datetime import datetime
 from uuid import UUID
 
 from sqlalchemy import Select, func, select, update
@@ -29,20 +28,11 @@ from polar.models.discount import (
     DiscountPercentage,
     DiscountType,
 )
-from polar.models.organization import (
-    OrganizationCapabilities,
-    OrganizationStatus,
-    SnoozeType,
-)
-from polar.models.organization_review import OrganizationReview
+from polar.models.organization import OrganizationStatus
 from polar.models.subscription import SubscriptionStatus
 from polar.models.user_organization import OrganizationRole
 
 from .sorting import OrganizationSortProperty
-
-# Maximum orgs the unsnooze cron processes per run. Bounds worst-case
-# transaction size when many time-based snoozes expire in the same window.
-UNSNOOZE_EXPIRED_BATCH_SIZE = 500
 
 
 class OrganizationRepository(
@@ -165,23 +155,6 @@ class OrganizationRepository(
         )
         return await self.get_all(statement)
 
-    async def get_expired_time_based_snoozes(
-        self, now: datetime, *, limit: int = UNSNOOZE_EXPIRED_BATCH_SIZE
-    ) -> Sequence[Organization]:
-        """Snoozed orgs whose TIME_BASED deadline has passed."""
-        statement = (
-            self.get_base_statement()
-            .where(
-                Organization.status == OrganizationStatus.SNOOZED,
-                Organization.snooze_type == SnoozeType.TIME_BASED,
-                Organization.snoozed_until.is_not(None),
-                Organization.snoozed_until <= now,
-            )
-            .order_by(Organization.snoozed_until.asc())
-            .limit(limit)
-        )
-        return await self.get_all(statement)
-
     def get_sorting_clause(self, property: OrganizationSortProperty) -> SortingClause:
         match property:
             case OrganizationSortProperty.created_at:
@@ -190,8 +163,6 @@ class OrganizationRepository(
                 return self.model.slug
             case OrganizationSortProperty.organization_name:
                 return self.model.name
-            case OrganizationSortProperty.next_review_threshold:
-                return self.model.next_review_threshold
             case OrganizationSortProperty.days_in_status:
                 # Calculate days since status was last updated
                 return (
@@ -280,76 +251,6 @@ class OrganizationRepository(
         result = await self.session.execute(statement)
         return result.scalar() or 0
 
-    async def confirm_review_atomic(
-        self,
-        organization_id: UUID,
-        *,
-        next_review_threshold: int | None,
-        min_threshold: int,
-        active_capabilities: OrganizationCapabilities,
-        now: datetime,
-    ) -> Organization | None:
-        """Atomically transition a REVIEW or SNOOZED organization to ACTIVE.
-
-        Returns the updated ``Organization`` (also merged into the session's
-        identity map via ``populate_existing``), or ``None`` if the row was
-        no longer in a confirmable state — typically because another worker
-        already won the race and flipped the org back to ACTIVE.
-
-        When ``next_review_threshold`` is ``None``, the threshold is doubled
-        server-side from the current row (floored at ``min_threshold``) so
-        that N concurrent confirms doubling at once cannot collapse onto a
-        shared stale snapshot.
-        """
-        threshold_expr = (
-            func.greatest(Organization.next_review_threshold * 2, min_threshold)
-            if next_review_threshold is None
-            else next_review_threshold
-        )
-
-        stmt = (
-            update(Organization)
-            .where(
-                Organization.id == organization_id,
-                Organization.status.in_(
-                    [OrganizationStatus.REVIEW, OrganizationStatus.SNOOZED]
-                ),
-            )
-            .values(
-                status=OrganizationStatus.ACTIVE,
-                status_updated_at=now,
-                capabilities=active_capabilities,
-                next_review_threshold=threshold_expr,
-                initially_reviewed_at=func.coalesce(
-                    Organization.initially_reviewed_at, now
-                ),
-            )
-            .returning(Organization)
-            .execution_options(populate_existing=True)
-        )
-        result = await self.session.execute(stmt)
-        return result.scalar_one_or_none()
-
-    async def increment_customer_invoice_next_number(
-        self, organization_id: UUID
-    ) -> int:
-        """
-        Atomically increment customer_invoice_next_number and return the value
-        before increment.
-        """
-        stmt = (
-            update(Organization)
-            .where(Organization.id == organization_id)
-            .values(
-                customer_invoice_next_number=Organization.customer_invoice_next_number
-                + 1
-            )
-            .returning(Organization.customer_invoice_next_number)
-        )
-        result = await self.session.execute(stmt)
-        next_number = result.scalar_one()
-        return next_number - 1
-
     async def delete_payout_account(self, payout_account: UUID) -> None:
         """Reset Organization.payout_account_id to None for any organization linked to the payout account."""
         stmt = (
@@ -381,16 +282,3 @@ class OrganizationRepository(
             )
         )
         return await self.get_all(statement)
-
-
-class OrganizationReviewRepository(RepositoryBase[OrganizationReview]):
-    model = OrganizationReview
-
-    async def get_by_organization(
-        self, organization_id: UUID
-    ) -> OrganizationReview | None:
-        statement = self.get_base_statement().where(
-            OrganizationReview.organization_id == organization_id,
-            OrganizationReview.is_deleted.is_(False),
-        )
-        return await self.get_one_or_none(statement)

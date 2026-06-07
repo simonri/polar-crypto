@@ -275,7 +275,6 @@ export default {
     github_repository: 'GitHub repository hozzáférés',
     discord: 'Discord meghívó',
     downloadables: 'Fájlletöltések',
-    meter_credit: 'Használat alapú kreditek',
     feature_flag: 'Feature flag',
   },
   ordinal: {

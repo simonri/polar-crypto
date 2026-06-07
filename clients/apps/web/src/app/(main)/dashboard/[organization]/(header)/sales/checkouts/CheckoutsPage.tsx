@@ -13,7 +13,6 @@ import {
   serializeSearchParams,
 } from '@/utils/datatable'
 import { schemas } from '@polar-sh/client'
-import { Avatar } from '@polar-sh/orbit'
 import {
   DataTable,
   DataTableColumnDef,
@@ -202,12 +201,9 @@ const ClientPage: React.FC<ClientPageProps> = ({
         return (
           <div className="flex flex-row items-center gap-2">
             {customerEmail ? (
-              <>
-                <Avatar avatar_url={null} name={customerEmail} />
-                <div className="fw-medium overflow-hidden text-ellipsis">
-                  {customerEmail}
-                </div>
-              </>
+              <div className="fw-medium overflow-hidden text-ellipsis">
+                {customerEmail}
+              </div>
             ) : (
               <>—</>
             )}

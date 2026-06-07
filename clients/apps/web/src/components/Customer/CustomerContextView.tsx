@@ -4,7 +4,6 @@ import { StatisticCard } from '@/components/Shared/StatisticCard'
 import { useMetrics } from '@/hooks/queries/metrics'
 import { schemas } from '@polar-sh/client'
 import { formatCurrency } from '@polar-sh/currency'
-import { Avatar } from '@polar-sh/orbit'
 import { Button } from '@polar-sh/orbit'
 import FormattedDateTime from '@polar-sh/ui/components/atoms/FormattedDateTime'
 import Pill from '@polar-sh/ui/components/atoms/Pill'
@@ -43,11 +42,6 @@ export const CustomerContextView = ({
     <div className="flex h-full flex-col gap-2 overflow-y-auto">
       <ContextCard>
         <div className="flex flex-row items-center gap-4">
-          <Avatar
-            avatar_url={customer.avatar_url}
-            name={customer.name || customer.email || '—'}
-            className="size-12 text-sm"
-          />
           <div className="flex flex-col">
             {(customer.name?.length ?? 0) > 0 ? customer.name : '—'}
             {customer.deleted_at && (

@@ -1,12 +1,12 @@
 import contextlib
 import uuid
 from collections.abc import AsyncIterator
-from typing import Any, cast
+from typing import Any
 
 from polar.exceptions import PolarError
 from polar.kit.utils import utc_now
 from polar.models import ExternalEvent
-from polar.models.external_event import ExternalEventSource, StripeEvent
+from polar.models.external_event import ExternalEventSource
 from polar.postgres import AsyncSession
 from polar.worker import enqueue_job
 
@@ -78,13 +78,6 @@ class ExternalEventService:
             raise
         else:
             await repository.update(event, update_dict={"handled_at": utc_now()})
-
-    @contextlib.asynccontextmanager
-    async def handle_stripe(
-        self, session: AsyncSession, event_id: uuid.UUID
-    ) -> AsyncIterator[StripeEvent]:
-        async with self.handle(session, ExternalEventSource.stripe, event_id) as event:
-            yield cast(StripeEvent, event)
 
 
 external_event = ExternalEventService()

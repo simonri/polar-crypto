@@ -24,7 +24,6 @@ type CheckoutLinkCreateForm = {
   label: string
   success_url: string
   allow_discount_codes: boolean
-  require_billing_address: boolean
   metadata: { key: string; value: string }[]
 }
 
@@ -52,7 +51,6 @@ export default function CreateCheckoutLink() {
     label: '',
     success_url: '',
     allow_discount_codes: true,
-    require_billing_address: false,
     metadata: [],
   }
 
@@ -91,11 +89,10 @@ export default function CreateCheckoutLink() {
 
       try {
         await createCheckoutLink.mutateAsync({
-          payment_processor: 'stripe',
+          payment_processor: 'crypto',
           label: data.label || null,
           success_url: data.success_url || null,
           allow_discount_codes: data.allow_discount_codes,
-          require_billing_address: data.require_billing_address,
           products: selectedProductIds,
           discount_id: selectedDiscountId,
           metadata: metadataFields.reduce(

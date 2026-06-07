@@ -1,11 +1,11 @@
 # Per-instance Polar app stack (api, worker, web).
-# Infra (postgres, redis, minio, tinybird, prometheus, grafana) lives in a
+# Infra (postgres, redis, tinybird, prometheus, grafana) lives in a
 # separate, machine-wide stack defined in docker-compose.shared.yml.
 #
 # Usage: dev docker up                # auto-starts shared infra if needed
 #        dev docker -i 2 up           # second isolated app stack
 #
-# Each instance gets its own DB name, Redis DB index, and S3 bucket names so
+# Each instance gets its own DB name and Redis DB index so
 # multiple instances can safely coexist on one shared infra stack.
 
 # Load environment variables from server/.env
@@ -17,7 +17,6 @@ x-common-backend-env: &common-backend-env
   POLAR_LOG_LEVEL: DEBUG
   POLAR_TESTING: "0"
   POLAR_SQLALCHEMY_DEBUG: "0"
-  POLAR_POSTHOG_DEBUG: "1"
   # Database — connect to shared postgres on the polar-shared network.
   # Each instance uses a separate logical DB (auto-created by startup.sh).
   POLAR_POSTGRES_USER: ${POLAR_POSTGRES_USER:-polar}
@@ -34,18 +33,8 @@ x-common-backend-env: &common-backend-env
   POLAR_REDIS_HOST: redis
   POLAR_REDIS_PORT: "6379"
   POLAR_REDIS_DB: ${POLAR_REDIS_DB:-0}
-  # S3/MinIO — shared instance; each app instance gets its own bucket pair.
-  POLAR_S3_ENDPOINT_URL: http://minio:9000
-  POLAR_AWS_ACCESS_KEY_ID: ${POLAR_AWS_ACCESS_KEY_ID:-polar-development}
-  POLAR_AWS_SECRET_ACCESS_KEY: ${POLAR_AWS_SECRET_ACCESS_KEY:-polar123456789}
-  POLAR_S3_FILES_BUCKET_NAME: polar-s3-${POLAR_DOCKER_INSTANCE:-1}
-  POLAR_S3_FILES_PUBLIC_BUCKET_NAME: polar-s3-public-${POLAR_DOCKER_INSTANCE:-1}
-  POLAR_S3_CUSTOMER_INVOICES_BUCKET_NAME: polar-s3-${POLAR_DOCKER_INSTANCE:-1}
-  POLAR_S3_CUSTOMER_RECEIPTS_BUCKET_NAME: polar-s3-${POLAR_DOCKER_INSTANCE:-1}
-  POLAR_S3_PAYOUT_INVOICES_BUCKET_NAME: polar-s3-${POLAR_DOCKER_INSTANCE:-1}
   # CORS and allowed hosts — configured for Docker networking
   POLAR_CORS_ORIGINS: '["http://localhost:${WEB_PORT:-3000}", "http://127.0.0.1:${WEB_PORT:-3000}", "http://web:3000"]'
-  POLAR_ALLOWED_HOSTS: '["localhost:${WEB_PORT:-3000}", "127.0.0.1:${WEB_PORT:-3000}"]'
   POLAR_FRONTEND_BASE_URL: http://localhost:${WEB_PORT:-3000}
   POLAR_CHECKOUT_BASE_URL: http://localhost:${API_PORT:-8000}/v1/checkout-links/{client_secret}/redirect
   POLAR_USER_SESSION_COOKIE_DOMAIN: localhost
@@ -57,11 +46,9 @@ x-common-backend-env: &common-backend-env
   POLAR_TINYBIRD_CLICKHOUSE_URL: http://tinybird:7182
   # OAuth insecure transport for development
   AUTHLIB_INSECURE_TRANSPORT: "true"
-  # Note: Secrets like POLAR_GITHUB_CLIENT_ID, POLAR_STRIPE_* are loaded from
-  # env_file (server/.env) and NOT set here. Setting them here with ${VAR:-default}
-  # would read from the HOST shell, not from env_file.
-  # Prometheus (optional)
-  POLAR_PROMETHEUS_REMOTE_WRITE_URL: ${POLAR_PROMETHEUS_REMOTE_WRITE_URL:-}
+  # Note: Secrets like POLAR_STRIPE_* are loaded from env_file (server/.env) and
+  # NOT set here. Setting them here with ${VAR:-default} would read from the
+  # HOST shell, not from env_file.
 
 x-api-volumes: &api-volumes
   - ../../server:/app/server:cached
@@ -128,15 +115,6 @@ services:
       # must be set in server/.env (they're loaded via env_file)
       # POLAR_API_URL is for server-side requests (container-to-container)
       POLAR_API_URL: http://api:8000
-      # Browser-side MinIO uploads require a host-reachable MinIO. Shared
-      # infra doesn't publish a host port by default, so direct browser
-      # uploads won't work in this dev model — file features that round-trip
-      # through the API still work fine.
-      S3_PUBLIC_IMAGES_BUCKET_PROTOCOL: http
-      S3_PUBLIC_IMAGES_BUCKET_HOSTNAME: localhost
-      S3_PUBLIC_IMAGES_BUCKET_PORT: "9000"
-      S3_PUBLIC_IMAGES_BUCKET_PATHNAME: "**"
-      S3_UPLOAD_ORIGINS: http://localhost:9000
     volumes:
       - ../../clients:/app/clients:cached
       - ../../dev:/app/dev:cached

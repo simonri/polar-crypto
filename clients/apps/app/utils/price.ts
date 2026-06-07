@@ -4,7 +4,6 @@ type ProductPrice =
   | schemas['ProductPriceFixed']
   | schemas['ProductPriceCustom']
   | schemas['ProductPriceFree']
-  | schemas['ProductPriceMeteredUnit']
 
 export const isLegacyRecurringPrice = (
   price: schemas['ProductPrice'] | schemas['LegacyRecurringProductPrice'],
@@ -25,7 +24,3 @@ export const isStaticPrice = (
   price.amount_type !== undefined &&
   ['fixed', 'custom', 'free'].includes(price.amount_type)
 
-export const isMeteredPrice = (
-  price: ProductPrice,
-): price is schemas['ProductPriceMeteredUnit'] =>
-  price.amount_type === 'metered_unit'

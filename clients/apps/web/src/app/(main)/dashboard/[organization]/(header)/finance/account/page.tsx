@@ -20,15 +20,5 @@ export default async function Page(props: {
     false, // Don't use cache to make sure we get the latest payout account info after onboarding changes
   )
 
-  const { data: reviewStatus } = await api.GET(
-    '/v1/organizations/{id}/review-status',
-    { params: { path: { id: organization.id } } },
-  )
-
-  return (
-    <AccountPageRouter
-      organization={organization}
-      initialReviewStatus={reviewStatus}
-    />
-  )
+  return <AccountPageRouter organization={organization} />
 }

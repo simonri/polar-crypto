@@ -7,7 +7,6 @@ import { useCreateOrganization } from '@/hooks/queries'
 import { getServerURL } from '@/utils/api'
 import { setValidationErrors } from '@/utils/api/errors'
 import { schemas } from '@polar-sh/client'
-import { Avatar } from '@polar-sh/orbit'
 import { Button } from '@polar-sh/orbit'
 import { Input } from '@polar-sh/orbit'
 import { Checkbox } from '@polar-sh/ui/components/ui/checkbox'
@@ -30,7 +29,7 @@ import SupportedUseCases from './components/SupportedUseCases'
 
 type FormSchema = Pick<
   schemas['OrganizationCreate'],
-  'name' | 'slug' | 'default_presentment_currency' | 'default_tax_behavior'
+  'name' | 'slug' | 'default_presentment_currency'
 > & {
   terms: boolean
 }
@@ -377,11 +376,6 @@ const OrganizationSelectionPage = ({
               href={buildOrganizationSelectionURL(organization)}
             >
               <div className="dark:bg-polar-700 dark:hover:bg-polar-600 flex w-full flex-row items-center gap-2 rounded-2xl border border-gray-200 bg-white px-2.5 py-3 text-sm transition-colors hover:border-gray-300 dark:border-white/5 dark:hover:border-white/5">
-                <Avatar
-                  className="h-8 w-8"
-                  avatar_url={organization.avatar_url}
-                  name={organization.slug}
-                />
                 {organization.slug}
               </div>
             </Link>

@@ -21,7 +21,6 @@ import { usePushRouteWithoutCache } from '@/utils/router'
 
 import MoreVert from '@mui/icons-material/MoreVert'
 import { schemas } from '@polar-sh/client'
-import { Avatar } from '@polar-sh/orbit'
 import { Button } from '@polar-sh/orbit'
 import {
   DropdownMenu,
@@ -270,11 +269,6 @@ const ClientPage: React.FC<ClientPageProps> = ({ organization, customer }) => {
       header={
         <>
           <div className="flex flex-row items-center gap-6">
-            <Avatar
-              avatar_url={customer.avatar_url}
-              name={customer.email ?? customer.name ?? '—'}
-              className="h-16 w-16"
-            />
             <div className="flex flex-col">
               <p className="text-lg">
                 {(customer.name?.length ?? 0) > 0 ? customer.name : '—'}

@@ -55,7 +55,6 @@ class TestCountTestSales:
             save_fixture,
             organization=org,
             email="paying-customer@example.com",
-            stripe_customer_id="STRIPE_CUST_1",
         )
         await create_order(save_fixture, customer=customer, subtotal_amount=3900)
 
@@ -96,7 +95,6 @@ class TestCountTestSales:
             save_fixture,
             organization=org,
             email=team_user.email,
-            stripe_customer_id="STRIPE_CUST_TEAM",
         )
         await create_order(save_fixture, customer=customer, subtotal_amount=1000)
 
@@ -122,7 +120,6 @@ class TestCountTestSales:
             save_fixture,
             organization=org,
             email=team_user.email,
-            stripe_customer_id="STRIPE_CUST_REFUND",
         )
         await create_order(
             save_fixture,
@@ -153,7 +150,6 @@ class TestCountTestSales:
             save_fixture,
             organization=org,
             email=team_user.email,
-            stripe_customer_id="STRIPE_CUST_FREE",
         )
         # Free order (net_amount = subtotal - discount = 0)
         await create_order(
@@ -196,7 +192,6 @@ class TestCountTestSales:
                 save_fixture,
                 organization=org,
                 email=f"customer-{i}@example.com",
-                stripe_customer_id=f"STRIPE_CUST_{i}",
             )
             await create_order(save_fixture, customer=cust, subtotal_amount=3900)
             await create_member(
@@ -230,7 +225,6 @@ class TestCountTestSales:
             save_fixture,
             organization=org,
             email=team_user.email.upper(),
-            stripe_customer_id="STRIPE_CUST_CASE",
         )
         await create_order(save_fixture, customer=customer, subtotal_amount=1000)
 
@@ -262,7 +256,6 @@ class TestCountTestSales:
             save_fixture,
             organization=org,
             email=former_member.email,
-            stripe_customer_id="STRIPE_CUST_FORMER",
         )
         await create_order(save_fixture, customer=customer, subtotal_amount=1000)
 

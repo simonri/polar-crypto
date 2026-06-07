@@ -45,12 +45,10 @@ class TransactionEmbedded(IDSchema, TimestampedSchema):
 
     currency: str
     amount: int
-    tax_amount: int
     account_currency: str
     account_amount: int
 
     presentment_amount: int | None
-    presentment_tax_amount: int | None
     presentment_currency: str | None
     exchange_rate: float | None
 

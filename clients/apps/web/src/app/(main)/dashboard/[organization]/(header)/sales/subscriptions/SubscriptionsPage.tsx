@@ -15,7 +15,6 @@ import {
 } from '@/utils/datatable'
 import FileDownloadOutlined from '@mui/icons-material/FileDownloadOutlined'
 import { schemas } from '@polar-sh/client'
-import { Avatar } from '@polar-sh/orbit'
 import { Button } from '@polar-sh/orbit'
 import {
   DataTable,
@@ -220,15 +219,9 @@ const ClientPage: React.FC<ClientPageProps> = ({
       cell: ({ row: { original: subscription } }) => {
         const customer = subscription.customer
         return (
-          <div className="flex flex-row items-center gap-2">
-            <Avatar
-              avatar_url={customer.avatar_url}
-              name={customer.email ?? customer.name ?? '—'}
-            />
-            <div className="fw-medium overflow-hidden text-ellipsis">
+          <div className="fw-medium overflow-hidden text-ellipsis">
               {customer.name || customer.email || '—'}
             </div>
-          </div>
         )
       },
     },

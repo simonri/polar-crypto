@@ -7,11 +7,9 @@ from polar.auth.models import AuthSubject
 from polar.customer_portal.schemas.subscription import (
     CustomerSubscriptionUpdateClear,
     CustomerSubscriptionUpdateProduct,
-    CustomerSubscriptionUpdateSeats,
 )
 from polar.customer_portal.service.subscription import (
     UpdateSubscriptionPlanNotAllowed,
-    UpdateSubscriptionSeatsNotAllowed,
 )
 from polar.customer_portal.service.subscription import (
     customer_subscription as customer_subscription_service,
@@ -276,7 +274,6 @@ class TestUpdate:
         organization.customer_portal_settings = {
             **organization.customer_portal_settings,
             "subscription": {
-                "update_seats": False,
                 "update_plan": False,
             },
         }
@@ -287,13 +284,6 @@ class TestUpdate:
                 session,
                 subscription,
                 updates=CustomerSubscriptionUpdateProduct(product_id=product_second.id),
-            )
-
-        with pytest.raises(UpdateSubscriptionSeatsNotAllowed):
-            await customer_subscription_service.update(
-                session,
-                subscription,
-                updates=CustomerSubscriptionUpdateSeats(seats=100),
             )
 
     @pytest.mark.keep_session_state

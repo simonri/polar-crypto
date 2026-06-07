@@ -4,7 +4,6 @@ from uuid import UUID
 
 from sqlalchemy import TIMESTAMP, ForeignKey, Index, Uuid
 from sqlalchemy.orm import Mapped, declared_attr, mapped_column, relationship
-from sqlalchemy.sql.sqltypes import Integer
 
 from polar.enums import SubscriptionProrationBehavior
 from polar.kit.db.models import RecordModel
@@ -25,8 +24,7 @@ class SubscriptionUpdate(RecordModel):
 
     Can be used when:
 
-    - A subscription is updated to a new product or when seats are added or removed,
-    but we are waiting for a successful payment to be made before applying the update.
+    - A subscription is updated to a new product, but we are waiting for a successful payment to be made before applying the update.
     - A subscription update is scheduled for a future date, for example to apply a new product at the end of the current billing cycle.
     """
 
@@ -86,9 +84,6 @@ class SubscriptionUpdate(RecordModel):
     )
     """New cycle end to apply to the subscription."""
 
-    seats: Mapped[int | None] = mapped_column(Integer, nullable=True)
-    """Number of seats to apply to the subscription."""
-
     def is_interval_changed(self) -> bool:
         """Return True if the subscription update includes a change of billing interval."""
         if self.product is None:
@@ -108,7 +103,7 @@ class SubscriptionUpdate(RecordModel):
             assert is_recurring_product(self.product)
             subscription.product = self.product
             subscription.subscription_product_prices = [
-                SubscriptionProductPrice.from_price(price, seats=subscription.seats)
+                SubscriptionProductPrice.from_price(price)
                 for price in PriceSet.from_product(self.product, subscription.currency)
             ]
             subscription.recurring_interval = self.product.recurring_interval
@@ -122,13 +117,6 @@ class SubscriptionUpdate(RecordModel):
 
         if self.new_cycle_end is not None:
             subscription.current_period_end = self.new_cycle_end
-
-        if self.seats is not None:
-            subscription.seats = self.seats
-            subscription.subscription_product_prices = [
-                SubscriptionProductPrice.from_price(spp.product_price, seats=self.seats)
-                for spp in subscription.subscription_product_prices
-            ]
 
         self.applied_at = utc_now()
 

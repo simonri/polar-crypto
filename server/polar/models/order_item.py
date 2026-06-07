@@ -16,7 +16,6 @@ from polar.models.product_price import (
     ProductPriceCustom,
     ProductPriceFixed,
     ProductPriceFree,
-    ProductPriceSeatUnit,
 )
 
 if TYPE_CHECKING:
@@ -29,7 +28,6 @@ class OrderItem(RecordModel):
     label: Mapped[str] = mapped_column(String, nullable=False)
     amount: Mapped[int] = mapped_column("amount_v2", BigInteger, nullable=False)
     net_amount: Mapped[int] = mapped_column("net_amount_v2", BigInteger, nullable=False)
-    tax_amount: Mapped[int] = mapped_column("tax_amount_v2", BigInteger, nullable=False)
     proration: Mapped[bool] = mapped_column(Boolean, nullable=False, default=False)
     order_id: Mapped[UUID] = mapped_column(
         Uuid, ForeignKey("orders.id", ondelete="cascade"), index=True
@@ -50,9 +48,7 @@ class OrderItem(RecordModel):
 
     @property
     def total_amount(self) -> int:
-        return (
-            self.net_amount if self.net_amount is not None else self.amount
-        ) + self.tax_amount
+        return self.net_amount if self.net_amount is not None else self.amount
 
     @property
     def discountable(self) -> bool:
@@ -64,10 +60,7 @@ class OrderItem(RecordModel):
     def from_price(
         cls,
         price: ProductPrice,
-        tax_amount: int,
         amount: int | None = None,
-        seats: int | None = None,
-        label: str | None = None,
     ) -> Self:
         if isinstance(price, ProductPriceFixed | LegacyRecurringProductPriceFixed):
             amount = price.price_amount
@@ -75,13 +68,9 @@ class OrderItem(RecordModel):
             assert amount is not None, "amount must be provided for custom prices"
         elif isinstance(price, ProductPriceFree | LegacyRecurringProductPriceFree):
             amount = 0
-        elif isinstance(price, ProductPriceSeatUnit):
-            assert seats is not None, "seats must be provided for seat-based prices"
-            amount = price.calculate_amount(seats)
         return cls(
             label=label if label is not None else price.product.name,
             amount=amount,
-            tax_amount=tax_amount,
             net_amount=amount,
             proration=False,
             product_price=price,
@@ -92,15 +81,9 @@ class OrderItem(RecordModel):
         formatted_start = format_date(start.date(), locale="en_US")
         formatted_end = format_date(end.date(), locale="en_US")
         label = f"Trial period for {product.name} ({formatted_start} - {formatted_end})"
-        return cls(label=label, amount=0, tax_amount=0, net_amount=0, proration=False)
+        return cls(label=label, amount=0, net_amount=0, proration=False)
 
     @classmethod
     def from_wallet(cls, wallet: "Wallet", amount: int) -> Self:
         label = f"Wallet Top-Up for {wallet.organization.name}"
-        return cls(
-            label=label,
-            amount=amount,
-            tax_amount=0,
-            net_amount=amount,
-            proration=False,
-        )
+        return cls(label=label, amount=amount, net_amount=amount, proration=False)

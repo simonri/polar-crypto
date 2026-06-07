@@ -13,8 +13,6 @@ import {
 import React from 'react'
 import { useForm } from 'react-hook-form'
 import { toast } from '../Toast/use-toast'
-import { BenefitRevocationGracePeriod } from './BenefitRevocationGracePeriod'
-import { ProrationBehavior } from './ProrationBehavior'
 import { SettingsGroup, SettingsGroupItem } from './SettingsGroup'
 
 interface OrganizationSubscriptionSettingsProps {
@@ -74,12 +72,12 @@ const OrganizationSubscriptionSettings: React.FC<
       >
         <SettingsGroup>
           <SettingsGroupItem
-            title="Allow multiple subscriptions"
-            description="Customers can have multiple active subscriptions at the same time."
+            title="Allow customer updates"
+            description="Customers can update their own subscription details."
           >
             <FormField
               control={control}
-              name="allow_multiple_subscriptions"
+              name="allow_customer_updates"
               render={({ field }) => (
                 <FormItem>
                   <FormControl>
@@ -90,73 +88,6 @@ const OrganizationSubscriptionSettings: React.FC<
                     />
                   </FormControl>
 
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
-          </SettingsGroupItem>
-
-          <SettingsGroupItem
-            title="Proration"
-            description="Determines how to bill customers when they change their subscription"
-          >
-            <FormField
-              control={control}
-              name="proration_behavior"
-              render={({ field }) => (
-                <FormItem>
-                  <FormControl>
-                    <ProrationBehavior
-                      organization={organization}
-                      value={field.value}
-                      onValueChange={field.onChange}
-                      disabled={readOnly}
-                    />
-                  </FormControl>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
-          </SettingsGroupItem>
-
-          <SettingsGroupItem
-            title="Grace period for benefit revocation"
-            description="How long to wait before revoking benefits during payment retries"
-          >
-            <FormField
-              control={control}
-              name="benefit_revocation_grace_period"
-              render={({ field }) => (
-                <FormItem>
-                  <FormControl>
-                    <BenefitRevocationGracePeriod
-                      value={field.value}
-                      disabled={readOnly}
-                      onValueChange={(value) => field.onChange(Number(value))}
-                    />
-                  </FormControl>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
-          </SettingsGroupItem>
-
-          <SettingsGroupItem
-            title="Prevent trial abuse"
-            description="When enabled, customers who previously had a trial on any of your products won't be eligible for another trial."
-          >
-            <FormField
-              control={control}
-              name="prevent_trial_abuse"
-              render={({ field }) => (
-                <FormItem>
-                  <FormControl>
-                    <Switch
-                      checked={field.value}
-                      disabled={readOnly}
-                      onCheckedChange={field.onChange}
-                    />
-                  </FormControl>
                   <FormMessage />
                 </FormItem>
               )}

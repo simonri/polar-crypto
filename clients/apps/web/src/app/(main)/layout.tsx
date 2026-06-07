@@ -1,8 +1,6 @@
-import { CookieConsent } from '@/components/Privacy/CookieConsent'
-import { CONFIG } from '@/utils/config'
-import { headers } from 'next/headers'
 import { Metadata } from 'next/types'
 import { PolarThemeProvider } from '../providers'
+import { CONFIG } from '@/utils/config'
 
 export async function generateMetadata(): Promise<Metadata> {
   const baseMetadata: Metadata = {
@@ -63,14 +61,11 @@ export async function generateMetadata(): Promise<Metadata> {
   }
 }
 
-export default async function MainLayout({
+export default function MainLayout({
   children,
 }: {
   children: React.ReactNode
 }) {
-  const headersList = await headers()
-  const countryCode = headersList.get('x-vercel-ip-country')
-
   return (
     <PolarThemeProvider>
       <link
@@ -145,7 +140,6 @@ export default async function MainLayout({
       />
       <div className="dark:bg-polar-950 h-full bg-white dark:text-white">
         {children}
-        <CookieConsent countryCode={countryCode} />
       </div>
     </PolarThemeProvider>
   )

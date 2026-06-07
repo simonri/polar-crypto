@@ -5,15 +5,9 @@ from typing import Annotated, Literal
 
 from pydantic import BaseModel, Discriminator, TypeAdapter
 
-from polar.notifications.notification import (
-    MaintainerAccountCreditsGrantedNotificationPayload,
-    MaintainerCreateAccountNotificationPayload,
-    MaintainerNewPaidSubscriptionNotificationPayload,
-    MaintainerNewProductSaleNotificationPayload,
-)
 from polar.order.schemas import OrderBase, OrderItemSchema
 from polar.organization.schemas import Organization
-from polar.product.schemas import BenefitList, ProductBase
+from polar.product.schemas import ProductBase
 from polar.subscription.schemas import SubscriptionBase
 
 
@@ -43,20 +37,14 @@ class EmailTemplate(StrEnum):
     subscription_trial_conversion_reminder = "subscription_trial_conversion_reminder"
     subscription_updated = "subscription_updated"
     webhook_endpoint_disabled = "webhook_endpoint_disabled"
-    notification_new_sale = "notification_new_sale"
-    notification_new_subscription = "notification_new_subscription"
-    notification_create_account = "notification_create_account"
-    notification_credits_granted = "notification_credits_granted"
     polar_self_subscription_confirmation = "polar_self_subscription_confirmation"
     polar_self_subscription_cycled = "polar_self_subscription_cycled"
-    polar_self_startup_program_welcome = "polar_self_startup_program_welcome"
 
 
 class SubscriptionEmail(SubscriptionBase): ...
 
 
-class ProductEmail(ProductBase):
-    benefits: BenefitList
+class ProductEmail(ProductBase): ...
 
 
 class OrderEmail(OrderBase):
@@ -359,34 +347,6 @@ class WebhookEndpointDisabledEmail(BaseModel):
     props: WebhookEndpointDisabledProps
 
 
-class NotificationNewSaleEmail(BaseModel):
-    template: Literal[EmailTemplate.notification_new_sale] = (
-        EmailTemplate.notification_new_sale
-    )
-    props: MaintainerNewProductSaleNotificationPayload
-
-
-class NotificationNewSubscriptionEmail(BaseModel):
-    template: Literal[EmailTemplate.notification_new_subscription] = (
-        EmailTemplate.notification_new_subscription
-    )
-    props: MaintainerNewPaidSubscriptionNotificationPayload
-
-
-class NotificationCreateAccountEmail(BaseModel):
-    template: Literal[EmailTemplate.notification_create_account] = (
-        EmailTemplate.notification_create_account
-    )
-    props: MaintainerCreateAccountNotificationPayload
-
-
-class NotificationCreditsGrantedEmail(BaseModel):
-    template: Literal[EmailTemplate.notification_credits_granted] = (
-        EmailTemplate.notification_credits_granted
-    )
-    props: MaintainerAccountCreditsGrantedNotificationPayload
-
-
 class PolarSelfSubscriptionConfirmationProps(EmailProps):
     product_name: str
 
@@ -407,18 +367,6 @@ class PolarSelfSubscriptionCycledEmail(BaseModel):
         EmailTemplate.polar_self_subscription_cycled
     )
     props: PolarSelfSubscriptionCycledProps
-
-
-class PolarSelfStartupProgramWelcomeProps(EmailProps):
-    organization_name: str
-    billing_url: str
-
-
-class PolarSelfStartupProgramWelcomeEmail(BaseModel):
-    template: Literal[EmailTemplate.polar_self_startup_program_welcome] = (
-        EmailTemplate.polar_self_startup_program_welcome
-    )
-    props: PolarSelfStartupProgramWelcomeProps
 
 
 class OrganizationAccountUnlinkProps(EmailProps):
@@ -459,13 +407,8 @@ Email = Annotated[
     | SubscriptionUncanceledEmail
     | SubscriptionUpdatedEmail
     | WebhookEndpointDisabledEmail
-    | NotificationNewSaleEmail
-    | NotificationNewSubscriptionEmail
-    | NotificationCreateAccountEmail
-    | NotificationCreditsGrantedEmail
     | PolarSelfSubscriptionConfirmationEmail
-    | PolarSelfSubscriptionCycledEmail
-    | PolarSelfStartupProgramWelcomeEmail,
+    | PolarSelfSubscriptionCycledEmail,
     Discriminator("template"),
 ]
 

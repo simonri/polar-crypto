@@ -139,8 +139,9 @@ The PlainSerializer then ensures `{CHECKOUT_ID}` doesn't get escaped again.
 
 def get_safe_return_url(return_to: str | None) -> str:
     # Unsafe URL -> fallback to default
+    frontend_host = urlparse(settings.FRONTEND_BASE_URL).netloc
     if return_to is None or not url_has_allowed_host_and_scheme(
-        return_to, settings.ALLOWED_HOSTS
+        return_to, {frontend_host}
     ):
         return settings.generate_frontend_url(settings.FRONTEND_DEFAULT_RETURN_PATH)
 

@@ -2,7 +2,6 @@
 
 import { useAuth } from '@/hooks'
 import { useCreateOrganization } from '@/hooks/queries'
-import { useAupValidation } from '@/hooks/useAupValidation'
 import { schemas } from '@polar-sh/client'
 import { Box } from '@polar-sh/orbit/Box'
 import { Button } from '@polar-sh/orbit'
@@ -53,11 +52,8 @@ export function ProductDetailsStep() {
     useOnboardingData()
   const { trackStepViewed, trackStepCompleted } = useOnboardingV2Tracking()
   const createOrganization = useCreateOrganization()
-  const [loading, setLoading] = useState<
-    'submitting' | 'submitting-anyway' | null
-  >(null)
+  const [loading, setLoading] = useState<'submitting' | null>(null)
   trackStepViewed('product')
-  const aup = useAupValidation()
 
   const form = useForm<FormSchema>({
     defaultValues: {
@@ -132,7 +128,6 @@ export function ProductDetailsStep() {
       country: (data.businessCountry || undefined) as
         | schemas['OrganizationCreate']['country']
         | undefined,
-      default_tax_behavior: 'location',
       legal_entity:
         data.organizationType === 'company'
           ? {
@@ -193,31 +188,7 @@ export function ProductDetailsStep() {
   }
 
   const onSubmit = async (formData: FormSchema) => {
-    const result = await aup.validate({
-      product_description: formData.productDescription,
-      selling_categories: formData.sellingCategories,
-      pricing_models: formData.pricingModel,
-    })
-
-    if (!result.ok) {
-      form.setError('root', {
-        message: 'Something went wrong, please try again.',
-      })
-      return
-    }
-
-    if (result.verdict === 'DENY' || result.verdict === 'CLARIFY') return
-
     setLoading('submitting')
-    const success = await submitOrg(formData)
-    if (!success) {
-      setLoading(null)
-    }
-  }
-
-  const onContinueAnyway = async () => {
-    setLoading('submitting-anyway')
-    const formData = form.getValues()
     const success = await submitOrg(formData)
     if (!success) {
       setLoading(null)
@@ -271,29 +242,6 @@ export function ProductDetailsStep() {
               </FormItem>
             )}
           />
-
-          {aup.verdict && (
-            <Box
-              display="flex"
-              flexDirection="column"
-              rowGap="m"
-              borderRadius="m"
-              borderWidth={1}
-              borderStyle="solid"
-              borderColor="border-warning"
-              backgroundColor="background-warning"
-              padding="l"
-            >
-              <p className="text-sm font-medium text-yellow-800 dark:text-yellow-200">
-                {aup.verdict === 'CLARIFY'
-                  ? 'Please clarify your use case'
-                  : 'Use case not supported'}
-              </p>
-              <p className="text-sm text-yellow-700 dark:text-yellow-300">
-                {aup.message}
-              </p>
-            </Box>
-          )}
 
           <Box display="flex" flexDirection="column" rowGap="m">
             <FormLabel>Pricing model</FormLabel>
@@ -377,9 +325,8 @@ export function ProductDetailsStep() {
             <Button
               type="submit"
               onClick={() => form.clearErrors()}
-              loading={aup.isValidating || loading === 'submitting'}
+              loading={loading === 'submitting'}
               disabled={
-                loading === 'submitting-anyway' ||
                 blockedSelected.length > 0 ||
                 sellingCategories.length === 0 ||
                 pricingModel.length === 0 ||
@@ -387,24 +334,9 @@ export function ProductDetailsStep() {
               }
               fullWidth
             >
-              {aup.verdict ? 'Review again' : 'Launch Dashboard'}
+              Launch Dashboard
             </Button>
 
-            {aup.verdict === 'CLARIFY' &&
-              aup.history.length >= 3 &&
-              productDescription.trim().length > 30 &&
-              !aup.isValidating && (
-                <Button
-                  variant="ghost"
-                  type="button"
-                  fullWidth
-                  onClick={onContinueAnyway}
-                  disabled={loading === 'submitting'}
-                  loading={loading === 'submitting-anyway'}
-                >
-                  Continue without review
-                </Button>
-              )}
             {form.formState.errors.root && (
               <p className="text-sm text-red-500 dark:text-red-500">
                 {form.formState.errors.root.message}

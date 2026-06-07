@@ -77,7 +77,6 @@ export const OrganizationsSheet = ({
               <Box flexDirection="row" alignItems="center" gap="spacing-12">
                 <Avatar
                   size={24}
-                  image={organization?.avatar_url}
                   name={organization?.name}
                 />
                 <Text>{organization?.name}</Text>

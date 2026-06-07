@@ -2,7 +2,6 @@ from datetime import datetime
 from enum import StrEnum
 from typing import Any, Literal
 
-import stripe as stripe_lib
 from sqlalchemy import (
     TIMESTAMP,
     Boolean,
@@ -20,8 +19,6 @@ from polar.kit.extensions.sqlalchemy.types import StrEnumType
 
 
 class ExternalEventSource(StrEnum):
-    stripe = "stripe"
-    chargeback_stop = "chargeback_stop"
     polar = "polar"
 
 
@@ -50,32 +47,6 @@ class ExternalEvent(RecordModel):
 
     __mapper_args__ = {
         "polymorphic_on": "source",
-    }
-
-
-class StripeEvent(ExternalEvent):
-    source: Mapped[Literal[ExternalEventSource.stripe]] = mapped_column(  # pyright: ignore
-        use_existing_column=True, default=ExternalEventSource.stripe
-    )
-
-    @property
-    def stripe_data(self) -> stripe_lib.Event:
-        return stripe_lib.Event.construct_from(self.data, key=None)
-
-    __mapper_args__ = {
-        "polymorphic_identity": ExternalEventSource.stripe,
-        "polymorphic_load": "inline",
-    }
-
-
-class ChargebackStopEvent(ExternalEvent):
-    source: Mapped[Literal[ExternalEventSource.chargeback_stop]] = mapped_column(  # pyright: ignore
-        use_existing_column=True, default=ExternalEventSource.chargeback_stop
-    )
-
-    __mapper_args__ = {
-        "polymorphic_identity": ExternalEventSource.chargeback_stop,
-        "polymorphic_load": "inline",
     }
 
 

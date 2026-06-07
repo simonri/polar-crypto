@@ -25,12 +25,11 @@ class PayoutTransactionService(BaseTransactionService):
         transaction = Transaction(
             id=generate_uuid(),
             type=TransactionType.payout,
-            processor=Processor.stripe,
+            processor=Processor.crypto,
             currency=payout.currency,
             amount=-payout.amount,
             account_currency=payout.account_currency,
             account_amount=-payout.account_amount,
-            tax_amount=0,
             account=account,
             pledge=None,
             issue_reward=None,
@@ -48,9 +47,7 @@ class PayoutTransactionService(BaseTransactionService):
             await balance_transaction_repository.get_all_unpaid_by_account(account.id)
         )
 
-        if payout.processor == PayoutAccountType.stripe:
-            transaction.processor = Processor.stripe
-        elif payout.processor == PayoutAccountType.manual:
+        if payout.processor == PayoutAccountType.manual:
             transaction.processor = Processor.manual
 
         for balance_transaction in unpaid_balance_transactions:
@@ -78,7 +75,6 @@ class PayoutTransactionService(BaseTransactionService):
             amount=-transaction.amount,
             account_currency=transaction.account_currency,
             account_amount=-transaction.account_amount,
-            tax_amount=0,
             account=transaction.account,
             pledge=None,
             issue_reward=None,

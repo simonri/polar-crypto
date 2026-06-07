@@ -5,7 +5,6 @@ import { useCustomerPortalSession } from '@/hooks/queries/customerPortal'
 import { createClientSideAPI } from '@/utils/client'
 import ArrowBackOutlined from '@mui/icons-material/ArrowBackOutlined'
 import { schemas } from '@polar-sh/client'
-import { Avatar } from '@polar-sh/orbit'
 import { TooltipProvider } from '@polar-sh/ui/components/ui/tooltip'
 import Link from 'next/link'
 import { useSearchParams } from 'next/navigation'
@@ -36,11 +35,6 @@ export function CustomerPortalLayoutWrapper({
     >
       <TooltipProvider>
         <div className="flex flex-row items-center gap-x-3 px-4 py-4 lg:px-8 lg:py-8">
-          <Avatar
-            className="h-8 w-8 flex-none"
-            avatar_url={organization.avatar_url}
-            name={organization.name}
-          />
           {session?.return_url && (
             <Link
               href={session.return_url}

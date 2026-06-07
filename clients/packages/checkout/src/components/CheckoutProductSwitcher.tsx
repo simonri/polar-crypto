@@ -35,35 +35,6 @@ export const CheckoutProductSwitcherItemPrice = ({
   checkout,
   locale,
 }: CheckoutProductSwitcherItemPriceProps) => {
-  if (price.amount_type === 'seat_based') {
-    if (isSelected) {
-      return (
-        <AmountLabel
-          amount={checkout.net_amount || 0}
-          currency={price.price_currency}
-          interval={product.recurring_interval}
-          intervalCount={product.recurring_interval_count}
-          mode="standard"
-          locale={locale}
-        />
-      )
-    }
-
-    const minimumAmount =
-      (price.seat_tiers?.tiers?.[0]?.price_per_seat ?? 0) *
-      (price.seat_tiers?.minimum_seats ?? 1)
-
-    return (
-      <FromPrice
-        amount={minimumAmount}
-        currency={price.price_currency}
-        interval={product.recurring_interval}
-        intervalCount={product.recurring_interval_count}
-        locale={locale}
-      />
-    )
-  }
-
   return (
     <ProductPriceLabel
       product={product}

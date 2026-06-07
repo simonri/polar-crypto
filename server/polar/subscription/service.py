@@ -1,13 +1,10 @@
 import uuid
-from collections.abc import Sequence
-from datetime import UTC, datetime, timedelta
-from decimal import Decimal
-from types import TracebackType
-from typing import Any, Literal, Unpack, cast, overload
+from collections.abc import AsyncGenerator, Sequence
+from datetime import UTC, datetime
+from typing import Any, Literal, cast, overload
 from urllib.parse import urlencode
 
 import structlog
-from sqlalchemy import select
 from sqlalchemy.orm import contains_eager, joinedload, selectinload
 
 from polar.auth.models import AuthSubject
@@ -15,15 +12,11 @@ from polar.auth.permission import OrganizationPermission
 from polar.authz.service import assert_resource_permission
 from polar.authz.types import AccessibleOrganizationID
 from polar.billing_entry.repository import BillingEntryRepository
-from polar.billing_entry.service import MeteredLineItem
-from polar.billing_entry.service import billing_entry as billing_entry_service
 from polar.checkout.eventstream import CheckoutEvent, publish_checkout_event
 from polar.checkout.guard import has_product_checkout
 from polar.config import settings
 from polar.customer.repository import CustomerRepository
 from polar.customer.service import customer as customer_service
-from polar.customer_meter.service import customer_meter as customer_meter_service
-from polar.customer_seat.service import seat_service
 from polar.discount.repository import DiscountRedemptionRepository
 from polar.discount.service import discount as discount_service
 from polar.email.schemas import EmailAdapter
@@ -32,7 +25,6 @@ from polar.enums import (
     PaymentMode,
     SubscriptionProrationBehavior,
     SubscriptionRecurringInterval,
-    TaxBehavior,
 )
 from polar.event.service import event as event_service
 from polar.event.system import (
@@ -62,8 +54,6 @@ from polar.kit.utils import utc_now
 from polar.kit.visibility import Visibility
 from polar.logging import Logger
 from polar.models import (
-    Benefit,
-    BenefitGrant,
     BillingEntry,
     Checkout,
     Customer,
@@ -72,38 +62,27 @@ from polar.models import (
     Organization,
     PaymentMethod,
     Product,
-    ProductBenefit,
     Subscription,
-    SubscriptionMeter,
     SubscriptionProductPrice,
     User,
 )
 from polar.models.billing_entry import BillingEntryDirection, BillingEntryType
 from polar.models.customer import CustomerType
 from polar.models.order import OrderBillingReasonInternal
-from polar.models.product_price import ProductPrice, ProductPriceSeatUnit
+from polar.models.product_price import ProductPrice
 from polar.models.subscription import CustomerCancellationReason, SubscriptionStatus
 from polar.models.webhook_endpoint import WebhookEventType
-from polar.notifications.notification import (
-    MaintainerNewPaidSubscriptionNotificationPayload,
-    NotificationType,
-)
-from polar.notifications.service import PartialNotification
-from polar.notifications.service import notifications as notifications_service
 from polar.organization.repository import OrganizationRepository
 from polar.product.guard import (
     is_custom_price,
     is_recurring_product,
-    is_seat_price,
     is_static_price,
 )
 from polar.product.price_set import NoPricesForCurrencies, PriceSet
 from polar.product.repository import ProductRepository
 from polar.product.service import product as product_service
-from polar.tax.calculation import TaxCalculationLogicalError
-from polar.tax.calculation import tax_calculation as tax_calculation_service
 from polar.webhook.service import webhook as webhook_service
-from polar.worker import enqueue_job, make_bulk_job_delay_calculator
+from polar.worker import enqueue_job
 
 from .repository import SubscriptionRepository, SubscriptionUpdateRepository
 from .schemas import (
@@ -117,7 +96,6 @@ from .schemas import (
     SubscriptionUpdateClear,
     SubscriptionUpdateDiscount,
     SubscriptionUpdateProduct,
-    SubscriptionUpdateSeats,
     SubscriptionUpdateTrial,
 )
 from .sorting import SubscriptionSortProperty
@@ -168,50 +146,6 @@ class SubscriptionLocked(SubscriptionError):
         self.subscription = subscription
         message = "This subscription is pending an update."
         super().__init__(message, 409)
-
-
-class NotASeatBasedSubscription(SubscriptionError):
-    def __init__(self, subscription: Subscription) -> None:
-        self.subscription = subscription
-        message = "This subscription does not support seat-based pricing."
-        super().__init__(message, 400)
-
-
-class SeatsAlreadyAssigned(SubscriptionError):
-    def __init__(
-        self, subscription: Subscription, assigned_count: int, requested_seats: int
-    ) -> None:
-        self.subscription = subscription
-        self.assigned_count = assigned_count
-        self.requested_seats = requested_seats
-        message = (
-            f"Cannot decrease seats to {requested_seats}. "
-            f"Currently {assigned_count} seats are assigned. "
-            f"Revoke seats first."
-        )
-        super().__init__(message, 400)
-
-
-class BelowMinimumSeats(SubscriptionError):
-    def __init__(
-        self, subscription: Subscription, minimum_seats: int, requested_seats: int
-    ) -> None:
-        self.subscription = subscription
-        self.minimum_seats = minimum_seats
-        self.requested_seats = requested_seats
-        message = f"Minimum {minimum_seats} seats required."
-        super().__init__(message, 400)
-
-
-class AboveMaximumSeats(SubscriptionError):
-    def __init__(
-        self, subscription: Subscription, maximum_seats: int, requested_seats: int
-    ) -> None:
-        self.subscription = subscription
-        self.maximum_seats = maximum_seats
-        self.requested_seats = requested_seats
-        message = f"Maximum {maximum_seats} seats allowed."
-        super().__init__(message, 400)
 
 
 @overload
@@ -386,12 +320,10 @@ class SubscriptionService:
 
         statement = statement.options(
             contains_eager(Subscription.product).options(
-                selectinload(Product.product_medias),
                 selectinload(Product.attached_custom_fields),
             ),
             contains_eager(Subscription.discount),
             contains_eager(Subscription.customer),
-            selectinload(Subscription.meters).joinedload(SubscriptionMeter.meter),
             joinedload(Subscription.pending_update),
         )
 
@@ -528,18 +460,10 @@ class SubscriptionService:
         currency = product.organization.default_presentment_currency
         currency_prices = PriceSet.from_product(product, currency)
 
-        # For seat-based products, determine initial seats from the price tiers
-        seats: int | None = None
-        if product.has_seat_based_price:
-            for p in currency_prices:
-                if is_seat_price(p):
-                    seats = p.get_minimum_seats()
-                    break
-
         subscription_product_prices: list[SubscriptionProductPrice] = []
         for price in currency_prices:
             subscription_product_prices.append(
-                SubscriptionProductPrice.from_price(price, seats=seats)
+                SubscriptionProductPrice.from_price(price)
             )
 
         current_period_start = utc_now()
@@ -562,7 +486,6 @@ class SubscriptionService:
             customer=customer,
             subscription_product_prices=subscription_product_prices,
             currency=currency,
-            seats=seats,
             user_metadata=subscription_create.metadata,
             pending_update=None,
         )
@@ -572,10 +495,6 @@ class SubscriptionService:
         repository = SubscriptionRepository.from_session(session)
         subscription = await repository.create(subscription, flush=True)
 
-        # Auto-upgrade customer to 'team' type when subscribing to a seat-based product
-        if product.has_seat_based_price:
-            await self._maybe_upgrade_customer_to_team(session, customer)
-
         await self._after_subscription_created(session, subscription)
         # ⚠️ Some users are relying on `subscription.updated` for everything
         # It was working before with Stripe since it always triggered an update
@@ -583,9 +502,6 @@ class SubscriptionService:
         # But that's not the case with our new engine.
         # So we manually trigger it here to keep the same behavior.
         await self._on_subscription_updated(session, subscription)
-
-        # Enqueue the benefits grants for the subscription
-        await self.enqueue_benefits_grants(session, subscription)
 
         return subscription
 
@@ -624,9 +540,7 @@ class SubscriptionService:
         subscription_product_prices: list[SubscriptionProductPrice] = []
         for price in subscription_prices:
             subscription_product_prices.append(
-                SubscriptionProductPrice.from_price(
-                    price, checkout.amount, checkout.seats
-                )
+                SubscriptionProductPrice.from_price(price, checkout.amount)
             )
 
         subscription = checkout.subscription
@@ -673,7 +587,6 @@ class SubscriptionService:
         subscription.product = product
         subscription.subscription_product_prices = subscription_product_prices
         subscription.currency = currency
-        subscription.tax_behavior = checkout.tax_behavior
         subscription.discount = checkout.discount
         # For non-trial checkouts with a discount, the discount is applied immediately
         # (the first payment at checkout includes the discount)
@@ -682,7 +595,6 @@ class SubscriptionService:
         subscription.checkout = checkout
         subscription.user_metadata = checkout.user_metadata
         subscription.custom_field_data = checkout.custom_field_data
-        subscription.seats = checkout.seats
 
         repository = SubscriptionRepository.from_session(session)
         if created:
@@ -705,10 +617,6 @@ class SubscriptionService:
                 previous_is_canceled=previous_is_canceled,
             )
 
-        # Auto-upgrade customer to 'team' type when subscribing to a seat-based product
-        if product.has_seat_based_price:
-            await self._maybe_upgrade_customer_to_team(session, customer)
-
         # Link potential discount redemption to the subscription
         if subscription.discount is not None:
             discount_redemption_repository = DiscountRedemptionRepository.from_session(
@@ -717,12 +625,6 @@ class SubscriptionService:
             await discount_redemption_repository.set_subscription_by_checkout(
                 checkout.id, subscription.id
             )
-
-        # Reset the subscription meters to start fresh
-        await self.reset_meters(session, subscription)
-
-        # Enqueue the benefits grants for the subscription
-        await self.enqueue_benefits_grants(session, subscription)
 
         # Notify checkout channel that a subscription has been created from it
         await publish_checkout_event(
@@ -759,7 +661,6 @@ class SubscriptionService:
         if revoke:
             subscription.ended_at = utc_now()
             subscription.status = SubscriptionStatus.canceled
-            await self.enqueue_benefits_grants(session, subscription)
         # Normal cycle
         else:
             # Apply any pending subscription update (product change, seats change)
@@ -877,58 +778,6 @@ class SubscriptionService:
 
         return subscription
 
-    async def reset_meters(
-        self, session: AsyncSession, subscription: Subscription
-    ) -> None:
-        """
-        Resets all the subscription meters to start fresh, optionally reporting
-        rollover units if applicable.
-
-        This should be called when creating a new subscription or cycling an
-        existing one.
-        """
-        customer = subscription.customer
-        for subscription_meter in subscription.meters:
-            rollover_units = await customer_meter_service.get_rollover_units(
-                session, customer, subscription_meter.meter
-            )
-            await event_service.create_event(
-                session,
-                build_system_event(
-                    SystemEvent.meter_reset,
-                    customer=customer,
-                    organization=subscription.organization,
-                    metadata={"meter_id": str(subscription_meter.meter_id)},
-                ),
-            )
-            if rollover_units > 0:
-                await event_service.create_event(
-                    session,
-                    build_system_event(
-                        SystemEvent.meter_credited,
-                        customer=customer,
-                        organization=subscription.organization,
-                        metadata={
-                            "meter_id": str(subscription_meter.meter_id),
-                            "units": rollover_units,
-                            "rollover": True,
-                        },
-                    ),
-                )
-
-    async def _maybe_upgrade_customer_to_team(
-        self, session: AsyncSession, customer: Customer
-    ) -> None:
-        customer_type = customer.type or CustomerType.individual
-        if customer_type != CustomerType.individual:
-            return
-        customer_repository = CustomerRepository.from_session(session)
-        await customer_repository.update(
-            customer,
-            update_dict={"type": CustomerType.team},
-            flush=True,
-        )
-
     async def _after_subscription_created(
         self, session: AsyncSession, subscription: Subscription
     ) -> None:
@@ -972,7 +821,7 @@ class SubscriptionService:
         update: SubscriptionUpdate,
     ) -> Subscription:
         if (
-            isinstance(update, SubscriptionUpdateProduct | SubscriptionUpdateSeats)
+            isinstance(update, SubscriptionUpdateProduct)
             and update.proration_behavior == SubscriptionProrationBehavior.reset
         ):
             organization = subscription.customer.organization
@@ -1009,15 +858,6 @@ class SubscriptionService:
         if isinstance(update, SubscriptionUpdateTrial):
             return await self.update_trial(
                 session, ctx, subscription, trial_end=update.trial_end
-            )
-
-        if isinstance(update, SubscriptionUpdateSeats):
-            return await self.update_seats(
-                session,
-                ctx,
-                subscription,
-                seats=update.seats,
-                proration_behavior=update.proration_behavior,
             )
 
         if isinstance(update, SubscriptionUpdateBillingPeriod):
@@ -1167,22 +1007,6 @@ class SubscriptionService:
                     ]
                 )
 
-        old_has_seat_prices = any(is_seat_price(p) for p in previous_prices)
-        new_has_seat_prices = any(is_seat_price(p) for p in currency_prices)
-
-        # Seat → non-seat plan changes are not yet supported.
-        if old_has_seat_prices and not new_has_seat_prices:
-            raise PolarRequestValidationError(
-                [
-                    {
-                        "type": "value_error",
-                        "loc": ("body", "product_id"),
-                        "msg": "Can't switch from a seat-based to a non-seat-based product.",
-                        "input": product_id,
-                    }
-                ]
-            )
-
         was_trialing = subscription.status == SubscriptionStatus.trialing
         new_trial_end: datetime | None = None
         ends_trial = False
@@ -1225,30 +1049,7 @@ class SubscriptionService:
         assert previous_product.is_recurring
 
         if proration_behavior is None:
-            proration_behavior = organization.proration_behavior
-
-        # Non-seat → seat upgrades: promote `subscription.seats` to the new
-        # product's first seat-price tier minimum so the proration debit and
-        # `apply_update`'s product-branch rebuild both see a valid seat count.
-        # Block `next_period` because the post-apply seat auto-claim has to run
-        # immediately so the billing customer doesn't lose benefit access.
-        is_initial_seat_transition = not old_has_seat_prices and new_has_seat_prices
-        if is_initial_seat_transition:
-            if proration_behavior == SubscriptionProrationBehavior.next_period:
-                raise PolarRequestValidationError(
-                    [
-                        {
-                            "type": "value_error",
-                            "loc": ("body", "proration_behavior"),
-                            "msg": "Switching from a non-seat to a seat-based product must apply immediately and can't use the 'next_period' proration behavior.",
-                            "input": proration_behavior,
-                        }
-                    ]
-                )
-            for price in currency_prices:
-                if is_seat_price(price):
-                    subscription.seats = price.get_minimum_seats()
-                    break
+            proration_behavior = SubscriptionProrationBehavior.prorate
 
         subscription_update_repository = SubscriptionUpdateRepository.from_session(
             session
@@ -1297,30 +1098,6 @@ class SubscriptionService:
                 and billing_entries
             ):
                 ctx.set_billing_effect("invoice")
-
-            # When transitioning from non-seat to seat-based pricing, promote
-            # the billing customer to a 'team' customer and claim a seat for
-            # them so they keep benefit access immediately after the switch.
-            if is_initial_seat_transition:
-                await self._maybe_upgrade_customer_to_team(
-                    session, subscription.customer
-                )
-                await seat_service.assign_seat(
-                    session,
-                    subscription,
-                    customer_id=subscription.customer_id,
-                    immediate_claim=True,
-                )
-
-            await self.enqueue_benefits_grants(session, subscription)
-
-            # Seat-based subscriptions short-circuit enqueue_benefits_grants
-            # while active, so existing claimed seats won't pick up the new
-            # product's benefits without an explicit re-sync.
-            if product.has_seat_based_price and subscription.active:
-                await seat_service.update_subscription_benefits_grants(
-                    session, subscription
-                )
 
             # Send product change email notification
             await self.send_subscription_updated_email(
@@ -1507,153 +1284,6 @@ class SubscriptionService:
 
         return subscription
 
-    async def update_seats(
-        self,
-        session: AsyncSession,
-        ctx: SubscriptionUpdateContext,
-        subscription: Subscription,
-        *,
-        seats: int,
-        proration_behavior: SubscriptionProrationBehavior | None = None,
-    ) -> Subscription:
-        """
-        Update the number of seats for a seat-based subscription.
-
-        Validates:
-        - Subscription is seat-based
-        - Subscription is active
-        - New seat count >= minimum seats
-        - New seat count <= maximum seats (if set)
-        - New seat count >= currently assigned seats
-        """
-        if subscription.revoked or subscription.cancel_at_period_end:
-            raise AlreadyCanceledSubscription(subscription)
-
-        seat_price = subscription.get_price_by_type(ProductPriceSeatUnit)
-        if seat_price is None:
-            raise NotASeatBasedSubscription(subscription)
-
-        minimum_seats = seat_price.get_minimum_seats()
-        if seats < minimum_seats:
-            raise BelowMinimumSeats(subscription, minimum_seats, seats)
-
-        maximum_seats = seat_price.get_maximum_seats()
-        if maximum_seats is not None and seats > maximum_seats:
-            raise AboveMaximumSeats(subscription, maximum_seats, seats)
-
-        assigned_count = await seat_service.count_assigned_seats_for_subscription(
-            session, subscription
-        )
-
-        if seats < assigned_count:
-            raise SeatsAlreadyAssigned(subscription, assigned_count, seats)
-
-        organization_repository = OrganizationRepository.from_session(session)
-        organization = await organization_repository.get_by_id(
-            subscription.product.organization_id
-        )
-        assert organization is not None
-
-        if proration_behavior is None:
-            proration_behavior = organization.proration_behavior
-
-        old_seats = subscription.seats or 1
-        old_amount = subscription.amount
-
-        subscription_update_repository = SubscriptionUpdateRepository.from_session(
-            session
-        )
-
-        if old_seats == seats:
-            # Re-asserting the current seat count cancels a pending seat
-            # change. Drop the row if nothing else is scheduled on it.
-            pending = subscription.pending_update
-            if pending is not None and pending.seats is not None:
-                if pending.product_id is None:
-                    await subscription_update_repository.soft_delete(pending)
-                    subscription.pending_update = None
-                else:
-                    pending.seats = None
-                    await subscription_update_repository.update(pending)
-            return subscription
-
-        event = await event_service.create_event(
-            session,
-            build_system_event(
-                SystemEvent.subscription_seats_updated,
-                customer=subscription.customer,
-                organization=subscription.organization,
-                metadata={
-                    "subscription_id": str(subscription.id),
-                    "old_seats": old_seats,
-                    "new_seats": seats,
-                    "proration_behavior": proration_behavior.value,
-                },
-            ),
-        )
-
-        subscription_update, billing_entries = generate_subscription_update(
-            subscription, proration_behavior, seats=seats
-        )
-
-        previous_status = subscription.status
-        previous_is_canceled = subscription.canceled
-
-        if proration_behavior == SubscriptionProrationBehavior.next_period:
-            subscription.pending_update = await subscription_update_repository.upsert(
-                subscription_update
-            )
-        else:
-            existing_pending = subscription.pending_update
-            if existing_pending is not None and existing_pending.product_id is not None:
-                # Preserve the scheduled product change. `apply_update`
-                # will read the updated `subscription.seats` at cycle
-                # time, so the new count applies to the new product.
-                # The pending row's own seats field is cleared; otherwise
-                # the cycle would reset the live count to that value.
-                if existing_pending.seats is not None:
-                    existing_pending.seats = None
-                    await subscription_update_repository.update(existing_pending)
-            else:
-                await subscription_update_repository.soft_delete_unapplied_by_subscription_id(
-                    subscription.id
-                )
-                subscription.pending_update = None
-
-            # Skip proration for trialing subscriptions - no billing during trial
-            if not subscription.trialing:
-                for entry in billing_entries:
-                    entry.event = event
-                    session.add(entry)
-
-            subscription = subscription_update.apply_update()
-            session.add(subscription)
-            await session.flush()
-
-            log.info(
-                "subscription.seats_updated",
-                subscription_id=subscription.id,
-                old_seats=old_seats,
-                new_seats=seats,
-                old_amount=old_amount,
-                new_amount=subscription.amount,
-            )
-
-            if (
-                proration_behavior.is_immediate()
-                and not subscription.trialing
-                and billing_entries
-            ):
-                # Invoice and attempt to pay immediately
-                ctx.set_billing_effect("invoice")
-
-        ctx.add_event_metadata(
-            seats=seats,
-            proration_behavior=proration_behavior,
-        )
-
-        return subscription
-
     async def update_currrent_billing_period_end(
         self,
         session: AsyncSession,
@@ -1767,15 +1397,11 @@ class SubscriptionService:
             customer_id, options=subscription_repository.get_eager_options()
         )
         for subscription in subscriptions:
-            async with SubscriptionUpdateContext(session, subscription, self) as ctx:
-                await self._perform_cancellation(
-                    session,
-                    ctx,
-                    subscription,
-                    immediately=True,
-                    # Benefits are revoked through `benefit.revoke_customer`
-                    revoke_benefits=False,
-                )
+            await self._perform_cancellation(
+                session,
+                subscription,
+                immediately=True,
+            )
 
     async def _perform_cancellation(
         self,
@@ -1786,7 +1412,6 @@ class SubscriptionService:
         customer_reason: CustomerCancellationReason | None = None,
         customer_comment: str | None = None,
         immediately: bool = False,
-        revoke_benefits: bool = True,
     ) -> Subscription:
         if not subscription.can_cancel(immediately):
             raise AlreadyCanceledSubscription(subscription)
@@ -1804,8 +1429,6 @@ class SubscriptionService:
             subscription.ends_at = now
             subscription.ended_at = now
             subscription.status = SubscriptionStatus.canceled
-            if revoke_benefits:
-                await self.enqueue_benefits_grants(session, subscription)
         else:
             subscription.cancel_at_period_end = True
             subscription.ends_at = subscription.current_period_end
@@ -1820,39 +1443,6 @@ class SubscriptionService:
             reason=customer_reason,
         )
         session.add(subscription)
-        return subscription
-
-    async def update_meters(
-        self, session: AsyncSession, subscription: Subscription
-    ) -> Subscription:
-        # First reset all meters, since we're computing from every entry
-        for subscription_meter in subscription.meters:
-            subscription_meter.reset()
-
-        async for (
-            line_item,
-            _,
-        ) in billing_entry_service.compute_pending_subscription_line_items(
-            session, subscription
-        ):
-            if not isinstance(line_item, MeteredLineItem):
-                continue
-            subscription_meter_line = subscription.get_meter(line_item.price.meter)
-            if subscription_meter_line is not None:
-                subscription_meter_line.consumed_units += Decimal(
-                    line_item.consumed_units
-                )
-                subscription_meter_line.credited_units += line_item.credited_units
-                subscription_meter_line.amount += line_item.amount
-
-        session.add(subscription)
-        await self._after_subscription_updated(
-            session,
-            subscription,
-            previous_status=subscription.status,
-            previous_is_canceled=subscription.canceled,
-        )
-
         return subscription
 
     async def calculate_charge_preview(
@@ -1882,16 +1472,13 @@ class SubscriptionService:
                 pending_update.product = None
             pending_update.apply_update()
 
-        # If subscription is set to cancel at period end, there's no base charge
-        # Only metered charges accumulated during the period will be billed
+        # If subscription is set to cancel at period end, there's no base charge.
         if subscription.cancel_at_period_end or subscription.ends_at:
             base_price = 0
         else:
             base_price = sum(p.amount for p in subscription.subscription_product_prices)
 
-        metered_amount = sum(meter.amount for meter in subscription.meters)
-
-        subtotal_amount = base_price + metered_amount
+        subtotal_amount = base_price
 
         discount_amount = 0
 
@@ -1916,53 +1503,17 @@ class SubscriptionService:
             )
 
         net_amount = subtotal_amount - discount_amount
-        tax_amount = 0
-
-        if (
-            net_amount > 0
-            and subscription.product.is_tax_applicable
-            and subscription.tax_behavior
-            and subscription.customer.billing_address is not None
-        ):
-            tax_behavior = subscription.tax_behavior.to_option()
-            try:
-                tax, _ = await tax_calculation_service.calculate(
-                    subscription.id,
-                    subscription.currency,
-                    net_amount,
-                    tax_behavior,
-                    subscription.product.tax_code,
-                    subscription.customer.billing_address,
-                    [subscription.customer.tax_id]
-                    if subscription.customer.tax_id is not None
-                    else [],
-                    subscription.tax_exempted,
-                )
-            except TaxCalculationLogicalError:
-                log.warning(
-                    "Failed to calculate tax for subscription due to invalid or incomplete address",
-                    subscription_id=subscription.id,
-                    customer_id=subscription.customer_id,
-                )
-                tax_amount = 0
-            else:
-                tax_amount = tax["amount"]
-                if subscription.tax_behavior == TaxBehavior.inclusive:
-                    net_amount -= tax_amount
-
-        total = net_amount + tax_amount
 
         # Make sure nothing is saved to DB
         await session.rollback()
 
         return SubscriptionChargePreview(
             base_amount=base_price,
-            metered_amount=metered_amount,
             subtotal_amount=subtotal_amount,
             discount_amount=discount_amount,
             net_amount=net_amount,
-            tax_amount=tax_amount,
-            total_amount=total,
+            tax_amount=0,
+            total_amount=net_amount,
         )
 
     async def _after_subscription_updated(
@@ -2032,11 +1583,6 @@ class SubscriptionService:
         await self._send_webhook(
             session, subscription, WebhookEventType.subscription_active
         )
-
-        # Only send merchant notification if the subscription is a new one,
-        # not a past due that has been reactivated.
-        if not reactivated:
-            await self._send_new_subscription_notification(session, subscription)
 
         if reactivated:
             await event_service.create_event(
@@ -2193,31 +1739,6 @@ class SubscriptionService:
         # Void all pending orders for this subscription
         enqueue_job("order.void_pending_orders_for_subscription", subscription.id)
 
-    async def _send_new_subscription_notification(
-        self, session: AsyncSession, subscription: Subscription
-    ) -> None:
-        product = subscription.product
-
-        await notifications_service.send_to_org_members(
-            session,
-            org_id=product.organization_id,
-            notif=PartialNotification(
-                type=NotificationType.maintainer_new_paid_subscription,
-                payload=MaintainerNewPaidSubscriptionNotificationPayload(
-                    subscriber_name=subscription.customer.display_name,
-                    subscriber_email=subscription.customer.email,
-                    tier_name=product.name,
-                    tier_price_amount=subscription.amount,
-                    tier_price_recurring_interval=subscription.recurring_interval,
-                    tier_price_recurring_interval_count=subscription.recurring_interval_count,
-                    tier_organization_name=product.organization.name,
-                    tier_organization_slug=product.organization.slug,
-                    subscription_id=str(subscription.id),
-                    currency=subscription.currency,
-                ),
-            ),
-        )
-
     async def _send_webhook(
         self,
         session: AsyncSession,
@@ -2246,118 +1767,6 @@ class SubscriptionService:
         if product is not None:
             await webhook_service.send(
                 session, product.organization, event_type, subscription
-            )
-
-    async def _is_within_revocation_grace_period(
-        self,
-        session: AsyncSession,
-        subscription: Subscription,
-        organization: Organization,
-    ) -> bool:
-        """Check if a subscription is within its benefit revocation grace period.
-
-        Returns True if within grace period (benefits should not be revoked yet).
-        Returns False if grace period has expired or doesn't apply.
-        """
-        if subscription.status not in {
-            SubscriptionStatus.past_due,
-            SubscriptionStatus.unpaid,
-        }:
-            return False
-
-        grace_period_days = int(organization.benefit_revocation_grace_period)
-
-        if grace_period_days == 0:
-            return False
-
-        if not subscription.past_due_at:
-            return False
-
-        grace_period_ends_at = subscription.past_due_at + timedelta(
-            days=grace_period_days
-        )
-        now = utc_now()
-
-        if now < grace_period_ends_at:
-            log.info(
-                "Subscription is within benefit revocation grace period",
-                subscription_id=str(subscription.id),
-                customer_id=str(subscription.customer_id),
-                past_due_at=subscription.past_due_at.isoformat(),
-                grace_period_ends_at=grace_period_ends_at.isoformat(),
-                days_remaining=(grace_period_ends_at - now).days,
-            )
-            return True
-
-        return False
-
-    async def enqueue_benefits_grants(
-        self,
-        session: AsyncSession,
-        subscription: Subscription,
-        *,
-        delay: int | None = None,
-    ) -> None:
-        product_repository = ProductRepository.from_session(session)
-        product = await product_repository.get_by_id(subscription.product_id)
-        assert product is not None
-
-        if subscription.is_incomplete():
-            return
-
-        task = "grant" if subscription.active else "revoke"
-
-        # Check grace period for benefit revocation
-        if task == "revoke":
-            organization_repository = OrganizationRepository.from_session(session)
-            organization = await organization_repository.get_by_id(
-                product.organization_id,
-                include_deleted=True,
-                include_blocked=True,
-            )
-            assert organization is not None
-
-            if await self._is_within_revocation_grace_period(
-                session, subscription, organization
-            ):
-                # Don't enqueue revocation yet, still within grace period
-                return
-
-        # For seat-based products, handle benefits through seats
-        if product.has_seat_based_price:
-            # When subscription is cancelled/revoked, revoke all seats
-            # which will in turn revoke benefits for each seat holder
-            if not subscription.active:
-                await seat_service.revoke_all_seats_for_subscription(
-                    session, subscription
-                )
-            # When subscription is active, benefits are granted when seats are claimed
-            # So we don't need to do anything here
-            return
-
-        enqueue_job(
-            "benefit.enqueue_benefits_grants",
-            task=task,
-            customer_id=subscription.customer_id,
-            product_id=product.id,
-            subscription_id=subscription.id,
-            delay=delay,
-        )
-
-    async def update_product_benefits_grants(
-        self, session: AsyncSession, product: Product
-    ) -> None:
-        repository = SubscriptionRepository.from_session(session)
-        subscription_ids = await repository.get_ids_by_product(product.id)
-
-        calculate_delay = make_bulk_job_delay_calculator(
-            len(subscription_ids), max_spread_ms=30 * 60 * 1000
-        )
-        for index, subscription_id in enumerate(subscription_ids):
-            enqueue_job(
-                "subscription.enqueue_benefits_grants",
-                subscription_id,
-                delay=calculate_delay(index),
             )
 
     async def send_uncanceled_email(
@@ -2549,28 +1958,6 @@ class SubscriptionService:
 
         await send_to_recipients(recipients)
 
-    async def _get_outdated_grants(
-        self,
-        session: AsyncSession,
-        subscription: Subscription,
-        current_subscription_tier: Product,
-    ) -> Sequence[BenefitGrant]:
-        subscription_tier_benefits_statement = (
-            select(Benefit.id)
-            .join(ProductBenefit)
-            .where(ProductBenefit.product_id == current_subscription_tier.id)
-        )
-
-        statement = select(BenefitGrant).where(
-            BenefitGrant.subscription_id == subscription.id,
-            BenefitGrant.benefit_id.not_in(subscription_tier_benefits_statement),
-            BenefitGrant.is_granted.is_(True),
-            BenefitGrant.is_deleted.is_(False),
-        )
-
-        result = await session.execute(statement)
-        return result.scalars().all()
-
     async def mark_past_due(
         self, session: AsyncSession, subscription: Subscription
     ) -> Subscription:
@@ -2593,9 +1980,6 @@ class SubscriptionService:
             previous_status=previous_status,
             previous_is_canceled=previous_is_canceled,
         )
-        # Cancel all grants for this subscription
-        await self.enqueue_benefits_grants(session, subscription)
-
         return subscription
 
     async def mark_active(
@@ -2618,7 +2002,6 @@ class SubscriptionService:
             previous_status=previous_status,
             previous_is_canceled=previous_is_canceled,
         )
-        await self.enqueue_benefits_grants(session, subscription)
 
         return subscription
 

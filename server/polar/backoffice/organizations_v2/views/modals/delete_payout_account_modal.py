@@ -44,7 +44,7 @@ class DeletePayoutAccountModal:
                     with tag.div(classes="flex items-center gap-2"):
                         with tag.span(classes="text-sm text-base-content/60"):
                             text("Type:")
-                        if self.payout_account.type == PayoutAccountType.stripe:
+                        if self.payout_account.type == PayoutAccountType.crypto:
                             with tag.span(classes="badge badge-primary badge-sm"):
                                 text("Stripe")
                         else:
@@ -52,14 +52,14 @@ class DeletePayoutAccountModal:
                                 text(self.payout_account.type.get_display_name())
 
                     if (
-                        self.payout_account.type == PayoutAccountType.stripe
-                        and self.payout_account.stripe_id
+                        self.payout_account.type == PayoutAccountType.crypto
+                        and False  # stripe_id removed
                     ):
                         with tag.div(classes="flex items-center gap-2"):
                             with tag.span(classes="text-sm text-base-content/60"):
                                 text("Stripe ID:")
                             with tag.span(classes="font-mono text-sm"):
-                                text(self.payout_account.stripe_id)
+                                text("(removed)")
 
                     with tag.div(classes="flex items-center gap-2"):
                         with tag.span(classes="text-sm text-base-content/60"):

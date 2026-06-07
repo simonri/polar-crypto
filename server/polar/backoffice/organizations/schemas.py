@@ -25,7 +25,6 @@ class SetupVerdictData:
     api_keys_count: int
     products_count: int
     benefits_count: int
-    user_verified: bool
     payouts_enabled: bool
     setup_score: int
     benefits_configured: bool

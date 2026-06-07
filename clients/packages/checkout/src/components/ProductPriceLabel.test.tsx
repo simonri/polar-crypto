@@ -5,8 +5,6 @@ import {
   createCustomPrice,
   createFixedPrice,
   createFreePrice,
-  createMeteredPrice,
-  createSeatBasedPrice,
 } from '../test-utils/makeCheckout'
 import ProductPriceLabel from './ProductPriceLabel'
 
@@ -22,7 +20,6 @@ const baseProduct: schemas['CheckoutProduct'] = {
   trial_interval_count: null,
   visibility: 'public',
   prices: [],
-  benefits: [],
   medias: [],
   description: null,
   is_archived: false,
@@ -96,37 +93,4 @@ describe('ProductPriceLabel', () => {
     })
   })
 
-  describe('seat-based price', () => {
-    it('shows base tier price per seat', () => {
-      const price = createSeatBasedPrice({
-        seat_tiers: {
-          seat_tier_type: 'volume',
-          tiers: [
-            { min_seats: 1, max_seats: 10, price_per_seat: 549 },
-            { min_seats: 11, max_seats: null, price_per_seat: 449 },
-          ],
-          minimum_seats: 1,
-          maximum_seats: null,
-        },
-      })
-      const { container } = render(
-        <ProductPriceLabel product={baseProduct} price={price} locale="en" />,
-      )
-      expect(getText(container)).toContain('$5.49')
-    })
-  })
-
-  describe('metered unit price', () => {
-    it('shows meter name and per-unit price', () => {
-      const price = createMeteredPrice({
-        unit_amount: '0.05',
-        meter: { id: 'meter_1', name: 'API Calls', unit: 'scalar' as const },
-      })
-      const { container } = render(
-        <ProductPriceLabel product={baseProduct} price={price} locale="en" />,
-      )
-      expect(getText(container)).toContain('API Calls')
-      expect(getText(container)).toContain('$0.0005')
-    })
-  })
 })

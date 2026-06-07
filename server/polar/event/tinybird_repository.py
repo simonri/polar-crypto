@@ -2,6 +2,7 @@ from collections.abc import Sequence
 from datetime import datetime
 from uuid import UUID
 
+from polar.event.filter import Filter
 from polar.integrations.tinybird.service import (
     TinybirdCustomerStat,
     TinybirdEventsQuery,
@@ -12,7 +13,6 @@ from polar.integrations.tinybird.service import (
     TinybirdVarianceStat,
 )
 from polar.kit.metadata import MetadataQuery
-from polar.meter.filter import Filter
 from polar.models.event import EventSource
 
 type EventNameStats = tuple[str, EventSource, int, datetime, datetime]

@@ -84,7 +84,6 @@ async def create_events_for_fixtures(
             "product_id": str(order.product_id),
             "amount": order.net_amount,
             "currency": "usd",
-            "tax_amount": order.tax_amount,
         }
         if order.subscription_id:
             paid_metadata["subscription_id"] = str(order.subscription_id)
@@ -108,7 +107,6 @@ async def create_events_for_fixtures(
             "currency": "usd",
             "presentment_amount": order.net_amount,
             "presentment_currency": "usd",
-            "tax_amount": order.tax_amount,
             "fee": 0,
         }
         if order.subscription_id:

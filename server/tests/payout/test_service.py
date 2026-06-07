@@ -11,7 +11,6 @@ from pytest_mock import MockerFixture
 from polar.config import settings
 from polar.enums import PayoutAccountType
 from polar.exceptions import PolarRequestValidationError
-from polar.integrations.stripe.service import StripeService
 from polar.kit.address import Address, CountryAlpha2
 from polar.kit.utils import utc_now
 from polar.locker import Locker
@@ -19,16 +18,11 @@ from polar.models import Account, Organization, Payout, Transaction, User
 from polar.models.organization import OrganizationStatus, PayoutAccountNotReady
 from polar.models.payout import PayoutStatus
 from polar.models.transaction import Processor, TransactionType
-from polar.payout.repository import PayoutRepository
-from polar.payout.schemas import PayoutGenerateInvoice
 from polar.payout.service import (
     InsufficientBalance,
-    InvoiceAlreadyExists,
-    MissingInvoiceBillingDetails,
-    OrganizationCannotPayout,
+    OrganizationUnderReview,
     PayoutIntervalLimitReached,
     PayoutNotCancelable,
-    PayoutNotSucceeded,
 )
 from polar.payout.service import payout as payout_service
 from polar.postgres import AsyncSession
@@ -57,8 +51,8 @@ def payout_transaction_service_mock(mocker: MockerFixture) -> MagicMock:
 
 @pytest.fixture(autouse=True)
 def stripe_service_mock(mocker: MockerFixture) -> MagicMock:
-    mock = MagicMock(spec=StripeService)
-    mocker.patch("polar.payout.service.stripe_service", new=mock)
+    mock = MagicMock()
+    mocker.patch("polar.payout.service.stripe_service", new=mock, create=True)
     return mock
 
 
@@ -135,7 +129,7 @@ class TestCreate:
             save_fixture,
             organization,
             user,
-            type=PayoutAccountType.stripe,
+            type=PayoutAccountType.manual,
             is_payouts_enabled=False,
         )
 
@@ -355,7 +349,7 @@ class TestCreate:
             save_fixture,
             organization,
             user,
-            type=PayoutAccountType.stripe,
+            type=PayoutAccountType.manual,
             country="FR",
             currency="eur",
         )
@@ -435,45 +429,6 @@ class TestCreate:
 
         assert payout.account == account
 
-    async def test_valid_conflicting_invoice_numbers(
-        self,
-        save_fixture: SaveFixture,
-        session: AsyncSession,
-        locker: Locker,
-        organization: Organization,
-        user: User,
-        account: Account,
-        payout_transaction_service_mock: MagicMock,
-    ) -> None:
-        payout_account = await create_payout_account(save_fixture, organization, user)
-
-        payout = await create_payout(
-            save_fixture,
-            account=account,
-            payout_account=payout_account,
-            # Set an invoice number that would conflict with the next one
-            invoice_number=f"{settings.PAYOUT_INVOICES_PREFIX}0002",
-            created_at=utc_now() - datetime.timedelta(hours=25),
-        )
-
-        payment_transaction_1 = await create_payment_transaction(save_fixture)
-        balance_transaction_1 = await create_balance_transaction(
-            save_fixture, account=account, payment_transaction=payment_transaction_1
-        )
-
-        payment_transaction_2 = await create_payment_transaction(save_fixture)
-        balance_transaction_2 = await create_balance_transaction(
-            save_fixture, account=account, payment_transaction=payment_transaction_2
-        )
-
-        payout_transaction_service_mock.create.return_value = Transaction()
-
-        payout = await payout_service.create(session, locker, organization)
-        await session.flush()
-
-        assert payout.invoice_number == f"{settings.PAYOUT_INVOICES_PREFIX}0003"
-
-
 @pytest.mark.asyncio
 class TestEstimate:
     async def test_regular_currency(
@@ -517,14 +472,14 @@ class TestTriggerStripePayouts:
 
         account_1 = await create_account(save_fixture, user)
         payout_account_1 = await create_payout_account(
-            save_fixture, organization, user, type=PayoutAccountType.stripe
+            save_fixture, organization, user, type=PayoutAccountType.manual
         )
         account_2 = await create_account(save_fixture, user_second)
         payout_account_2 = await create_payout_account(
             save_fixture,
             organization_second,
             user_second,
-            type=PayoutAccountType.stripe,
+            type=PayoutAccountType.manual,
         )
 
         payout_1 = await create_payout(
@@ -781,7 +736,7 @@ class TestTransferStripe:
         )
         account = await create_account(save_fixture, user)
         payout_account = await create_payout_account(
-            save_fixture, organization, user, type=PayoutAccountType.stripe
+            save_fixture, organization, user, type=PayoutAccountType.manual
         )
         payout = await create_payout(
             save_fixture, account=account, payout_account=payout_account
@@ -858,7 +813,7 @@ class TestTransferStripe:
             save_fixture,
             organization,
             user,
-            type=PayoutAccountType.stripe,
+            type=PayoutAccountType.manual,
             country=country,
             currency=account_currency,
         )
@@ -894,7 +849,7 @@ class TestCancel:
     ) -> None:
         account = await create_account(save_fixture, user)
         payout_account = await create_payout_account(
-            save_fixture, organization, user, type=PayoutAccountType.stripe
+            save_fixture, organization, user, type=PayoutAccountType.manual
         )
         payout = await create_payout(
             save_fixture,
@@ -917,7 +872,7 @@ class TestCancel:
     ) -> None:
         account = await create_account(save_fixture, user)
         payout_account = await create_payout_account(
-            save_fixture, organization, user, type=PayoutAccountType.stripe
+            save_fixture, organization, user, type=PayoutAccountType.manual
         )
         payout = await create_payout(
             save_fixture,
@@ -929,12 +884,11 @@ class TestCancel:
         payout_transaction = Transaction(
             type=TransactionType.payout,
             account=account,
-            processor=Processor.stripe,
+            processor=Processor.crypto,
             currency=payout.currency,
             amount=payout.amount,
             account_currency=payout.account_currency,
             account_amount=payout.account_amount,
-            tax_amount=0,
             pledge=None,
             issue_reward=None,
             order=None,
@@ -959,589 +913,3 @@ class TestCancel:
         assert canceled_payout.status == PayoutStatus.canceled
         assert payout_reversal_transaction.transfer_reversal_id == "STRIPE_REVERSAL_ID"
 
-
-@pytest.mark.asyncio
-class TestTriggerInvoiceGeneration:
-    async def test_invoice_already_exists(
-        self,
-        save_fixture: SaveFixture,
-        session: AsyncSession,
-        organization: Organization,
-        user: User,
-    ) -> None:
-        account = await create_account(save_fixture, user)
-        payout_account = await create_payout_account(
-            save_fixture, organization, user, type=PayoutAccountType.stripe
-        )
-        payout = await create_payout(
-            save_fixture, account=account, payout_account=payout_account
-        )
-        payout.invoice_path = "some/path/to/invoice.pdf"
-        await save_fixture(payout)
-
-        with pytest.raises(InvoiceAlreadyExists):
-            await payout_service.trigger_invoice_generation(
-                session, payout, PayoutGenerateInvoice()
-            )
-
-    async def test_payout_not_succeeded(
-        self,
-        save_fixture: SaveFixture,
-        session: AsyncSession,
-        organization: Organization,
-        user: User,
-    ) -> None:
-        account = await create_account(save_fixture, user)
-        payout_account = await create_payout_account(
-            save_fixture, organization, user, type=PayoutAccountType.stripe
-        )
-        payout = await create_payout(
-            save_fixture,
-            account=account,
-            payout_account=payout_account,
-            status=PayoutStatus.pending,
-            attempts=[],
-        )
-
-        with pytest.raises(PayoutNotSucceeded):
-            await payout_service.trigger_invoice_generation(
-                session, payout, PayoutGenerateInvoice()
-            )
-
-    async def test_missing_billing_details(
-        self,
-        save_fixture: SaveFixture,
-        session: AsyncSession,
-        organization: Organization,
-        user: User,
-    ) -> None:
-        account = await create_account(save_fixture, user)
-        payout_account = await create_payout_account(
-            save_fixture, organization, user, type=PayoutAccountType.stripe
-        )
-
-        payout = await create_payout(
-            save_fixture, account=account, payout_account=payout_account
-        )
-        await save_fixture(payout)
-
-        with pytest.raises(MissingInvoiceBillingDetails):
-            await payout_service.trigger_invoice_generation(
-                session, payout, PayoutGenerateInvoice()
-            )
-
-    async def test_duplicate_invoice_number(
-        self,
-        save_fixture: SaveFixture,
-        session: AsyncSession,
-        organization: Organization,
-        user: User,
-    ) -> None:
-        account = await create_account(
-            save_fixture,
-            user,
-            billing_name="Test Billing Name",
-            billing_address=Address(country=CountryAlpha2("US"), line1="123 Test St"),
-        )
-        payout_account = await create_payout_account(
-            save_fixture, organization, user, type=PayoutAccountType.stripe
-        )
-
-        # Create first payout with a specific invoice number
-        invoice_number = "INVOICE-123"
-        payout1 = await create_payout(
-            save_fixture,
-            account=account,
-            payout_account=payout_account,
-            invoice_number=invoice_number,
-        )
-        await save_fixture(payout1)
-
-        # Create second payout
-        payout2 = await create_payout(
-            save_fixture, account=account, payout_account=payout_account
-        )
-        await save_fixture(payout2)
-
-        # Try to set the same invoice number on the second payout
-        with pytest.raises(PolarRequestValidationError):
-            await payout_service.trigger_invoice_generation(
-                session, payout2, PayoutGenerateInvoice(invoice_number=invoice_number)
-            )
-
-    async def test_valid(
-        self,
-        mocker: MockerFixture,
-        save_fixture: SaveFixture,
-        session: AsyncSession,
-        organization: Organization,
-        user: User,
-    ) -> None:
-        enqueue_job_mock = mocker.patch("polar.payout.service.enqueue_job")
-
-        account = await create_account(
-            save_fixture,
-            user,
-            billing_name="Test Billing Name",
-            billing_address=Address(country=CountryAlpha2("US"), line1="123 Test St"),
-        )
-        payout_account = await create_payout_account(
-            save_fixture, organization, user, type=PayoutAccountType.stripe
-        )
-
-        payout = await create_payout(
-            save_fixture, account=account, payout_account=payout_account
-        )
-
-        # Test with custom invoice number
-        custom_invoice_number = "CUSTOM-INVOICE-123"
-        updated_payout = await payout_service.trigger_invoice_generation(
-            session, payout, PayoutGenerateInvoice(invoice_number=custom_invoice_number)
-        )
-
-        # Verify invoice number was updated
-        assert updated_payout is not None
-        assert updated_payout.invoice_number == custom_invoice_number
-
-        # Verify job was enqueued
-        enqueue_job_mock.assert_called_once_with("payout.invoice", payout_id=payout.id)
-
-    async def test_valid_no_custom_invoice_number(
-        self,
-        mocker: MockerFixture,
-        save_fixture: SaveFixture,
-        session: AsyncSession,
-        organization: Organization,
-        user: User,
-    ) -> None:
-        enqueue_job_mock = mocker.patch("polar.payout.service.enqueue_job")
-
-        account = await create_account(
-            save_fixture,
-            user,
-            billing_name="Test Billing Name",
-            billing_address=Address(country=CountryAlpha2("US"), line1="123 Test St"),
-        )
-        payout_account = await create_payout_account(
-            save_fixture, organization, user, type=PayoutAccountType.stripe
-        )
-
-        original_invoice_number = "POLAR-12345"
-        payout = await create_payout(
-            save_fixture,
-            account=account,
-            payout_account=payout_account,
-            invoice_number=original_invoice_number,
-        )
-
-        # Test without providing a custom invoice number
-        updated_payout = await payout_service.trigger_invoice_generation(
-            session, payout, PayoutGenerateInvoice()
-        )
-
-        # Verify invoice number remains unchanged
-        assert updated_payout is not None
-        assert updated_payout.invoice_number == original_invoice_number
-
-        # Verify job was enqueued
-        enqueue_job_mock.assert_called_once_with("payout.invoice", payout_id=payout.id)
-
-
-@pytest.mark.asyncio
-class TestReleaseHeldPayouts:
-    async def test_valid(
-        self,
-        mocker: MockerFixture,
-        save_fixture: SaveFixture,
-        session: AsyncSession,
-        organization: Organization,
-        user: User,
-    ) -> None:
-        enqueue_job_mock = mocker.patch("polar.payout.service.enqueue_job")
-
-        account = await create_account(save_fixture, user)
-        payout_account = await create_payout_account(
-            save_fixture, organization, user, type=PayoutAccountType.stripe
-        )
-
-        held_1 = await create_payout(
-            save_fixture,
-            account=account,
-            payout_account=payout_account,
-            status=PayoutStatus.held,
-            attempts=[],
-        )
-        held_2 = await create_payout(
-            save_fixture,
-            account=account,
-            payout_account=payout_account,
-            status=PayoutStatus.held,
-            attempts=[],
-        )
-        pending = await create_payout(
-            save_fixture,
-            account=account,
-            payout_account=payout_account,
-            status=PayoutStatus.pending,
-            attempts=[],
-        )
-
-        await payout_service.release_held_payouts(session, account.id)
-
-        repository = PayoutRepository.from_session(session)
-        for payout in (held_1, held_2):
-            refreshed = await repository.get_by_id(payout.id)
-            assert refreshed is not None
-            assert refreshed.status == PayoutStatus.pending
-
-        # Both held payouts get their Stripe transfer enqueued; the
-        # already-pending payout is left untouched.
-        assert enqueue_job_mock.call_count == 2
-        enqueue_job_mock.assert_any_call("payout.transfer", payout_id=held_1.id)
-        enqueue_job_mock.assert_any_call("payout.transfer", payout_id=held_2.id)
-        for call in enqueue_job_mock.call_args_list:
-            assert call.kwargs["payout_id"] != pending.id
-
-    async def test_no_held_payouts(
-        self,
-        mocker: MockerFixture,
-        save_fixture: SaveFixture,
-        session: AsyncSession,
-        organization: Organization,
-        user: User,
-    ) -> None:
-        enqueue_job_mock = mocker.patch("polar.payout.service.enqueue_job")
-
-        account = await create_account(save_fixture, user)
-        payout_account = await create_payout_account(
-            save_fixture, organization, user, type=PayoutAccountType.stripe
-        )
-        await create_payout(
-            save_fixture,
-            account=account,
-            payout_account=payout_account,
-            status=PayoutStatus.pending,
-            attempts=[],
-        )
-
-        await payout_service.release_held_payouts(session, account.id)
-
-        enqueue_job_mock.assert_not_called()
-
-
-@pytest.mark.asyncio
-class TestCancelAccountPayouts:
-    async def test_cancels_held_and_pending(
-        self,
-        save_fixture: SaveFixture,
-        session: AsyncSession,
-        organization: Organization,
-        user: User,
-        payout_transaction_service_mock: MagicMock,
-    ) -> None:
-        account = await create_account(save_fixture, user)
-        payout_account = await create_payout_account(
-            save_fixture, organization, user, type=PayoutAccountType.stripe
-        )
-
-        held = await create_payout(
-            save_fixture,
-            account=account,
-            payout_account=payout_account,
-            status=PayoutStatus.held,
-            attempts=[],
-        )
-        pending = await create_payout(
-            save_fixture,
-            account=account,
-            payout_account=payout_account,
-            status=PayoutStatus.pending,
-            attempts=[],
-        )
-        succeeded = await create_payout(
-            save_fixture,
-            account=account,
-            payout_account=payout_account,
-            status=PayoutStatus.succeeded,
-        )
-
-        # Attach a payout transaction (no transfer ran) to each cancelable
-        # payout so PayoutService.cancel can reverse it.
-        for payout in (held, pending):
-            payout_transaction = Transaction(
-                type=TransactionType.payout,
-                account=account,
-                processor=Processor.stripe,
-                currency=payout.currency,
-                amount=-payout.amount,
-                account_currency=payout.account_currency,
-                account_amount=-payout.account_amount,
-                tax_amount=0,
-                payout=payout,
-                transfer_id=None,
-            )
-            await save_fixture(payout_transaction)
-
-        payout_transaction_service_mock.reverse.return_value = Transaction()
-
-        await payout_service.cancel_account_payouts(session, account.id)
-
-        repository = PayoutRepository.from_session(session)
-        for payout in (held, pending):
-            refreshed = await repository.get_by_id(payout.id)
-            assert refreshed is not None
-            assert refreshed.status == PayoutStatus.canceled
-
-        # The succeeded payout is not in-flight and must be left alone.
-        refreshed_succeeded = await repository.get_by_id(succeeded.id)
-        assert refreshed_succeeded is not None
-        assert refreshed_succeeded.status == PayoutStatus.succeeded
-
-    async def test_tolerates_concurrently_canceled_payout(
-        self,
-        mocker: MockerFixture,
-        save_fixture: SaveFixture,
-        session: AsyncSession,
-        organization: Organization,
-        user: User,
-    ) -> None:
-        # If a payout is finalized by a concurrent cancel between the fetch and
-        # our cancel() (which then raises PayoutNotCancelable), the bulk job
-        # must skip it and keep going rather than failing the whole run.
-        account = await create_account(save_fixture, user)
-        payout_account = await create_payout_account(
-            save_fixture, organization, user, type=PayoutAccountType.stripe
-        )
-        held_1 = await create_payout(
-            save_fixture,
-            account=account,
-            payout_account=payout_account,
-            status=PayoutStatus.held,
-            attempts=[],
-        )
-        held_2 = await create_payout(
-            save_fixture,
-            account=account,
-            payout_account=payout_account,
-            status=PayoutStatus.held,
-            attempts=[],
-        )
-
-        attempted: list[uuid.UUID] = []
-
-        async def fake_cancel(session: AsyncSession, payout: "Payout") -> "Payout":
-            attempted.append(payout.id)
-            if payout.id == held_1.id:
-                raise PayoutNotCancelable(payout)
-            return payout
-
-        mocker.patch.object(payout_service, "cancel", side_effect=fake_cancel)
-
-        # Must not raise even though held_1's cancel raised.
-        await payout_service.cancel_account_payouts(session, account.id)
-
-        assert set(attempted) == {held_1.id, held_2.id}
-
-    async def test_scopes_to_payout_account(
-        self,
-        save_fixture: SaveFixture,
-        session: AsyncSession,
-        organization: Organization,
-        user: User,
-        payout_transaction_service_mock: MagicMock,
-    ) -> None:
-        # On a payout-account swap we cancel only holds pinned to the previous
-        # account; a fresh hold already created against the new account (the
-        # cooldown clears once the old hold is >24h old) must survive.
-        account = await create_account(save_fixture, user)
-        old_payout_account = await create_payout_account(
-            save_fixture, organization, user, type=PayoutAccountType.stripe
-        )
-        new_payout_account = await create_payout_account(
-            save_fixture, organization, user, type=PayoutAccountType.stripe
-        )
-        stale_hold = await create_payout(
-            save_fixture,
-            account=account,
-            payout_account=old_payout_account,
-            status=PayoutStatus.held,
-            attempts=[],
-        )
-        fresh_hold = await create_payout(
-            save_fixture,
-            account=account,
-            payout_account=new_payout_account,
-            status=PayoutStatus.held,
-            attempts=[],
-        )
-        payout_transaction = Transaction(
-            type=TransactionType.payout,
-            account=account,
-            processor=Processor.stripe,
-            currency=stale_hold.currency,
-            amount=-stale_hold.amount,
-            account_currency=stale_hold.account_currency,
-            account_amount=-stale_hold.account_amount,
-            tax_amount=0,
-            payout=stale_hold,
-            transfer_id=None,
-        )
-        await save_fixture(payout_transaction)
-        payout_transaction_service_mock.reverse.return_value = Transaction()
-
-        await payout_service.cancel_account_payouts(
-            session,
-            account.id,
-            statuses=(PayoutStatus.held,),
-            payout_account_id=old_payout_account.id,
-        )
-
-        repository = PayoutRepository.from_session(session)
-        refreshed_stale = await repository.get_by_id(stale_hold.id)
-        assert refreshed_stale is not None
-        assert refreshed_stale.status == PayoutStatus.canceled
-
-        refreshed_fresh = await repository.get_by_id(fresh_hold.id)
-        assert refreshed_fresh is not None
-        assert refreshed_fresh.status == PayoutStatus.held
-
-
-@pytest.mark.asyncio
-class TestCancelHeldPayout:
-    async def test_held_is_cancelable_and_reverses_fees(
-        self,
-        mocker: MockerFixture,
-        save_fixture: SaveFixture,
-        session: AsyncSession,
-        organization: Organization,
-        user: User,
-        stripe_service_mock: MagicMock,
-        payout_transaction_service_mock: MagicMock,
-    ) -> None:
-        fee_reversal_mock = mocker.patch(
-            "polar.payout.service.platform_fee_transaction_service"
-            ".create_payout_fees_reversal_balances"
-        )
-
-        account = await create_account(save_fixture, user)
-        payout_account = await create_payout_account(
-            save_fixture, organization, user, type=PayoutAccountType.stripe
-        )
-        payout = await create_payout(
-            save_fixture,
-            account=account,
-            payout_account=payout_account,
-            status=PayoutStatus.held,
-            attempts=[],
-        )
-        payout_transaction = Transaction(
-            type=TransactionType.payout,
-            account=account,
-            processor=Processor.stripe,
-            currency=payout.currency,
-            amount=-payout.amount,
-            account_currency=payout.account_currency,
-            account_amount=-payout.account_amount,
-            tax_amount=0,
-            payout=payout,
-            # A held payout never ran its Stripe transfer.
-            transfer_id=None,
-        )
-        await save_fixture(payout_transaction)
-
-        payout_transaction_service_mock.reverse.return_value = Transaction()
-
-        canceled = await payout_service.cancel(session, payout)
-
-        assert canceled.status == PayoutStatus.canceled
-        # No Stripe transfer ran, so we don't reverse a transfer but we do
-        # return the reserved fees.
-        stripe_service_mock.reverse_transfer.assert_not_called()
-        fee_reversal_mock.assert_called_once_with(session, payout=payout)
-
-    async def test_second_cancel_raises_after_lock_recheck(
-        self,
-        mocker: MockerFixture,
-        save_fixture: SaveFixture,
-        session: AsyncSession,
-        organization: Organization,
-        user: User,
-        payout_transaction_service_mock: MagicMock,
-    ) -> None:
-        # cancel() locks and re-reads the row, so a second cancel of an
-        # already-canceled payout (the loser of a concurrent race) raises
-        # instead of writing a duplicate set of reversals.
-        mocker.patch(
-            "polar.payout.service.platform_fee_transaction_service"
-            ".create_payout_fees_reversal_balances"
-        )
-        account = await create_account(save_fixture, user)
-        payout_account = await create_payout_account(
-            save_fixture, organization, user, type=PayoutAccountType.stripe
-        )
-        payout = await create_payout(
-            save_fixture,
-            account=account,
-            payout_account=payout_account,
-            status=PayoutStatus.held,
-            attempts=[],
-        )
-        payout_transaction = Transaction(
-            type=TransactionType.payout,
-            account=account,
-            processor=Processor.stripe,
-            currency=payout.currency,
-            amount=-payout.amount,
-            account_currency=payout.account_currency,
-            account_amount=-payout.account_amount,
-            tax_amount=0,
-            payout=payout,
-            transfer_id=None,
-        )
-        await save_fixture(payout_transaction)
-        payout_transaction_service_mock.reverse.return_value = Transaction()
-
-        await payout_service.cancel(session, payout)
-        # Flush so the canceled status is visible to the next FOR UPDATE read,
-        # modelling the first cancel's transaction having committed (in prod the
-        # two cancels are separate transactions serialized by the row lock).
-        await session.flush()
-
-        with pytest.raises(PayoutNotCancelable):
-            await payout_service.cancel(session, payout)
-
-
-@pytest.mark.asyncio
-class TestCountPendingByPayoutAccount:
-    async def test_includes_held(
-        self,
-        save_fixture: SaveFixture,
-        session: AsyncSession,
-        organization: Organization,
-        user: User,
-    ) -> None:
-        account = await create_account(save_fixture, user)
-        payout_account = await create_payout_account(
-            save_fixture, organization, user, type=PayoutAccountType.stripe
-        )
-
-        for status in (
-            PayoutStatus.held,
-            PayoutStatus.pending,
-            PayoutStatus.in_transit,
-            PayoutStatus.succeeded,
-            PayoutStatus.canceled,
-        ):
-            await create_payout(
-                save_fixture,
-                account=account,
-                payout_account=payout_account,
-                status=status,
-                attempts=[],
-            )
-
-        repository = PayoutRepository.from_session(session)
-        count = await repository.count_pending_by_payout_account(payout_account.id)
-
-        # held + pending + in_transit reserve funds; succeeded/canceled do not.
-        assert count == 3

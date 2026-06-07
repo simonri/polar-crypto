@@ -7,8 +7,6 @@ import { AccountWidget } from '@/components/Widgets/AccountWidget'
 import { OrdersWidget } from '@/components/Widgets/OrdersWidget'
 import RevenueWidget from '@/components/Widgets/RevenueWidget'
 import { schemas } from '@polar-sh/client'
-import { OrganizationStatusBanner } from './OrganizationStatusBanner'
-
 const cellClassName =
   'dark:border-polar-700 border-t-0 border-r border-b border-l-0 border-gray-200'
 
@@ -20,7 +18,6 @@ export default function OverviewPage({ organization }: OverviewPageProps) {
   return (
     <DashboardBody className="gap-y-8 pb-16 md:gap-y-16" title={null}>
       <PlanUpsell organization={organization} />
-      <OrganizationStatusBanner organization={organization} />
       <OverviewSection organization={organization} />
 
       <div className="dark:border-polar-700 overflow-hidden rounded-xl border border-gray-200">

@@ -3,14 +3,7 @@
 import { useUpdateOrganization } from '@/hooks/queries'
 import { useAutoSave } from '@/hooks/useAutoSave'
 import { setValidationErrors } from '@/utils/api/errors'
-import { enums, isValidationError, schemas } from '@polar-sh/client'
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from '@polar-sh/orbit'
+import { isValidationError, schemas } from '@polar-sh/client'
 import {
   Form,
   FormControl,
@@ -30,17 +23,8 @@ interface OrganizationPaymentSettingsProps {
 
 type FormSchema = Pick<
   schemas['OrganizationUpdate'],
-  'default_presentment_currency' | 'default_tax_behavior'
+  'default_presentment_currency'
 >
-
-const taxBehaviorOptionDisplayNames: Record<
-  schemas['TaxBehaviorOption'],
-  string
-> = {
-  exclusive: 'Exclusive',
-  inclusive: 'Inclusive',
-  location: 'Location based',
-}
 
 const OrganizationPaymentSettings: React.FC<
   OrganizationPaymentSettingsProps
@@ -51,7 +35,6 @@ const OrganizationPaymentSettings: React.FC<
   const form = useForm<FormSchema>({
     defaultValues: {
       default_presentment_currency: organization.default_presentment_currency,
-      default_tax_behavior: organization.default_tax_behavior,
     },
   })
   const { control, setError, reset } = form
@@ -108,38 +91,6 @@ const OrganizationPaymentSettings: React.FC<
                       value={field.value as schemas['PresentmentCurrency']}
                       onChange={field.onChange}
                     />
-                  </FormControl>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
-          </SettingsGroupItem>
-          <SettingsGroupItem
-            title="Default tax behavior"
-            description="The default tax behavior applied on products."
-          >
-            <FormField
-              control={control}
-              name="default_tax_behavior"
-              render={({ field }) => (
-                <FormItem>
-                  <FormControl>
-                    <Select
-                      disabled={readOnly}
-                      onValueChange={field.onChange}
-                      defaultValue={field.value || undefined}
-                    >
-                      <SelectTrigger>
-                        <SelectValue placeholder="Select a benefit type" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        {enums.taxBehaviorOptionValues.map((value) => (
-                          <SelectItem key={value} value={value}>
-                            {taxBehaviorOptionDisplayNames[value]}
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
                   </FormControl>
                   <FormMessage />
                 </FormItem>

@@ -44,12 +44,7 @@ export const RefundModal = ({ order, hide }: RefundModalProps) => {
 
   const amount = useWatch({ control: form.control, name: 'amount' }) ?? 0
   const isMaximumRefund = amount === maximumRefundAmount
-  const previewTax = isMaximumRefund
-    ? order.refundable_tax_amount
-    : order.net_amount > 0
-      ? Math.round((amount * order.tax_amount) / order.net_amount)
-      : 0
-  const previewTotal = amount + previewTax
+  const previewTotal = amount
 
   const createRefund = useCreateRefund()
 
@@ -149,10 +144,7 @@ export const RefundModal = ({ order, hide }: RefundModalProps) => {
                           previewTotal,
                           order.currency,
                         )}
-                      </span>{' '}
-                      ({formatCurrency('compact')(amount, order.currency)} +{' '}
-                      {formatCurrency('compact')(previewTax, order.currency)}{' '}
-                      tax)
+                      </span>
                     </p>
                   )}
                   <FormMessage />

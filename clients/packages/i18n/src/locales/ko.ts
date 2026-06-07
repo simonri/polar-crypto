@@ -274,7 +274,6 @@ export default {
     github_repository: 'GitHub 레포 액세스',
     discord: 'Discord 초대',
     downloadables: '파일 다운로드',
-    meter_credit: '사용량 크레딧',
     feature_flag: '기능 플래그',
   },
   ordinal: {

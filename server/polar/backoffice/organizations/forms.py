@@ -1,6 +1,5 @@
 from typing import Annotated, Any, Literal
 
-from annotated_types import Ge
 from fastapi import UploadFile
 from pydantic import (
     AfterValidator,
@@ -24,15 +23,8 @@ class OrganizationCheckoutSettingsForm(Schema):
     require_3ds: bool = False
 
 
-class ApproveOrganizationForm(forms.BaseForm):
-    action: Annotated[Literal["approve"], forms.SkipField]
-    next_review_threshold: Annotated[
-        int,
-        forms.CurrencyField(),
-        Ge(0),
-        forms.CurrencyValidator,
-        Field(title="Next Review Threshold"),
-    ]
+class BlockOrganizationForm(forms.BaseForm):
+    action: Annotated[Literal["block"], forms.SkipField]
     reason: Annotated[
         str | None,
         forms.TextAreaField(rows=3, placeholder="Reason for this decision"),
@@ -40,30 +32,8 @@ class ApproveOrganizationForm(forms.BaseForm):
     ]
 
 
-class DenyOrganizationForm(forms.BaseForm):
-    action: Annotated[Literal["deny"], forms.SkipField]
-    reason: Annotated[
-        str | None,
-        forms.TextAreaField(rows=3, placeholder="Reason for this decision"),
-        Field(default=None, title="Reason"),
-    ]
-
-
-class UnderReviewOrganizationForm(forms.BaseForm):
-    action: Annotated[Literal["under_review"], forms.SkipField]
-
-
-class ApproveOrganizationAppealForm(forms.BaseForm):
-    action: Annotated[Literal["approve_appeal"], forms.SkipField]
-    reason: Annotated[
-        str | None,
-        forms.TextAreaField(rows=3, placeholder="Reason for this decision"),
-        Field(default=None, title="Reason"),
-    ]
-
-
-class DenyOrganizationAppealForm(forms.BaseForm):
-    action: Annotated[Literal["deny_appeal"], forms.SkipField]
+class UnblockOrganizationForm(forms.BaseForm):
+    action: Annotated[Literal["unblock"], forms.SkipField]
     reason: Annotated[
         str | None,
         forms.TextAreaField(rows=3, placeholder="Reason for this decision"),
@@ -81,12 +51,7 @@ class OffboardOrganizationForm(forms.BaseForm):
 
 
 OrganizationStatusForm = Annotated[
-    ApproveOrganizationForm
-    | DenyOrganizationForm
-    | UnderReviewOrganizationForm
-    | ApproveOrganizationAppealForm
-    | DenyOrganizationAppealForm
-    | OffboardOrganizationForm,
+    BlockOrganizationForm | UnblockOrganizationForm | OffboardOrganizationForm,
     Discriminator("action"),
 ]
 
@@ -96,16 +61,10 @@ OrganizationStatusFormAdapter: TypeAdapter[OrganizationStatusForm] = TypeAdapter
 
 
 class UpdateOrganizationBasicForm(forms.BaseForm):
-    """Form for editing basic organization settings (name, slug, invoice prefix)."""
+    """Form for editing basic organization settings (name, slug)."""
 
     name: NameInput
     slug: SlugInput
-    customer_invoice_prefix: Annotated[
-        str,
-        StringConstraints(
-            to_upper=True, min_length=3, pattern=r"^[a-zA-Z0-9\-]+[a-zA-Z0-9]$"
-        ),
-    ]
 
 
 class UpdateOrganizationForm(forms.BaseForm):
@@ -113,12 +72,6 @@ class UpdateOrganizationForm(forms.BaseForm):
 
     name: NameInput
     slug: SlugInput
-    customer_invoice_prefix: Annotated[
-        str,
-        StringConstraints(
-            to_upper=True, min_length=3, pattern=r"^[a-zA-Z0-9\-]+[a-zA-Z0-9]$"
-        ),
-    ]
     feature_flags: Annotated[
         OrganizationFeatureSettings | None,
         forms.SubFormField(OrganizationFeatureSettings),
@@ -302,15 +255,6 @@ class UpdateOrganizationSocialsForm(forms.BaseForm):
             description="GitHub profile URL",
         ),
     ]
-    discord_url: Annotated[
-        HttpUrlToStr | None,
-        forms.InputField(type="url", placeholder="https://discord.gg/invite"),
-        Field(
-            None,
-            title="Discord",
-            description="Discord server invite URL",
-        ),
-    ]
     other_url: Annotated[
         HttpUrlToStr | None,
         forms.InputField(type="url", placeholder="https://..."),
@@ -323,15 +267,6 @@ class UpdateOrganizationSocialsForm(forms.BaseForm):
 
 
 class OrganizationOrdersImportForm(forms.BaseForm):
-    invoice_number_prefix: Annotated[
-        str,
-        StringConstraints(min_length=3, pattern=r"^[a-zA-Z0-9\-]+\-"),
-        Field(
-            title="Invoice Number Prefix",
-            description="Prefix to use for imported orders' invoice numbers",
-            default="IMPORTED-",
-        ),
-    ]
     file: Annotated[
         UploadFile,
         forms.InputField(type="file"),

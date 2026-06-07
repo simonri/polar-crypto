@@ -77,20 +77,6 @@ export const useCheckoutConfirmedRedirect = (
         )
       }
 
-      // If we don't have a customer session token, redirect to customer portal login
-      // instead of internal success URL
-      if (isInternalSuccessURL && !customerSessionToken) {
-        const {
-          organization: { slug },
-          customer_email,
-        } = checkout
-        if (customer_email) {
-          parsedURL.searchParams.set('email', customer_email)
-        }
-        router.push(`/${slug}/portal/request?${parsedURL.searchParams}`)
-        return
-      }
-
       if (isInternalSuccessURL || !embed) {
         router.push(parsedURL.toString())
       }

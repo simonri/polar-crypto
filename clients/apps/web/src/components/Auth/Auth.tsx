@@ -5,14 +5,12 @@ import { schemas } from '@polar-sh/client'
 import { Fragment } from 'react'
 import GoogleLoginButton from './GoogleLoginButton'
 import EmailOTPForm from './EmailOTPForm'
-import AppleLoginButton from './AppleLoginButton'
-import GitHubLoginButton from './GitHubLoginButton'
 import { usePathname, useSearchParams } from 'next/navigation'
 import { useImpressionEvent } from '@/hooks/useImpressionEvent'
-import { type JsonType } from '@posthog/core'
+import { type JsonType } from '@/hooks/posthog'
 
-type OAuthFactor = Exclude<schemas['Factor'], 'email_otp' | 'totp'>
-const OAUTH_FACTORS: OAuthFactor[] = ['apple', 'github', 'google']
+type OAuthFactor = 'google'
+const OAUTH_FACTORS: OAuthFactor[] = ['google']
 
 const isOAuthFactor = (
   value: schemas['Factor'] | null | undefined,
@@ -65,35 +63,14 @@ const Auth = ({
 
   const renderOAuth = (factor: OAuthFactor, isPrimary: boolean) => {
     const variant = isPrimary ? 'default' : 'secondary'
-    switch (factor) {
-      case 'apple':
-        return (
-          <AppleLoginButton
-            authenticationSession={authenticationSession}
-            variant={variant}
-            returnTo={returnTo}
-            signup={signup}
-          />
-        )
-      case 'github':
-        return (
-          <GitHubLoginButton
-            authenticationSession={authenticationSession}
-            variant={variant}
-            returnTo={returnTo}
-            signup={signup}
-          />
-        )
-      case 'google':
-        return (
-          <GoogleLoginButton
-            authenticationSession={authenticationSession}
-            variant={variant}
-            returnTo={returnTo}
-            signup={signup}
-          />
-        )
-    }
+    return (
+      <GoogleLoginButton
+        authenticationSession={authenticationSession}
+        variant={variant}
+        returnTo={returnTo}
+        signup={signup}
+      />
+    )
   }
 
   return (

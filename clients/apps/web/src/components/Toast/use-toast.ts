@@ -1,5 +1,4 @@
 // Inspired by react-hot-toast library
-import * as Sentry from '@sentry/nextjs'
 import * as React from 'react'
 
 import { ToastActionElement, type ToastProps } from '.'
@@ -139,17 +138,6 @@ interface Toast extends Omit<ToasterToast, 'id'> {}
 
 function toast({ ...props }: Toast) {
   const id = genId()
-
-  const desc = props.description
-  if (
-    (typeof desc === 'string' && desc.includes('[object Object]')) ||
-    (typeof desc === 'object' && desc !== null && !React.isValidElement(desc))
-  ) {
-    Sentry.captureMessage('Toast displayed with [object Object]', {
-      level: 'warning',
-      extra: { title: props.title, description: String(desc) },
-    })
-  }
 
   const update = (props: ToasterToast) =>
     dispatch({

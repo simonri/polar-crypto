@@ -1,7 +1,7 @@
 'use client'
 
 import { TrialConfigurationForm } from '@/components/TrialConfiguration/TrialConfigurationForm'
-import { isLegacyRecurringPrice, isMeteredPrice } from '@/utils/product'
+import { isLegacyRecurringPrice } from '@/utils/product'
 import { schemas } from '@polar-sh/client'
 import { Button } from '@polar-sh/orbit'
 import { Input } from '@polar-sh/orbit'
@@ -61,7 +61,7 @@ export const ProductPricingSection = ({
     name: 'prices',
   })
 
-  const { fields: prices, append, remove, replace } = pricesFieldArray
+  const { fields: prices, append, remove } = pricesFieldArray
 
   const defaultCurrency = organization.default_presentment_currency
 
@@ -99,15 +99,7 @@ export const ProductPricingSection = ({
     }
 
     setValue('recurring_interval_count', null)
-    const currentPrices = getValues('prices')
-    if (!currentPrices) return
-    const filteredPrices = currentPrices.filter(
-      (price) => !isMeteredPrice(price as ProductPrice),
-    )
-    if (filteredPrices.length !== currentPrices.length) {
-      replace(filteredPrices)
-    }
-  }, [recurringInterval, recurringIntervalCount, setValue, getValues, replace])
+  }, [recurringInterval, recurringIntervalCount, setValue])
 
   const [productType, setProductType] = useState<'one_time' | 'recurring'>(
     recurringInterval === null ? 'one_time' : 'recurring',
@@ -133,12 +125,7 @@ export const ProductPricingSection = ({
   )
 
   const pricesForSelectedCurrency = useMemo(
-    () =>
-      (pricesByCurrency.get(validatedSelectedCurrency) || []).sort((a, b) => {
-        const aMetered = isMeteredPrice(a.price as ProductPrice) ? 1 : 0
-        const bMetered = isMeteredPrice(b.price as ProductPrice) ? 1 : 0
-        return aMetered - bMetered
-      }),
+    () => pricesByCurrency.get(validatedSelectedCurrency) || [],
     [pricesByCurrency, validatedSelectedCurrency],
   )
 
@@ -169,22 +156,6 @@ export const ProductPricingSection = ({
           return { ...base, amount_type: 'custom', minimum_amount: 0 }
         } else if (newAmountType === 'free') {
           return { ...base, amount_type: 'free' }
-        } else if (newAmountType === 'seat_based') {
-          return {
-            ...base,
-            amount_type: 'seat_based',
-            seat_tiers: {
-              seat_tier_type: 'volume',
-              tiers: [{ min_seats: 1, max_seats: null, price_per_seat: 0 }],
-            },
-          }
-        } else if (newAmountType === 'metered_unit') {
-          return {
-            ...base,
-            amount_type: 'metered_unit',
-            unit_amount: 0,
-            meter_id: '',
-          }
         }
         return { ...base, amount_type: 'free' }
       }
@@ -236,32 +207,6 @@ export const ProductPricingSection = ({
           }
         } else if (price.amount_type === 'free') {
           newPrice = { ...baseCurrency, amount_type: 'free' }
-        } else if (price.amount_type === 'seat_based') {
-          const sourceTiers =
-            'seat_tiers' in price && price.seat_tiers?.tiers
-              ? price.seat_tiers.tiers
-              : []
-          const seatTiers = sourceTiers.map((t) => ({
-            min_seats: t.min_seats,
-            max_seats: t.max_seats ?? null,
-            price_per_seat: 0,
-          }))
-          if (seatTiers.length === 0) {
-            seatTiers.push({ min_seats: 1, max_seats: null, price_per_seat: 0 })
-          }
-          newPrice = {
-            ...baseCurrency,
-            amount_type: 'seat_based',
-            seat_tiers: { seat_tier_type: 'volume', tiers: seatTiers },
-          }
-        } else if (price.amount_type === 'metered_unit') {
-          const meterId = 'meter_id' in price ? price.meter_id : ''
-          newPrice = {
-            ...baseCurrency,
-            amount_type: 'metered_unit',
-            unit_amount: 0,
-            meter_id: meterId,
-          }
         } else {
           newPrice = { ...baseCurrency, amount_type: 'free' }
         }
@@ -293,45 +238,11 @@ export const ProductPricingSection = ({
     [getValues, defaultCurrency, remove],
   )
 
-  const handleAddMeteredPrice = useCallback(() => {
-    activeCurrencies.forEach((currency) => {
-      append({
-        amount_type: 'metered_unit',
-        price_currency: currency as schemas['PresentmentCurrency'],
-        meter_id: '',
-        unit_amount: 0,
-      })
-    })
-  }, [activeCurrencies, append])
-
   const handleRemovePrice = useCallback(
     (indexToRemove: number) => {
-      const currentPrices = getValues('prices')
-      if (!currentPrices) return
-      const priceToRemove = currentPrices[indexToRemove]
-
-      if (isMeteredPrice(priceToRemove as ProductPrice)) {
-        const meterId =
-          'meter_id' in priceToRemove ? priceToRemove.meter_id : undefined
-
-        const indicesToRemove = currentPrices
-          .map((p, i) =>
-            'amount_type' in p &&
-            p.amount_type === 'metered_unit' &&
-            'meter_id' in p &&
-            p.meter_id === meterId
-              ? i
-              : -1,
-          )
-          .filter((i) => i !== -1)
-          .reverse()
-
-        indicesToRemove.forEach((i) => remove(i))
-      } else {
-        remove(indexToRemove)
-      }
+      remove(indexToRemove)
     },
-    [getValues, remove],
+    [remove],
   )
 
   if (isLegacyRecurringProduct) {
@@ -496,44 +407,16 @@ export const ProductPricingSection = ({
         />
 
         <div className="flex flex-col gap-y-6 py-6">
-          <div className="flex flex-row items-center justify-between">
-            <h3>Price Type</h3>
-            {recurringInterval !== null && (
-              <Button
-                className="self-start"
-                variant="secondary"
-                size="sm"
-                onClick={handleAddMeteredPrice}
-              >
-                Add metered price
-              </Button>
-            )}
-          </div>
+          <h3>Price Type</h3>
           {pricesForSelectedCurrency.map(({ price, index }) => (
-            <div
-              key={`${selectedCurrency}-${index}`}
-              className={
-                pricesForSelectedCurrency.length > 1 &&
-                isMeteredPrice(price as ProductPrice)
-                  ? 'dark:border-polar-700 rounded-2xl border border-gray-200 p-4'
-                  : ''
-              }
-            >
+            <div key={`${selectedCurrency}-${index}`}>
               <ProductPriceItem
                 organization={organization}
                 index={index}
                 currency={validatedSelectedCurrency}
                 onRemove={handleRemovePrice}
                 onAmountTypeChange={handleAmountTypeChange}
-                canRemove={
-                  isMeteredPrice(price as ProductPrice) &&
-                  (pricesForSelectedCurrency.filter((p) =>
-                    isMeteredPrice(p.price as ProductPrice),
-                  ).length > 1 ||
-                    pricesForSelectedCurrency.filter(
-                      (p) => !isMeteredPrice(p.price as ProductPrice),
-                    ).length >= 1)
-                }
+                canRemove={pricesForSelectedCurrency.length > 1}
                 key={`${selectedCurrency}-${index}`}
               />
             </div>

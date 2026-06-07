@@ -3,7 +3,6 @@
 import { useExperiment } from '@/experiments/client'
 import { CONFIG } from '@/utils/config'
 import { schemas } from '@polar-sh/client'
-import { usePostHog } from 'posthog-js/react'
 import { useCallback, useMemo } from 'react'
 
 const ONBOARDING_COOKIE_NAME = 'polar_onboarding_session'
@@ -87,23 +86,9 @@ interface UseOnboardingTrackingReturn {
 }
 
 export const useOnboardingTracking = (): UseOnboardingTrackingReturn => {
-  const posthog = usePostHog()
-
   const { variant: experimentVariant } = useExperiment('onboarding_flow_v1', {
     trackExposure: false,
   })
-
-  const mode = CONFIG.IS_SANDBOX ? 'sandbox' : 'production'
-
-  const captureEvent = useCallback(
-    (
-      event: string,
-      properties: Record<string, string | number | null | undefined>,
-    ) => {
-      posthog?.capture(event, { ...properties, mode })
-    },
-    [posthog, mode],
-  )
 
   const startOnboarding = useCallback(
     (signupMethod: SignupMethod): OnboardingSessionState | null => {
@@ -115,17 +100,6 @@ export const useOnboardingTracking = (): UseOnboardingTrackingReturn => {
 
       const sessionId = crypto.randomUUID()
       const startedAt = new Date().toISOString()
-
-      posthog?.capture('$feature_flag_called', {
-        $feature_flag: 'onboarding_flow_v1',
-        $feature_flag_response: experimentVariant,
-      })
-
-      captureEvent('dashboard:onboarding:started', {
-        onboarding_session_id: sessionId,
-        signup_method: signupMethod,
-        '$feature/onboarding_flow_v1': experimentVariant,
-      })
 
       const session: OnboardingSessionState = {
         session_id: sessionId,
@@ -139,76 +113,38 @@ export const useOnboardingTracking = (): UseOnboardingTrackingReturn => {
       setOnboardingSession(session)
       return session
     },
-    [posthog, experimentVariant, captureEvent],
+    [experimentVariant],
   )
 
   const trackStepStarted = useCallback(
-    (step: OnboardingStep, organizationId?: string): void => {
+    (step: OnboardingStep, _organizationId?: string): void => {
       const session = getOnboardingSession()
       if (!session || session.current_step === step) return
-
-      captureEvent(`dashboard:onboarding:step:${step}:started`, {
-        onboarding_session_id: session.session_id,
-        step,
-        organization_id: organizationId,
-        experiment_variant: session.experiment_variant,
-      })
-
       setOnboardingSession({ ...session, current_step: step })
     },
-    [captureEvent],
+    [],
   )
 
   const trackStepCompleted = useCallback(
-    (step: OnboardingStep, organizationId?: string): void => {
+    (_step: OnboardingStep, _organizationId?: string): void => {
       const session = getOnboardingSession()
       if (!session) return
-
-      captureEvent(`dashboard:onboarding:step:${step}:completed`, {
-        onboarding_session_id: session.session_id,
-        step,
-        organization_id: organizationId,
-        experiment_variant: session.experiment_variant,
-      })
-
       setOnboardingSession({
         ...session,
         steps_completed: session.steps_completed + 1,
       })
     },
-    [captureEvent],
+    [],
   )
 
   const trackStepSkipped = useCallback(
-    (step: OnboardingStep, organizationId?: string): void => {
-      const session = getOnboardingSession()
-      if (!session) return
-
-      captureEvent(`dashboard:onboarding:step:${step}:skipped`, {
-        onboarding_session_id: session.session_id,
-        step,
-        organization_id: organizationId,
-        experiment_variant: session.experiment_variant,
-      })
-    },
-    [captureEvent],
+    (_step: OnboardingStep, _organizationId?: string): void => {},
+    [],
   )
 
-  const trackCompleted = useCallback(
-    (organizationId: string): void => {
-      const session = getOnboardingSession()
-      if (!session) return
-
-      captureEvent('dashboard:onboarding:completed', {
-        onboarding_session_id: session.session_id,
-        organization_id: organizationId,
-        experiment_variant: session.experiment_variant,
-      })
-
-      clearOnboardingSession()
-    },
-    [captureEvent],
-  )
+  const trackCompleted = useCallback((_organizationId: string): void => {
+    clearOnboardingSession()
+  }, [])
 
   const getSession = useCallback((): OnboardingSessionState | null => {
     return getOnboardingSession()

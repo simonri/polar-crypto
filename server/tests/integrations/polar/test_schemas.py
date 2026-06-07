@@ -36,7 +36,6 @@ def _fixed_price(*, amount: int = 2000, currency: str = "usd") -> dict[str, Any]
         "modified_at": None,
         "source": "catalog",
         "price_currency": currency,
-        "tax_behavior": None,
         "is_archived": False,
         "product_id": "prod_1",
         "price_amount": amount,
@@ -174,7 +173,6 @@ class TestOrganizationSubscriptionFromSdk:
                 "type": "individual",
                 "name": "c",
                 "billing_address": None,
-                "tax_id": None,
                 "organization_id": "org_1",
                 "deleted_at": None,
                 "avatar_url": "",
@@ -183,7 +181,6 @@ class TestOrganizationSubscriptionFromSdk:
             "product": _PRODUCT_BASE,
             "discount": None,
             "prices": [],
-            "meters": [],
             "pending_update": None,
             **overrides,
         }

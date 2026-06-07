@@ -16,7 +16,6 @@ import FilterList from '@mui/icons-material/FilterList'
 import MoreVert from '@mui/icons-material/MoreVert'
 import Search from '@mui/icons-material/Search'
 import { schemas } from '@polar-sh/client'
-import { Avatar } from '@polar-sh/orbit'
 import { Button } from '@polar-sh/orbit'
 import { Input } from '@polar-sh/orbit'
 import {
@@ -226,11 +225,6 @@ export const CustomerListSidebar: React.FC<CustomerListSidebarProps> = ({
                 )}
               >
                 <div className="flex flex-row items-center gap-3 px-4 py-3">
-                  <Avatar
-                    className="h-8 w-8"
-                    avatar_url={customer.avatar_url}
-                    name={customer.email ?? customer.name ?? '—'}
-                  />
                   <div className="flex min-w-0 flex-col">
                     <div className="w-full truncate text-sm">
                       {customer.name ?? customer.email ?? '—'}

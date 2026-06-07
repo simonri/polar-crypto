@@ -10,98 +10,11 @@ import {
   useTranslations,
   type AcceptedLocale,
 } from '@polar-sh/i18n'
-import { Avatar } from '@polar-sh/orbit'
-import { Button } from '@polar-sh/orbit'
 import ShadowBox from '@polar-sh/ui/components/atoms/ShadowBox'
-import { Elements, ElementsConsumer } from '@stripe/react-stripe-js'
-import { Stripe } from '@stripe/stripe-js'
 import { useRouter } from 'next/navigation'
 import { useCallback, useEffect, useMemo, useState } from 'react'
 import LogoType from '../Brand/logos/LogoType'
-import { SpinnerNoMargin } from '../Shared/Spinner'
-import CheckoutBenefits from './CheckoutBenefits'
-import CheckoutSeatInvitations from './CheckoutSeatInvitations'
-import { loadPolarStripe } from '@/utils/stripe'
-
-const stripePromise = loadPolarStripe()
-
-const isIntegrationError = (
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  err: any,
-): err is { name: 'IntegrationError'; message: string } =>
-  err.name === 'IntegrationError'
-
-const StripeRequiresAction = ({
-  stripe,
-  checkout,
-  locale = DEFAULT_LOCALE,
-}: {
-  stripe: Stripe | null
-  checkout: schemas['CheckoutPublic']
-  locale?: AcceptedLocale
-}) => {
-  const t = useTranslations(locale)
-  const [pendingHandling, setPendingHandling] = useState(false)
-  const [success, setSuccess] = useState(false)
-  const { intent_status, intent_client_secret } =
-    checkout.payment_processor_metadata
-  const handleNextAction = useCallback(
-    async (stripe: Stripe): Promise<void> => {
-      if (success || pendingHandling) {
-        return
-      }
-      setPendingHandling(true)
-      if (intent_status === 'requires_action') {
-        try {
-          const { paymentIntent, setupIntent } = await stripe.handleNextAction({
-            clientSecret: intent_client_secret,
-          })
-          const currentIntentStatus =
-            paymentIntent?.status || setupIntent?.status
-          if (currentIntentStatus === 'succeeded') {
-            setSuccess(true)
-          }
-        } catch (err) {
-          // Case where the intent is already confirmed, but we didn't receive the webhook update yet
-          if (
-            isIntegrationError(err) &&
-            err.message.includes('requires_action')
-          ) {
-            setSuccess(true)
-          }
-        } finally {
-          setPendingHandling(false)
-        }
-      }
-    },
-    [success, pendingHandling, intent_client_secret, intent_status],
-  )
-
-  useEffect(() => {
-    if (!stripe) {
-      return
-    }
-    handleNextAction(stripe)
-  }, [stripe, handleNextAction, pendingHandling])
-
-  if (!stripe) {
-    return null
-  }
-
-  if (!success && intent_status === 'requires_action') {
-    return (
-      <Button
-        type="button"
-        onClick={() => handleNextAction(stripe)}
-        loading={pendingHandling}
-      >
-        {t('checkout.confirmation.confirmPayment')}
-      </Button>
-    )
-  }
-
-  return <SpinnerNoMargin className="h-8 w-8" />
-}
+import { CryptoCheckoutStatus } from './CryptoCheckout'
 
 export interface CheckoutConfirmationProps {
   checkout: schemas['CheckoutPublic']
@@ -148,7 +61,6 @@ export const CheckoutConfirmation = ({
       return
     }
 
-    // Checkout is back in open state, redirect to the checkout page
     if (status === 'open') {
       router.push(checkout.url)
       return
@@ -186,69 +98,33 @@ export const CheckoutConfirmation = ({
     <div className="flex min-h-screen items-center justify-center p-4">
       <ShadowBox className="flex w-full max-w-xl flex-col items-center justify-between gap-y-12 p-8 md:p-16">
         <div className="flex w-full max-w-md flex-col items-center gap-y-8 text-center">
-          <Avatar
-            className="h-16 w-16"
-            avatar_url={organization.avatar_url}
-            name={organization.name}
-          />
-          <div className="flex flex-col items-center gap-y-4">
-            <h1 className="text-2xl font-medium">
-              {status === 'confirmed' &&
-                t('checkout.confirmation.processingTitle')}
-              {status === 'succeeded' &&
-                t('checkout.confirmation.successTitle')}
-              {status === 'failed' && t('checkout.confirmation.failedTitle')}
-            </h1>
-            <p className="dark:text-polar-500 text-gray-500">
-              {status === 'confirmed' &&
-                t('checkout.confirmation.processingDescription')}
-              {status === 'succeeded' &&
-                hasProductCheckout(checkout) &&
-                t('checkout.confirmation.successDescription', {
-                  product: checkout.product.name,
-                })}
-              {status === 'failed' &&
-                t('checkout.confirmation.failedDescription')}
-            </p>
-          </div>
+          <h1 className="text-2xl font-medium">
+            {status === 'succeeded' && t('checkout.confirmation.successTitle')}
+            {status === 'failed' && t('checkout.confirmation.failedTitle')}
+          </h1>
+          <p className="dark:text-polar-500 text-gray-500">
+            {status === 'succeeded' &&
+              hasProductCheckout(checkout) &&
+              t('checkout.confirmation.successDescription', {
+                product: checkout.product.name,
+              })}
+            {status === 'failed' &&
+              t('checkout.confirmation.failedDescription')}
+          </p>
           {status === 'confirmed' && (
-            <div className="flex items-center justify-center">
-              {checkout.payment_processor === 'stripe' ? (
-                <Elements stripe={stripePromise}>
-                  <ElementsConsumer>
-                    {({ stripe }) => (
-                      <StripeRequiresAction
-                        stripe={stripe}
-                        checkout={checkout}
-                        locale={locale}
-                      />
-                    )}
-                  </ElementsConsumer>
-                </Elements>
-              ) : (
-                <SpinnerNoMargin className="h-8 w-8" />
-              )}
+            <div className="w-full">
+              <CryptoCheckoutStatus
+                clientSecret={checkout.client_secret}
+                selectedCurrency="BTC"
+                onConfirmed={updateCheckout}
+                onExpired={() => {}}
+              />
             </div>
           )}
-          {status === 'succeeded' && hasProductCheckout(checkout) && (
-            <>
-              <CheckoutBenefits
-                checkout={checkout}
-                locale={locale}
-                customerSessionToken={customerSessionToken}
-                maxWaitingTimeMs={maxWaitingTimeMs}
-              />
-              {checkout.product_price.amount_type === 'seat_based' &&
-                (checkout.seats ?? 0) > 1 && (
-                  <CheckoutSeatInvitations
-                    checkout={checkout}
-                    customerSessionToken={customerSessionToken}
-                  />
-                )}
-              <p className="dark:text-polar-500 text-center text-xs text-gray-500">
-                {t('checkout.footer.merchantOfRecord')}
-              </p>
-            </>
+          {status === 'succeeded' && (
+            <p className="dark:text-polar-500 text-center text-xs text-gray-500">
+              {t('checkout.footer.merchantOfRecord')}
+            </p>
           )}
         </div>
         <div className="dark:text-polar-500 flex w-full flex-row items-center justify-center gap-x-3 text-sm text-gray-500">

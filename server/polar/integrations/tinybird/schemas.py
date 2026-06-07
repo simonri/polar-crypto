@@ -16,10 +16,6 @@ class TinybirdEvent(TypedDict):
     parent_id: str | None
     root_id: str | None
     event_type_id: str | None
-    # Meter fields
-    meter_id: str | None
-    units: int | None
-    rollover: bool | None
     # Core entity IDs
     product_id: str | None
     subscription_id: str | None
@@ -36,7 +32,6 @@ class TinybirdEvent(TypedDict):
     amount: int | None
     currency: str | None
     net_amount: int | None
-    tax_amount: int | None
     discount_amount: int | None
     applied_balance_amount: int | None
     platform_fee: int | None
@@ -72,9 +67,6 @@ class TinybirdEvent(TypedDict):
     # Customer fields
     customer_email: str | None
     customer_name: str | None
-    # Tax fields
-    tax_state: str | None
-    tax_country: str | None
     # User event fields (_cost, _llm)
     cost_amount: int | None
     cost_currency: str | None

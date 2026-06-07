@@ -19,7 +19,7 @@ from polar.routing import APIRouter
 from . import auth, sorting
 from .schemas import Wallet as WalletSchema
 from .schemas import WalletID, WalletNotFound, WalletTopUpCreate
-from .service import MissingPaymentMethodError, PaymentIntentFailedError
+from .service import MissingPaymentMethodError
 from .service import wallet as wallet_service
 
 router = APIRouter(prefix="/wallets", tags=["wallets", APITag.private])
@@ -91,10 +91,6 @@ async def get(
     response_model=WalletSchema,
     responses={
         201: {"description": "Wallet topped up successfully."},
-        400: {
-            "description": "The payment request failed.",
-            "model": PaymentIntentFailedError.schema(),
-        },
         404: WalletNotFound,
         402: {
             "description": "No payment method available.",

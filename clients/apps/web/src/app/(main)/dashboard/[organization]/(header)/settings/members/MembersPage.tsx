@@ -15,7 +15,6 @@ import {
 import Add from '@mui/icons-material/Add'
 import MoreVert from '@mui/icons-material/MoreVert'
 import { schemas } from '@polar-sh/client'
-import { Avatar } from '@polar-sh/orbit'
 import { Button } from '@polar-sh/orbit'
 import {
   DataTable,
@@ -146,7 +145,6 @@ export default function ClientPage({
         const isCurrentUser = member.user_id === currentUser?.id
         return (
           <Box display="flex" flexDirection="row" alignItems="center" gap="s">
-            <Avatar avatar_url={member.avatar_url} name={member.email} />
             <Text>{member.email}</Text>
             <RowBadge>{ROLE_LABELS[member.role]}</RowBadge>
             {isCurrentUser && <RowBadge>You</RowBadge>}

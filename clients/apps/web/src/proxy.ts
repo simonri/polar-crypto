@@ -11,31 +11,6 @@ import { POLAR_ENV_COOKIE } from './utils/cookies'
 const POLAR_AUTH_COOKIE_KEY =
   process.env.POLAR_AUTH_COOKIE_KEY || 'polar_session'
 
-const IS_SANDBOX =
-  (process.env.NEXT_PUBLIC_ENVIRONMENT ||
-    process.env.VERCEL_ENV ||
-    process.env.NEXT_PUBLIC_VERCEL_ENV) === 'sandbox'
-
-// App routes allowed on sandbox — everything else (marketing, docs) is blocked
-// Strings match by prefix, RegExps are tested directly
-const SANDBOX_ALLOWED_PATHS: (string | RegExp)[] = [
-  '/login',
-  '/auth',
-  '/dashboard',
-  '/start',
-  '/onboarding',
-  '/finance',
-  '/settings',
-  '/oauth2',
-  '/checkout',
-  '/embed',
-  '/verify-email',
-  '/api',
-  '/to',
-  /^\/favicon[\w-]*\.\w+$/, // /favicon.png, /favicon-dark.png, etc.
-  /^\/[^/]+\/portal(\/|$)/, // /:organization/portal
-]
-
 const AUTHENTICATED_ROUTES = [
   new RegExp('^/start(/.*)?$'),
   new RegExp('^/onboarding(/.*)?$'),
@@ -69,10 +44,6 @@ const isForwardedRoute = (request: NextRequest): boolean => {
     return true
   }
 
-  if (request.nextUrl.pathname.startsWith('/ingest/')) {
-    return true
-  }
-
   return false
 }
 
@@ -103,48 +74,6 @@ export async function proxy(request: NextRequest) {
     return NextResponse.next()
   }
 
-  if (request.nextUrl.pathname.startsWith('/to/')) {
-    const lastEnv = request.cookies.get(POLAR_ENV_COOKIE)?.value
-    const currentEnv = IS_SANDBOX ? 'sandbox' : 'production'
-    if (
-      (lastEnv === 'sandbox' || lastEnv === 'production') &&
-      lastEnv !== currentEnv
-    ) {
-      const targetBase =
-        lastEnv === 'sandbox'
-          ? CONFIG.SANDBOX_FRONTEND_BASE_URL
-          : CONFIG.FRONTEND_BASE_URL
-      return NextResponse.redirect(
-        `${targetBase}${request.nextUrl.pathname}${request.nextUrl.search}`,
-      )
-    }
-  }
-
-  // Sandbox: rewrite root to login, block non-app routes
-  if (IS_SANDBOX) {
-    const { pathname } = request.nextUrl
-
-    if (pathname === '/') {
-      const url = request.nextUrl.clone()
-      url.pathname = '/auth'
-      url.search = ''
-      return NextResponse.redirect(url)
-    }
-
-    const isAllowed = SANDBOX_ALLOWED_PATHS.some((path) =>
-      typeof path === 'string'
-        ? pathname === path || pathname.startsWith(`${path}/`)
-        : path.test(pathname),
-    )
-
-    if (!isAllowed) {
-      // Rewrite to a non-existent path so Next.js renders the not-found page
-      const url = request.nextUrl.clone()
-      url.pathname = '/_sandbox_blocked'
-      return NextResponse.rewrite(url, { status: 404 })
-    }
-  }
-
   // Redirect old customer query string URLs to path-based URLs
   const customersMatch = request.nextUrl.pathname.match(
     /^\/dashboard\/([^/]+)\/customers$/,
@@ -154,18 +83,6 @@ export async function proxy(request: NextRequest) {
     const redirectURL = request.nextUrl.clone()
     redirectURL.pathname = `/dashboard/${customersMatch[1]}/customers/${customerId}`
     redirectURL.searchParams.delete('customerId')
-    return NextResponse.redirect(redirectURL)
-  }
-
-  // Redirect old benefit query string URLs to path-based URLs
-  const benefitsMatch = request.nextUrl.pathname.match(
-    /^\/dashboard\/([^/]+)\/benefits$/,
-  )
-  if (benefitsMatch && request.nextUrl.searchParams.has('benefitId')) {
-    const benefitId = request.nextUrl.searchParams.get('benefitId')
-    const redirectURL = request.nextUrl.clone()
-    redirectURL.pathname = `/dashboard/${benefitsMatch[1]}/products/benefits/${benefitId}`
-    redirectURL.searchParams.delete('benefitId')
     return NextResponse.redirect(redirectURL)
   }
 
@@ -184,18 +101,6 @@ export async function proxy(request: NextRequest) {
     return NextResponse.redirect(redirectURL)
   }
 
-  // Redirect old meter query string URLs to path-based URLs
-  const metersMatch = request.nextUrl.pathname.match(
-    /^\/dashboard\/([^/]+)\/usage-billing\/meters$/,
-  )
-  if (metersMatch && request.nextUrl.searchParams.has('selectedMeter')) {
-    const selectedMeter = request.nextUrl.searchParams.get('selectedMeter')
-    const redirectURL = request.nextUrl.clone()
-    redirectURL.pathname = `/dashboard/${metersMatch[1]}/products/meters/${selectedMeter}`
-    redirectURL.searchParams.delete('selectedMeter')
-    return NextResponse.redirect(redirectURL)
-  }
-
   // Redirect deprecated path-based URLs to new structure
   // Events: /dashboard/{org}/usage-billing/events/* -> /dashboard/{org}/analytics/events/*
   const eventsPathMatch = request.nextUrl.pathname.match(
@@ -204,26 +109,6 @@ export async function proxy(request: NextRequest) {
   if (eventsPathMatch) {
     const redirectURL = request.nextUrl.clone()
     redirectURL.pathname = `/dashboard/${eventsPathMatch[1]}/analytics/events${eventsPathMatch[2] || ''}`
-    return NextResponse.redirect(redirectURL, { status: 308 })
-  }
-
-  // Benefits: /dashboard/{org}/benefits/* -> /dashboard/{org}/products/benefits/*
-  const benefitsPathMatch = request.nextUrl.pathname.match(
-    /^\/dashboard\/([^/]+)\/benefits(\/.*)?$/,
-  )
-  if (benefitsPathMatch) {
-    const redirectURL = request.nextUrl.clone()
-    redirectURL.pathname = `/dashboard/${benefitsPathMatch[1]}/products/benefits${benefitsPathMatch[2] || ''}`
-    return NextResponse.redirect(redirectURL, { status: 308 })
-  }
-
-  // Meters: /dashboard/{org}/usage-billing/meters/* -> /dashboard/{org}/products/meters/*
-  const metersPathMatch = request.nextUrl.pathname.match(
-    /^\/dashboard\/([^/]+)\/usage-billing\/meters(\/.*)?$/,
-  )
-  if (metersPathMatch) {
-    const redirectURL = request.nextUrl.clone()
-    redirectURL.pathname = `/dashboard/${metersPathMatch[1]}/products/meters${metersPathMatch[2] || ''}`
     return NextResponse.redirect(redirectURL, { status: 308 })
   }
 
@@ -295,13 +180,12 @@ export const config = {
      * Match all request paths except for the ones starting with:
      * - api (API routes)
      * - fonts (static font files)
-     * - ingest (Posthog)
      * - monitoring (Sentry)
      * - docs, _mintlify, mintlify-assets (Mintlify)
      * - assets (static asset files)
      * - _next (Next.js internals: static files, image optimization, data)
      * - favicon.ico, sitemap.xml, robots.txt (metadata files)
      */
-    '/((?!api|fonts|ingest|monitoring|docs|_mintlify|mintlify-assets|assets|_next|favicon.ico|sitemap.xml|robots.txt).*)',
+    '/((?!api|fonts|docs|_mintlify|mintlify-assets|assets|_next|favicon.ico|sitemap.xml|robots.txt).*)',
   ],
 }

@@ -14,7 +14,6 @@ from polar.kit.currency import format_currency
 from polar.kit.metadata import MetadataInputMixin, MetadataOutputMixin
 from polar.kit.schemas import (
     CUSTOMER_ID_EXAMPLE,
-    METER_ID_EXAMPLE,
     PRODUCT_ID_EXAMPLE,
     IDSchema,
     MergeJSONSchema,
@@ -22,7 +21,6 @@ from polar.kit.schemas import (
     SetSchemaReference,
     TimestampedSchema,
 )
-from polar.meter.schemas import Meter
 from polar.models.subscription import CustomerCancellationReason, SubscriptionStatus
 from polar.product.schemas import Product, ProductPrice
 
@@ -114,11 +112,6 @@ class SubscriptionBase(IDSchema, TimestampedSchema):
     )
     checkout_id: UUID4 | None
 
-    seats: int | None = Field(
-        default=None,
-        description="The number of seats for seat-based subscriptions. None for non-seat subscriptions.",
-    )
-
     customer_cancellation_reason: CustomerCancellationReason | None
     customer_cancellation_comment: str | None
 
@@ -145,32 +138,6 @@ SubscriptionDiscount = Annotated[
 ]
 
 
-class SubscriptionMeterBase(IDSchema, TimestampedSchema):
-    consumed_units: float = Field(
-        description="The number of consumed units so far in this billing period.",
-        examples=[25.0],
-    )
-    credited_units: int = Field(
-        description="The number of credited units so far in this billing period.",
-        examples=[100],
-    )
-    amount: int = Field(
-        description="The amount due in cents so far in this billing period.",
-        examples=[0],
-    )
-    meter_id: UUID4 = Field(
-        description="The ID of the meter.", examples=[METER_ID_EXAMPLE]
-    )
-
-
-class SubscriptionMeter(SubscriptionMeterBase):
-    """Current consumption and spending for a subscription meter."""
-
-    meter: Meter = Field(
-        description="The meter associated with this subscription.",
-    )
-
-
 class PendingSubscriptionUpdate(IDSchema, TimestampedSchema):
     """Pending update to be applied to a subscription at the beginning of the next period."""
 
@@ -180,11 +147,6 @@ class PendingSubscriptionUpdate(IDSchema, TimestampedSchema):
     product_id: UUID4 | None = Field(
         description="ID of the new product to apply to the subscription. If `null`, the product won't be changed."
     )
-    seats: int | None = Field(
-        description="Number of seats to apply to the subscription. If `null`, the number of seats won't be changed."
-    )
-
-
 class Subscription(CustomFieldDataOutputMixin, MetadataOutputMixin, SubscriptionBase):
     customer: SubscriptionCustomer
     user_id: SkipJsonSchema[UUID4] = Field(
@@ -220,9 +182,6 @@ class Subscription(CustomFieldDataOutputMixin, MetadataOutputMixin, Subscription
 
     prices: list[ProductPrice] = Field(
         description="List of enabled prices for the subscription."
-    )
-    meters: list[SubscriptionMeter] = Field(
-        description="List of meters associated with the subscription."
     )
     pending_update: PendingSubscriptionUpdate | None = Field(
         description=(
@@ -298,20 +257,6 @@ class SubscriptionUpdateTrial(Schema):
         description=(
             "Set or extend the trial period of the subscription. "
             "If set to `now`, the trial will end immediately."
-        ),
-    )
-
-
-class SubscriptionUpdateSeats(Schema):
-    seats: int = Field(
-        description="Update the number of seats for this subscription.",
-        ge=1,
-    )
-    proration_behavior: SubscriptionProrationBehavior | None = Field(
-        default=None,
-        description=(
-            "Determine how to handle the proration billing. "
-            "If not provided, will use the default organization setting."
         ),
     )
 
@@ -399,7 +344,6 @@ SubscriptionUpdate = Annotated[
     SubscriptionUpdateProduct
     | SubscriptionUpdateDiscount
     | SubscriptionUpdateTrial
-    | SubscriptionUpdateSeats
     | SubscriptionUpdateBillingPeriod
     | SubscriptionCancel
     | SubscriptionRevoke
@@ -414,11 +358,8 @@ class SubscriptionChargePreview(Schema):
     base_amount: int = Field(
         description="Base subscription amount in cents (sum of product prices)"
     )
-    metered_amount: int = Field(
-        description="Total metered usage charges in cents (sum of all meter charges)"
-    )
     subtotal_amount: int = Field(
-        description="Subtotal amount in cents (base + metered, before discount and tax)"
+        description="Subtotal amount in cents before discount and tax."
     )
     discount_amount: int = Field(description="Discount amount in cents")
     net_amount: int = Field(description="Net amount in cents before taxes")

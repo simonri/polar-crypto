@@ -5,40 +5,31 @@ import typing
 import uuid
 from collections.abc import Sequence
 from datetime import UTC, datetime
-from decimal import Decimal
-from typing import Any, Literal, Unpack
+from typing import Any, Literal
 
 import pytest_asyncio
-from typing_extensions import TypeIs
 
 from polar.enums import (
     PaymentProcessor,
     PayoutAccountType,
     SubscriptionRecurringInterval,
-    TaxBehavior,
-    TaxProcessor,
 )
 from polar.kit.address import Address
 from polar.kit.currency import PresentmentCurrency
 from polar.kit.trial import TrialInterval
 from polar.kit.utils import utc_now
 from polar.kit.visibility import Visibility
-from polar.meter.aggregation import Aggregation, CountAggregation
-from polar.meter.filter import Filter, FilterClause, FilterConjunction, FilterOperator
 from polar.models import (
     Account,
-    Benefit,
     BillingEntry,
     Checkout,
     CheckoutLink,
     CheckoutLinkProduct,
     CheckoutProduct,
     Customer,
-    CustomerSeat,
     CustomField,
     Discount,
     DiscountProduct,
-    Dispute,
     Event,
     EventType,
     IssueReward,
@@ -46,24 +37,19 @@ from polar.models import (
     LegacyRecurringProductPriceFixed,
     LegacyRecurringProductPriceFree,
     Member,
-    Meter,
     Order,
     OrderItem,
     Organization,
     Payment,
-    PaymentMethod,
     Payout,
     PayoutAccount,
     PayoutAttempt,
     Product,
-    ProductBenefit,
     ProductCustomField,
     ProductPrice,
     ProductPriceCustom,
     ProductPriceFixed,
     ProductPriceFree,
-    ProductPriceMeteredUnit,
-    ProductPriceSeatUnit,
     Refund,
     Subscription,
     SubscriptionProductPrice,
@@ -74,11 +60,6 @@ from polar.models import (
     Wallet,
     WalletTransaction,
     WebhookEndpoint,
-)
-from polar.models.benefit import BenefitType
-from polar.models.benefit_grant import (
-    BenefitGrant,
-    BenefitGrantScope,
 )
 from polar.models.billing_entry import BillingEntryDirection, BillingEntryType
 from polar.models.checkout import (
@@ -98,17 +79,15 @@ from polar.models.custom_field import (
     CustomFieldTextProperties,
     CustomFieldType,
 )
-from polar.models.customer_seat import SeatStatus
 from polar.models.discount import (
     DiscountDuration,
     DiscountFixed,
     DiscountPercentage,
     DiscountType,
 )
-from polar.models.dispute import DisputeAlertProcessor, DisputeStatus
+from polar.models.dispute import DisputeStatus
 from polar.models.event import EventSource
 from polar.models.member import MemberRole
-from polar.models.notification_recipient import NotificationRecipient
 from polar.models.order import OrderBillingReasonInternal, OrderStatus
 from polar.models.organization import STATUS_CAPABILITIES, OrganizationStatus
 from polar.models.payment import PaymentStatus, PaymentTrigger
@@ -125,10 +104,7 @@ from polar.models.user import OAuthAccount, OAuthPlatform
 from polar.models.user_organization import OrganizationRole
 from polar.models.wallet import WalletType
 from polar.models.webhook_endpoint import WebhookEventType, WebhookFormat
-from polar.notification_recipient.schemas import NotificationRecipientPlatform
 from polar.product.price_set import PriceSet
-from polar.tax.calculation import TaxBreakdownItem
-from polar.tax.tax_id import TaxID
 from tests.fixtures.database import SaveFixture
 
 
@@ -192,8 +168,6 @@ async def create_organization(
         name=name,
         slug=name,
         status=status,
-        customer_invoice_prefix=name.upper(),
-        avatar_url="https://avatars.githubusercontent.com/u/105373340?s=200&v=4",
         account=account,
         payout_account=None,
         **kwargs,
@@ -261,7 +235,6 @@ async def user_github_oauth(
 
 async def create_user(
     save_fixture: SaveFixture,
-    stripe_customer_id: str | None = None,
     email_verified: bool = True,
 ) -> User:
     user = User(
@@ -270,7 +243,6 @@ async def create_user(
         email_verified=email_verified,
         avatar_url="https://avatars.githubusercontent.com/u/47952?v=4",
         oauth_accounts=[],
-        stripe_customer_id=stripe_customer_id,
     )
     await save_fixture(user)
     return user
@@ -409,21 +381,7 @@ type PriceFixtureType = (
     tuple[int, str]
     | tuple[int, int | None, int | None, str]
     | tuple[None, str]
-    | tuple[Meter, Decimal, int | None, str]
-    | tuple[Literal["seat"], int, str]
 )
-
-
-def _is_metered_price_fixture_type(
-    price: PriceFixtureType,
-) -> TypeIs[tuple[Meter, Decimal, int | None, str]]:
-    return isinstance(price[0], Meter)
-
-
-def _is_seat_price_fixture_type(
-    price: PriceFixtureType,
-) -> TypeIs[tuple[Literal["seat"], int, str]]:
-    return len(price) == 3 and price[0] == "seat"
 
 
 async def create_product(
@@ -439,7 +397,6 @@ async def create_product(
     attached_custom_fields: Sequence[tuple[CustomField, bool]] = [],
     trial_interval: TrialInterval | None = None,
     trial_interval_count: int | None = None,
-    is_tax_applicable: bool = True,
 ) -> Product:
     recurring_interval_count = (
         None if recurring_interval is None else recurring_interval_count
@@ -447,7 +404,6 @@ async def create_product(
     product = Product(
         name=name,
         description="Description",
-        is_tax_applicable=is_tax_applicable,
         recurring_interval=recurring_interval,
         recurring_interval_count=recurring_interval_count,
         is_archived=is_archived,
@@ -457,8 +413,6 @@ async def create_product(
         trial_interval_count=trial_interval_count,
         all_prices=[],
         prices=[],
-        product_benefits=[],
-        product_medias=[],
         attached_custom_fields=[
             ProductCustomField(custom_field=custom_field, required=required, order=i)
             for i, (custom_field, required) in enumerate(attached_custom_fields)
@@ -467,13 +421,7 @@ async def create_product(
     await save_fixture(product)
 
     for price in prices:
-        product_price: (
-            ProductPriceFixed
-            | ProductPriceCustom
-            | ProductPriceFree
-            | ProductPriceMeteredUnit
-            | ProductPriceSeatUnit
-        )
+        product_price: ProductPriceFixed | ProductPriceCustom | ProductPriceFree
         if len(price) == 2:
             amount, currency = price
             if amount is None:
@@ -484,24 +432,6 @@ async def create_product(
                 product_price = await create_product_price_fixed(
                     save_fixture, product=product, amount=amount, currency=currency
                 )
-        elif _is_metered_price_fixture_type(price):
-            meter, unit_amount, cap_amount, currency = price
-            product_price = await create_product_price_metered_unit(
-                save_fixture,
-                product=product,
-                meter=meter,
-                unit_amount=unit_amount,
-                cap_amount=cap_amount,
-                currency=currency,
-            )
-        elif _is_seat_price_fixture_type(price):
-            _, price_per_seat, currency = price
-            product_price = await create_product_price_seat_unit(
-                save_fixture,
-                product=product,
-                price_per_seat=price_per_seat,
-                currency=currency,
-            )
         else:
             (
                 minimum_amount,
@@ -530,13 +460,11 @@ async def create_product_price_fixed(
     product: Product,
     amount: int = 1000,
     currency: str = "usd",
-    tax_behavior: TaxBehavior | None = None,
     is_archived: bool = False,
 ) -> ProductPriceFixed:
     price = ProductPriceFixed(
         price_amount=amount,
         price_currency=currency,
-        tax_behavior=tax_behavior,
         product=product,
         is_archived=is_archived,
     )
@@ -552,11 +480,9 @@ async def create_product_price_custom(
     maximum_amount: int | None = None,
     preset_amount: int | None = None,
     currency: str = "usd",
-    tax_behavior: TaxBehavior | None = None,
 ) -> ProductPriceCustom:
     price = ProductPriceCustom(
         price_currency=currency,
-        tax_behavior=tax_behavior,
         minimum_amount=minimum_amount,
         maximum_amount=maximum_amount,
         preset_amount=preset_amount,
@@ -575,69 +501,7 @@ async def create_product_price_free(
     price = ProductPriceFree(
         product=product,
         price_currency=currency,
-        tax_behavior=None,
     )
-    await save_fixture(price)
-    return price
-
-
-async def create_product_price_metered_unit(
-    save_fixture: SaveFixture,
-    *,
-    product: Product,
-    meter: Meter,
-    unit_amount: Decimal = Decimal(100),
-    cap_amount: int | None = None,
-    currency: str = "usd",
-    tax_behavior: TaxBehavior | None = None,
-) -> ProductPriceMeteredUnit:
-    price = ProductPriceMeteredUnit(
-        price_currency=currency,
-        tax_behavior=tax_behavior,
-        unit_amount=unit_amount,
-        cap_amount=cap_amount,
-        meter=meter,
-        product=product,
-    )
-    assert price.amount_type == ProductPriceAmountType.metered_unit
-    await save_fixture(price)
-    return price
-
-
-async def create_product_price_seat_unit(
-    save_fixture: SaveFixture,
-    *,
-    product: Product | None = None,
-    price_per_seat: int = 1000,
-    minimum_seats: int = 1,
-    maximum_seats: int | None = None,
-    currency: str = "usd",
-    tax_behavior: TaxBehavior | None = TaxBehavior.exclusive,
-) -> ProductPriceSeatUnit:
-    """Create a seat-based price with a single tier.
-
-    Args:
-        price_per_seat: Price per seat in cents.
-        minimum_seats: Minimum seats allowed (first tier's min_seats).
-        maximum_seats: Maximum seats allowed (last tier's max_seats). None for unlimited.
-    """
-    seat_tiers: dict[str, typing.Any] = {
-        "tiers": [
-            {
-                "min_seats": minimum_seats,
-                "max_seats": maximum_seats,
-                "price_per_seat": price_per_seat,
-            }
-        ]
-    }
-
-    price = ProductPriceSeatUnit(
-        price_currency=currency,
-        tax_behavior=tax_behavior,
-        seat_tiers=seat_tiers,
-        product=product,
-    )
-    assert price.amount_type == ProductPriceAmountType.seat_based
     await save_fixture(price)
     return price
 
@@ -700,14 +564,12 @@ async def create_legacy_recurring_product_price(
         product_price = LegacyRecurringProductPriceFixed(
             price_amount=amount,
             price_currency=PresentmentCurrency.usd,
-            tax_behavior=None,
             product=product,
             is_archived=False,
         )
     elif amount_type == ProductPriceAmountType.custom:
         product_price = LegacyRecurringProductPriceCustom(
             price_currency=PresentmentCurrency.usd,
-            tax_behavior=None,
             minimum_amount=minimum_amount,
             maximum_amount=maximum_amount,
             preset_amount=preset_amount,
@@ -717,7 +579,6 @@ async def create_legacy_recurring_product_price(
     elif amount_type == ProductPriceAmountType.free:
         product_price = LegacyRecurringProductPriceFree(
             product=product,
-            tax_behavior=None,
             is_archived=False,
         )
     else:
@@ -871,9 +732,7 @@ async def create_customer(
     email: str = "customer@example.com",
     email_verified: bool = False,
     name: str = "Customer",
-    stripe_customer_id: str | None = "STRIPE_CUSTOMER_ID",
     billing_address: Address | None = None,
-    tax_id: TaxID | None = None,
     user_metadata: dict[str, Any] = {},
 ) -> Customer:
     customer = Customer(
@@ -881,10 +740,8 @@ async def create_customer(
         email=email,
         email_verified=email_verified,
         name=name,
-        stripe_customer_id=stripe_customer_id,
         organization=organization,
         billing_address=billing_address,
-        tax_id=tax_id,
         user_metadata=user_metadata,
     )
     await save_fixture(customer)
@@ -898,13 +755,10 @@ async def create_order(
     status: OrderStatus = OrderStatus.paid,
     product: Product | None = None,
     subtotal_amount: int = 1000,
-    tax_amount: int = 0,
     discount_amount: int = 0,
     refunded_amount: int = 0,
-    refunded_tax_amount: int = 0,
     applied_balance_amount: int = 0,
     currency: str = "usd",
-    tax_behavior: TaxBehavior | None = None,
     order_items: list[OrderItem] | None = None,
     subscription: Subscription | None = None,
     billing_reason: OrderBillingReasonInternal = OrderBillingReasonInternal.purchase,
@@ -913,13 +767,10 @@ async def create_order(
     custom_field_data: dict[str, Any] | None = None,
     billing_name: str | None = None,
     billing_address: Address | None = None,
-    invoice_number: str | None = None,
     checkout: Checkout | None = None,
     discount: Discount | None = None,
     next_payment_attempt_at: datetime | None = None,
     payment_lock_acquired_at: datetime | None = None,
-    tax_processor: TaxProcessor | None = None,
-    tax_transaction_processor_id: str | None = None,
 ) -> Order:
     if order_items is None:
         order_items = [
@@ -927,7 +778,6 @@ async def create_order(
                 label="",
                 amount=subtotal_amount,
                 net_amount=subtotal_amount,
-                tax_amount=tax_amount,
                 proration=False,
             )
         ]
@@ -936,21 +786,15 @@ async def create_order(
         created_at=created_at or utc_now(),
         status=status,
         subtotal_amount=subtotal_amount,
-        net_amount=subtotal_amount
-        - discount_amount
-        - (tax_amount if tax_behavior == TaxBehavior.inclusive else 0),
-        tax_amount=tax_amount,
+        net_amount=subtotal_amount - discount_amount,
         discount_amount=discount_amount,
         refunded_amount=refunded_amount,
-        refunded_tax_amount=refunded_tax_amount,
         applied_balance_amount=applied_balance_amount,
         items=order_items,
         currency=currency,
-        tax_behavior=tax_behavior,
         billing_reason=billing_reason,
         billing_name=billing_name,
         billing_address=billing_address,
-        invoice_number=invoice_number or rstr("INV-"),
         organization=customer.organization,
         customer=customer,
         product=product,
@@ -961,8 +805,6 @@ async def create_order(
         user_metadata=user_metadata or {},
         next_payment_attempt_at=next_payment_attempt_at,
         payment_lock_acquired_at=payment_lock_acquired_at,
-        tax_processor=tax_processor,
-        tax_transaction_processor_id=tax_transaction_processor_id,
     )
     await save_fixture(order)
     return order
@@ -974,10 +816,7 @@ async def create_order_and_payment(
     product: Product,
     customer: Customer,
     subtotal_amount: int,
-    tax_amount: int,
     applied_balance_amount: int = 0,
-    tax_processor: TaxProcessor | None = None,
-    tax_transaction_processor_id: str | None = None,
     billing_address: Address | None = None,
 ) -> tuple[Order, Payment, Transaction]:
     order = await create_order(
@@ -985,85 +824,22 @@ async def create_order_and_payment(
         product=product,
         customer=customer,
         subtotal_amount=subtotal_amount,
-        tax_amount=tax_amount,
         applied_balance_amount=applied_balance_amount,
         billing_address=billing_address,
-        tax_processor=tax_processor,
-        tax_transaction_processor_id=tax_transaction_processor_id,
     )
     payment = await create_payment(
         save_fixture,
         customer.organization,
-        amount=subtotal_amount + tax_amount + applied_balance_amount,
+        amount=subtotal_amount + applied_balance_amount,
         order=order,
     )
     transaction = await create_payment_transaction(
         save_fixture,
         amount=subtotal_amount + applied_balance_amount,
-        tax_amount=tax_amount,
         order=order,
         charge_id=payment.processor_id,
     )
     return order, payment, transaction
-
-
-async def create_order_with_seats(
-    save_fixture: SaveFixture,
-    *,
-    product: Product,
-    customer: Customer,
-    seats: int = 5,
-    **kwargs: Any,
-) -> Order:
-    is_seat_based = any(
-        price.amount_type == ProductPriceAmountType.seat_based
-        for price in product.all_prices
-    )
-    assert is_seat_based, "Product must be seat-based"
-    order = await create_order(
-        save_fixture, product=product, customer=customer, **kwargs
-    )
-    order.seats = seats
-    await save_fixture(order)
-    return order
-
-
-async def create_benefit(
-    save_fixture: SaveFixture,
-    *,
-    organization: Organization,
-    type: BenefitType = BenefitType.custom,
-    is_tax_applicable: bool = True,
-    description: str = "Benefit",
-    selectable: bool = True,
-    deletable: bool = True,
-    properties: dict[str, Any] = {"note": None},
-) -> Benefit:
-    benefit = Benefit(
-        type=type,
-        description=description,
-        is_tax_applicable=is_tax_applicable,
-        organization=organization,
-        selectable=selectable,
-        deletable=deletable,
-        properties=properties,
-    )
-    await save_fixture(benefit)
-    return benefit
-
-
-async def set_product_benefits(
-    save_fixture: SaveFixture,
-    *,
-    product: Product,
-    benefits: list[Benefit],
-) -> Product:
-    product.product_benefits = []
-    await save_fixture(product)
-    for order, benefit in enumerate(benefits):
-        product.product_benefits.append(ProductBenefit(benefit=benefit, order=order))
-    await save_fixture(product)
-    return product
 
 
 async def create_subscription(
@@ -1075,8 +851,6 @@ async def create_subscription(
     customer: Customer,
     payment_method: PaymentMethod | None = None,
     status: SubscriptionStatus = SubscriptionStatus.incomplete,
-    tax_behavior: TaxBehavior | None = TaxBehavior.exclusive,
-    tax_exempted: bool = False,
     started_at: datetime | None = None,
     ended_at: datetime | None = None,
     ends_at: datetime | None = None,
@@ -1089,7 +863,6 @@ async def create_subscription(
     revoke: bool = False,
     user_metadata: dict[str, Any] | None = None,
     scheduler_locked_at: datetime | None = None,
-    seats: int | None = None,
     past_due_at: datetime | None = None,
 ) -> Subscription:
     currency_prices = PriceSet.from_product(product, currency)
@@ -1131,8 +904,6 @@ async def create_subscription(
         recurring_interval=recurring_interval,
         recurring_interval_count=recurring_interval_count,
         status=status,
-        tax_behavior=tax_behavior,
-        tax_exempted=tax_exempted,
         current_period_start=current_period_start,
         current_period_end=current_period_end,
         anchor_day=anchor_day,
@@ -1148,13 +919,12 @@ async def create_subscription(
         product=product,
         payment_method=payment_method,
         subscription_product_prices=[
-            SubscriptionProductPrice.from_price(price, seats=seats) for price in prices
+            SubscriptionProductPrice.from_price(price) for price in prices
         ],
         currency=currency,
         discount=discount,
         user_metadata=user_metadata or {},
         scheduler_locked_at=scheduler_locked_at,
-        seats=seats,
         past_due_at=past_due_at,
         pending_update=None,
     )
@@ -1178,7 +948,6 @@ async def create_trialing_subscription(
     trial_interval_count: int = 1,
     prices: Sequence[ProductPrice] | None = None,
     customer: Customer,
-    tax_exempted: bool = False,
     discount: Discount | None = None,
     user_metadata: dict[str, Any] | None = None,
     scheduler_locked_at: datetime | None = None,
@@ -1192,7 +961,6 @@ async def create_trialing_subscription(
         product=product,
         prices=prices,
         customer=customer,
-        tax_exempted=tax_exempted,
         discount=discount,
         status=SubscriptionStatus.trialing,
         started_at=now,
@@ -1214,8 +982,6 @@ async def create_active_subscription(
     currency: str = "usd",
     customer: Customer,
     payment_method: PaymentMethod | None = None,
-    tax_exempted: bool = False,
-    tax_behavior: TaxBehavior | None = TaxBehavior.exclusive,
     discount: Discount | None = None,
     started_at: datetime | None = None,
     ended_at: datetime | None = None,
@@ -1231,8 +997,6 @@ async def create_active_subscription(
         prices=prices,
         currency=currency,
         customer=customer,
-        tax_exempted=tax_exempted,
-        tax_behavior=tax_behavior,
         discount=discount,
         payment_method=payment_method,
         status=SubscriptionStatus.active,
@@ -1381,54 +1145,6 @@ async def product_recurring_free_price(
 
 
 @pytest_asyncio.fixture
-async def product_recurring_free_seat_based(
-    save_fixture: SaveFixture, organization: Organization
-) -> Product:
-    return await create_product(
-        save_fixture,
-        organization=organization,
-        recurring_interval=SubscriptionRecurringInterval.month,
-        prices=[("seat", 0, "usd")],
-    )
-
-
-@pytest_asyncio.fixture
-async def product_recurring_seat_based(
-    save_fixture: SaveFixture, organization: Organization
-) -> Product:
-    return await create_product(
-        save_fixture,
-        organization=organization,
-        recurring_interval=SubscriptionRecurringInterval.month,
-        prices=[("seat", 1000, "usd")],
-    )
-
-
-@pytest_asyncio.fixture
-async def product_recurring_metered(
-    save_fixture: SaveFixture, organization: Organization, meter: Meter
-) -> Product:
-    return await create_product(
-        save_fixture,
-        organization=organization,
-        recurring_interval=SubscriptionRecurringInterval.month,
-        prices=[(meter, Decimal(100), None, "usd")],
-    )
-
-
-@pytest_asyncio.fixture
-async def product_recurring_fixed_and_metered(
-    save_fixture: SaveFixture, organization: Organization, meter: Meter
-) -> Product:
-    return await create_product(
-        save_fixture,
-        organization=organization,
-        recurring_interval=SubscriptionRecurringInterval.month,
-        prices=[(meter, Decimal(100), None, "usd"), (2000, "usd")],
-    )
-
-
-@pytest_asyncio.fixture
 async def product_recurring_trial(
     save_fixture: SaveFixture, organization: Organization
 ) -> Product:
@@ -1503,7 +1219,7 @@ async def create_checkout(
     products: list[Product],
     product: Product | None = None,
     price: ProductPrice | None = None,
-    payment_processor: PaymentProcessor = PaymentProcessor.stripe,
+    payment_processor: PaymentProcessor = PaymentProcessor.crypto,
     status: CheckoutStatus = CheckoutStatus.open,
     expires_at: datetime | None = None,
     client_secret: str | None = None,
@@ -1513,18 +1229,12 @@ async def create_checkout(
     payment_processor_metadata: dict[str, Any] = {},
     analytics_metadata: CheckoutAnalyticsMetadata | None = None,
     amount: int | None = None,
-    tax_amount: int | None = None,
-    tax_behavior: TaxBehavior | None = None,
     currency: str | None = None,
     customer: Customer | None = None,
     subscription: Subscription | None = None,
     discount: Discount | None = None,
     trial_interval: TrialInterval | None = None,
     trial_interval_count: int | None = None,
-    seats: int | None = None,
-    min_seats: int | None = None,
-    max_seats: int | None = None,
-    require_billing_address: bool = False,
     customer_billing_address: Address | None = None,
     created_at: datetime | None = None,
     success_url: str | None = None,
@@ -1542,9 +1252,6 @@ async def create_checkout(
         amount = price.price_amount
     elif isinstance(price, ProductPriceCustom):
         amount = amount or 10_00
-    elif isinstance(price, ProductPriceSeatUnit):
-        seat_count = seats or 1
-        amount = price.calculate_amount(seat_count)
     else:
         amount = 0
 
@@ -1566,8 +1273,6 @@ async def create_checkout(
         payment_processor_metadata=payment_processor_metadata,
         amount=amount,
         net_amount=amount,
-        tax_amount=tax_amount,
-        tax_behavior=tax_behavior,
         currency=currency,
         organization=product.organization,
         product_price=price,
@@ -1582,12 +1287,7 @@ async def create_checkout(
         trial_interval=trial_interval,
         trial_interval_count=trial_interval_count,
         trial_end=trial_end,
-        seats=seats,
-        min_seats=min_seats,
-        max_seats=max_seats,
-        require_billing_address=require_billing_address,
         customer_billing_address=customer_billing_address,
-        tax_processor=TaxProcessor.stripe,
     )
     checkout.net_amount = checkout.amount - checkout.discount_amount
     if analytics_metadata is not None:
@@ -1605,7 +1305,7 @@ async def create_checkout(
 async def create_checkout_link(
     save_fixture: SaveFixture,
     *,
-    payment_processor: PaymentProcessor = PaymentProcessor.stripe,
+    payment_processor: PaymentProcessor = PaymentProcessor.crypto,
     products: Sequence[Product],
     discount: Discount | None = None,
     client_secret: str | None = None,
@@ -1635,40 +1335,6 @@ async def create_checkout_link(
 
 
 @pytest_asyncio.fixture
-async def benefit_organization(
-    save_fixture: SaveFixture, organization: Organization
-) -> Benefit:
-    return await create_benefit(save_fixture, organization=organization)
-
-
-@pytest_asyncio.fixture
-async def benefit_organization_second(
-    save_fixture: SaveFixture, organization: Organization
-) -> Benefit:
-    return await create_benefit(save_fixture, organization=organization)
-
-
-@pytest_asyncio.fixture
-async def benefit_organization_third(
-    save_fixture: SaveFixture, organization: Organization
-) -> Benefit:
-    return await create_benefit(save_fixture, organization=organization)
-
-
-@pytest_asyncio.fixture
-async def benefits(
-    benefit_organization: Benefit,
-    benefit_organization_second: Benefit,
-    benefit_organization_third: Benefit,
-) -> list[Benefit]:
-    return [
-        benefit_organization,
-        benefit_organization_second,
-        benefit_organization_third,
-    ]
-
-
-@pytest_asyncio.fixture
 async def organization_second_members(
     save_fixture: SaveFixture, organization_second: Organization
 ) -> list[User]:
@@ -1692,7 +1358,6 @@ async def customer(
         save_fixture,
         organization=organization,
         email=lstr("customer@example.com"),
-        stripe_customer_id=lstr("STRIPE_CUSTOMER_ID"),
     )
 
 
@@ -1720,7 +1385,6 @@ async def customer_second(
         save_fixture,
         organization=organization,
         email=lstr("customer.second@example.com"),
-        stripe_customer_id=lstr("STRIPE_CUSTOMER_ID_2"),
     )
 
 
@@ -1734,7 +1398,6 @@ async def customer_external_id(
         organization=organization,
         external_id=lstr("CUSTOMER_EXTERNAL_ID"),
         email=lstr("customer.external_id@example.com"),
-        stripe_customer_id=lstr("STRIPE_CUSTOMER_ID_3"),
     )
 
 
@@ -1747,7 +1410,6 @@ async def customer_organization_second(
         save_fixture,
         organization=organization_second,
         email=lstr("customer.organization_second@example.com"),
-        stripe_customer_id=lstr("STRIPE_CUSTOMER_ID_4"),
     )
 
 
@@ -1831,33 +1493,14 @@ async def subscription(
     return await create_subscription(save_fixture, product=product, customer=customer)
 
 
-async def create_benefit_grant(
-    save_fixture: SaveFixture,
-    customer: Customer,
-    benefit: Benefit,
-    granted: bool | None = None,
-    properties: dict[str, Any] | None = None,
-    member: Member | None = None,
-    **scope: Unpack[BenefitGrantScope],
-) -> BenefitGrant:
-    grant = BenefitGrant(benefit=benefit, customer=customer, member=member, **scope)
-    if granted is not None:
-        grant.set_granted() if granted else grant.set_revoked()
-    if properties is not None:
-        grant.properties = properties
-    await save_fixture(grant)
-    return grant
-
-
 async def create_refund(
     save_fixture: SaveFixture,
     order: Order,
     payment: Payment,
     *,
     status: str = "succeeded",
-    processor: PaymentProcessor = PaymentProcessor.stripe,
+    processor: PaymentProcessor = PaymentProcessor.crypto,
     amount: int = 1000,
-    tax_amount: int = 0,
     currency: str = "usd",
     reason: str = "customer_request",
     processor_id: str = "STRIPE_REFUND_ID",
@@ -1869,7 +1512,6 @@ async def create_refund(
         status=status,
         reason=reason,
         amount=amount,
-        tax_amount=tax_amount,
         currency=currency,
         payment=payment,
         order=order,
@@ -1889,10 +1531,9 @@ async def create_refund(
 async def create_payment_transaction(
     save_fixture: SaveFixture,
     *,
-    processor: Processor = Processor.stripe,
+    processor: Processor = Processor.crypto,
     currency: str = "usd",
     amount: int = 1000,
-    tax_amount: int = 0,
     charge_id: str | None = "STRIPE_CHARGE_ID",
     pledge: Pledge | None = None,
     order: Order | None = None,
@@ -1905,7 +1546,6 @@ async def create_payment_transaction(
         processor=processor,
         currency=currency,
         amount=amount,
-        tax_amount=tax_amount,
         account_currency=currency,
         account_amount=amount,
         charge_id=charge_id,
@@ -1923,7 +1563,7 @@ async def create_payment_transaction(
 async def create_refund_transaction(
     save_fixture: SaveFixture,
     *,
-    processor: Processor = Processor.stripe,
+    processor: Processor = Processor.crypto,
     amount: int = -1000,
     charge_id: str = "STRIPE_CHARGE_ID",
     refund: Refund | None = None,
@@ -1940,7 +1580,6 @@ async def create_refund_transaction(
         amount=amount,
         account_currency="usd",
         account_amount=amount,
-        tax_amount=0,
         charge_id=charge_id,
         refund=refund,
         pledge=pledge,
@@ -1958,7 +1597,7 @@ async def create_dispute_transaction(
     save_fixture: SaveFixture,
     dispute: Dispute,
     *,
-    processor: Processor = Processor.stripe,
+    processor: Processor = Processor.crypto,
     currency: str = "usd",
     amount: int = 1000,
     charge_id: str | None = "STRIPE_CHARGE_ID",
@@ -1974,7 +1613,6 @@ async def create_dispute_transaction(
         amount=amount,
         account_currency=currency,
         account_amount=amount,
-        tax_amount=0,
         charge_id=charge_id,
         dispute=dispute,
         pledge=pledge,
@@ -2006,7 +1644,6 @@ async def create_balance_transaction(
         amount=amount,
         account_currency=currency,
         account_amount=amount,
-        tax_amount=0,
         payment_transaction=payment_transaction,
         balance_reversal_transaction=balance_reversal_transaction,
         payout_transaction=payout_transaction,
@@ -2016,8 +1653,7 @@ async def create_balance_transaction(
     return transaction
 
 
-METER_ID = uuid.uuid4()
-METER_TEST_EVENT = "TEST_EVENT"
+TEST_EVENT_NAME = "TEST_EVENT"
 
 
 async def create_event(
@@ -2025,7 +1661,7 @@ async def create_event(
     *,
     organization: Organization,
     source: EventSource = EventSource.user,
-    name: str = METER_TEST_EVENT,
+    name: str = TEST_EVENT_NAME,
     timestamp: datetime | None = None,
     customer: Customer | None = None,
     external_customer_id: str | None = None,
@@ -2056,56 +1692,6 @@ async def create_event(
     return event
 
 
-async def create_meter(
-    save_fixture: SaveFixture,
-    *,
-    organization: Organization,
-    id: uuid.UUID = METER_ID,
-    name: str = "My Meter",
-    filter: Filter = Filter(
-        conjunction=FilterConjunction.and_,
-        clauses=[
-            FilterClause(
-                property="name", operator=FilterOperator.eq, value=METER_TEST_EVENT
-            )
-        ],
-    ),
-    aggregation: Aggregation = CountAggregation(),
-    last_billed_event: Event | None = None,
-) -> Meter:
-    meter = Meter(
-        id=id,
-        name=name,
-        organization=organization,
-        filter=filter,
-        aggregation=aggregation,
-        last_billed_event=last_billed_event,
-    )
-    await save_fixture(meter)
-    return meter
-
-
-@pytest_asyncio.fixture
-async def meter(save_fixture: SaveFixture, organization: Organization) -> Meter:
-    return await create_meter(save_fixture, organization=organization)
-
-
-async def create_notification_recipient(
-    save_fixture: SaveFixture,
-    *,
-    user: User,
-    expo_push_token: str,
-    platform: NotificationRecipientPlatform = NotificationRecipientPlatform.ios,
-) -> NotificationRecipient:
-    notification_recipient = NotificationRecipient(
-        platform=platform,
-        expo_push_token=expo_push_token,
-        user_id=user.id,
-    )
-    await save_fixture(notification_recipient)
-    return notification_recipient
-
-
 async def create_payout(
     save_fixture: SaveFixture,
     *,
@@ -2118,7 +1704,6 @@ async def create_payout(
     account_currency: str = "usd",
     account_amount: int = 1000,
     created_at: datetime | None = None,
-    invoice_number: str | None = None,
     status: PayoutStatus = PayoutStatus.succeeded,
     attempts: list[PayoutAttemptStatus] = [PayoutAttemptStatus.succeeded],
 ) -> Payout:
@@ -2134,7 +1719,6 @@ async def create_payout(
         account_currency=account_currency,
         account_amount=account_amount,
         transactions=[transaction] if transaction else [],
-        invoice_number=invoice_number or rstr("POLAR-"),
         attempts=[
             PayoutAttempt(
                 processor_id=rstr("PAYOUT_ATTEMPT_PROCESSOR_ID"),
@@ -2157,8 +1741,7 @@ async def create_payout_account(
     organization: Organization,
     user: User,
     *,
-    type: PayoutAccountType = PayoutAccountType.stripe,
-    stripe_id: str | None = "STRIPE_ID",
+    type: PayoutAccountType = PayoutAccountType.manual,
     country: str = "US",
     currency: str = "usd",
     is_payouts_enabled: bool = True,
@@ -2166,7 +1749,6 @@ async def create_payout_account(
     payout_account = PayoutAccount(
         type=type,
         admin=user,
-        stripe_id=stripe_id,
         country=country,
         currency=currency,
         is_details_submitted=True,
@@ -2180,7 +1762,7 @@ async def create_payout_account(
 
 
 @pytest_asyncio.fixture
-async def stripe_payout_account(
+async def payout_account(
     save_fixture: SaveFixture,
     organization: Organization,
     user: User,
@@ -2189,8 +1771,7 @@ async def stripe_payout_account(
         save_fixture,
         organization,
         user,
-        type=PayoutAccountType.stripe,
-        stripe_id=rstr("STRIPE_ID"),
+        type=PayoutAccountType.manual,
         country="US",
         currency="usd",
         is_payouts_enabled=True,
@@ -2201,7 +1782,7 @@ async def create_payment(
     save_fixture: SaveFixture,
     organization: Organization,
     *,
-    processor: PaymentProcessor = PaymentProcessor.stripe,
+    processor: PaymentProcessor = PaymentProcessor.crypto,
     status: PaymentStatus = PaymentStatus.succeeded,
     amount: int = 1000,
     currency: str = "usd",
@@ -2248,7 +1829,7 @@ async def create_payment_method(
     save_fixture: SaveFixture,
     customer: Customer,
     *,
-    processor: PaymentProcessor = PaymentProcessor.stripe,
+    processor: PaymentProcessor = PaymentProcessor.crypto,
     processor_id: str | None = None,
     type: str = "card",
     method_metadata: dict[str, Any] = {},
@@ -2319,73 +1900,6 @@ async def create_billing_entry(
     return billing_entry
 
 
-async def create_customer_seat(
-    save_fixture: SaveFixture,
-    *,
-    subscription: Subscription | None = None,
-    order: Order | None = None,
-    status: SeatStatus = SeatStatus.pending,
-    customer: Customer | None = None,
-    invitation_token: str | None = None,
-    metadata: dict[str, Any] | None = None,
-    claimed_at: datetime | None = None,
-    revoked_at: datetime | None = None,
-    member_id: uuid.UUID | None = None,
-    email: str | None = None,
-) -> CustomerSeat:
-    if subscription is None and order is None:
-        raise ValueError("Either subscription or order must be provided")
-    if subscription is not None and order is not None:
-        raise ValueError("Only one of subscription or order can be provided")
-
-    if invitation_token is None and status == SeatStatus.pending:
-        invitation_token = secrets.token_urlsafe(32)
-
-    seat_data: dict[str, Any] = {
-        "status": status,
-        "customer_id": customer.id if customer else None,
-        "invitation_token": invitation_token,
-        "claimed_at": claimed_at,
-        "revoked_at": revoked_at,
-        "seat_metadata": metadata or {},
-        "member_id": member_id,
-        "email": email,
-    }
-
-    if subscription is not None:
-        seat_data["subscription_id"] = subscription.id
-    elif order is not None:
-        seat_data["order_id"] = order.id
-
-    seat = CustomerSeat(**seat_data)
-    await save_fixture(seat)
-    return seat
-
-
-async def create_subscription_with_seats(
-    save_fixture: SaveFixture,
-    *,
-    product: Product,
-    customer: Customer,
-    seats: int = 5,
-    **kwargs: Any,
-) -> Subscription:
-    is_seat_based = any(
-        price.amount_type == ProductPriceAmountType.seat_based
-        for price in product.all_prices
-    )
-    assert is_seat_based, "Product must be seat-based"
-    # Default to active status if not specified, so subscription is billable
-    if "status" not in kwargs:
-        kwargs["status"] = SubscriptionStatus.active
-    if "started_at" not in kwargs:
-        kwargs["started_at"] = utc_now()
-    subscription = await create_subscription(
-        save_fixture, product=product, customer=customer, seats=seats, **kwargs
-    )
-    return subscription
-
-
 async def create_wallet(
     save_fixture: SaveFixture,
     *,
@@ -2407,18 +1921,11 @@ async def create_wallet_transaction(
     *,
     wallet: Wallet,
     amount: int,
-    tax_amount: int = 0,
-    tax_breakdown: list[TaxBreakdownItem] | None = None,
-    tax_calculation_processor_id: str | None = None,
 ) -> WalletTransaction:
     wallet_transaction = WalletTransaction(
         wallet=wallet,
         amount=amount,
         currency=wallet.currency,
-        tax_amount=tax_amount,
-        tax_processor=TaxProcessor.stripe,
-        tax_calculation_processor_id=tax_calculation_processor_id,
-        tax_breakdown=tax_breakdown,
     )
     await save_fixture(wallet_transaction)
     return wallet_transaction
@@ -2513,22 +2020,16 @@ async def create_dispute(
     *,
     status: DisputeStatus = DisputeStatus.needs_response,
     amount: int = 1000,
-    tax_amount: int = 0,
     currency: str = "usd",
-    payment_processor: PaymentProcessor | None = PaymentProcessor.stripe,
+    payment_processor: PaymentProcessor | None = PaymentProcessor.crypto,
     payment_processor_id: str | None = "STRIPE_DISPUTE_ID",
-    alert_processor: DisputeAlertProcessor | None = None,
-    alert_processor_id: str | None = None,
 ) -> Dispute:
     dispute = Dispute(
         status=status,
         amount=amount,
-        tax_amount=tax_amount,
         currency=currency,
         payment_processor=payment_processor,
         payment_processor_id=payment_processor_id,
-        dispute_alert_processor=alert_processor,
-        dispute_alert_processor_id=alert_processor_id,
         order=order,
         payment=payment,
     )

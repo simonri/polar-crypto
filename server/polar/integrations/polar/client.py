@@ -1,6 +1,5 @@
 from collections.abc import Mapping
 from datetime import datetime
-from decimal import Decimal
 from typing import Any, NoReturn
 from uuid import UUID
 
@@ -11,7 +10,6 @@ from polar_sdk.models import (
     BenefitGrant,
     Checkout,
     CheckoutCreate,
-    CostMetadataInput,
     Customer,
     CustomerPaymentMethod,
     CustomerPortalCustomer,
@@ -29,7 +27,6 @@ from polar_sdk.models import (
     EventCreateCustomer,
     EventCreateExternalCustomer,
     EventsIngest,
-    LLMMetadata,
     Member,
     MemberCreate,
     MemberOwnerCreate,
@@ -648,69 +645,6 @@ class PolarSelfClient:
                 _raise_error(span, e, "track_event_ingestion")
             except httpx.RequestError as e:
                 _raise_network_error(span, e, "track_event_ingestion")
-
-    async def track_organization_review_usage(
-        self,
-        *,
-        external_customer_id: str,
-        review_context: str,
-        vendor: str,
-        model: str,
-        input_tokens: int,
-        output_tokens: int,
-        cost_usd: Decimal,
-    ) -> None:
-        total_tokens = input_tokens + output_tokens
-        cost_cents = (cost_usd * Decimal(100)).quantize(Decimal("0.000001"))
-        root_external_id = f"organization_review-{external_customer_id}"
-
-        with logfire.span(
-            "polar.track_organization_review_usage",
-            external_customer_id=external_customer_id,
-            review_context=review_context,
-            vendor=vendor,
-            model=model,
-            input_tokens=input_tokens,
-            output_tokens=output_tokens,
-            cost_usd=str(cost_usd),
-        ) as span:
-            try:
-                await self._sdk.events.ingest_async(
-                    request=EventsIngest(
-                        events=[
-                            EventCreateExternalCustomer(
-                                name="organization_review",
-                                external_customer_id=external_customer_id,
-                                external_id=root_external_id,
-                            ),
-                            EventCreateExternalCustomer(
-                                name=f"organization_review.{review_context}",
-                                external_customer_id=external_customer_id,
-                                parent_id=root_external_id,
-                                metadata={
-                                    "_llm": LLMMetadata(
-                                        vendor=vendor,
-                                        model=model,
-                                        input_tokens=input_tokens,
-                                        output_tokens=output_tokens,
-                                        total_tokens=total_tokens,
-                                    ),
-                                    "_cost": CostMetadataInput(
-                                        amount=str(cost_cents),
-                                        currency="usd",
-                                    ),
-                                },
-                            ),
-                        ]
-                    )
-                )
-            except PolarError as e:
-                if e.status_code == 409:
-                    span.set_attribute("conflict", True)
-                    return
-                _raise_error(span, e, "track_organization_review_usage")
-            except httpx.RequestError as e:
-                _raise_network_error(span, e, "track_organization_review_usage")
 
     # Customer-portal-scoped operations: create a per-call customer session
     # and act AS THE CUSTOMER. Used for fields the admin API doesn't expose.

@@ -5,7 +5,7 @@ from collections.abc import Sequence
 from typing import Literal
 
 from sqlalchemy import select
-from sqlalchemy.orm import contains_eager, selectinload
+from sqlalchemy.orm import selectinload
 
 from polar.auth.models import AuthSubject
 from polar.auth.permission import OrganizationPermission
@@ -14,7 +14,6 @@ from polar.authz.service import (
     assert_resource_permission,
     get_accessible_org_ids,
 )
-from polar.benefit.service import benefit as benefit_service
 from polar.checkout_link.repository import CheckoutLinkRepository
 from polar.custom_field.service import custom_field as custom_field_service
 from polar.enums import SubscriptionRecurringInterval
@@ -22,18 +21,13 @@ from polar.exceptions import (
     PolarRequestValidationError,
     ValidationError,
 )
-from polar.file.service import file as file_service
 from polar.kit.db.postgres import AsyncReadSession, AsyncSession
 from polar.kit.metadata import MetadataQuery, apply_metadata_clause
 from polar.kit.pagination import PaginationParams
 from polar.kit.sorting import Sorting
-from polar.meter.repository import MeterRepository
 from polar.models import (
-    Benefit,
     Organization,
     Product,
-    ProductBenefit,
-    ProductMedia,
     ProductPrice,
     ProductVisibility,
     User,
@@ -45,19 +39,15 @@ from polar.organization.repository import OrganizationRepository
 from polar.organization.resolver import get_payload_organization
 from polar.product.guard import (
     is_legacy_price,
-    is_metered_price,
     is_static_price,
 )
 from polar.product.repository import ProductRepository
 from polar.webhook.service import webhook as webhook_service
-from polar.worker import enqueue_job
 
 from .schemas import (
     ExistingProductPrice,
     ProductCreate,
     ProductPriceCreate,
-    ProductPriceMeteredCreateBase,
-    ProductPriceSeatBasedCreate,
     ProductUpdate,
 )
 from .sorting import ProductSortProperty
@@ -75,7 +65,6 @@ class ProductService:
         is_archived: bool | None = None,
         is_recurring: bool | None = None,
         visibility: Sequence[ProductVisibility] | None = None,
-        benefit_id: Sequence[uuid.UUID] | None = None,
         metadata: MetadataQuery | None = None,
         pagination: PaginationParams,
         sorting: list[Sorting[ProductSortProperty]] = [
@@ -123,20 +112,12 @@ class ProductService:
         if visibility is not None:
             statement = statement.where(Product.visibility.in_(visibility))
 
-        if benefit_id is not None:
-            statement = (
-                statement.join(Product.product_benefits)
-                .where(ProductBenefit.benefit_id.in_(benefit_id))
-                .options(contains_eager(Product.product_benefits))
-            )
-
         if metadata is not None:
             statement = apply_metadata_clause(Product, statement, metadata)
 
         statement = repository.apply_sorting(statement, sorting)
 
         statement = statement.options(
-            selectinload(Product.product_medias),
             selectinload(Product.attached_custom_fields),
         )
 
@@ -194,14 +175,11 @@ class ProductService:
                 organization=organization,
                 prices=prices,
                 all_prices=prices,
-                product_benefits=[],
-                product_medias=[],
                 attached_custom_fields=[],
                 **create_schema.model_dump(
                     exclude={
                         "organization_id",
                         "prices",
-                        "medias",
                         "attached_custom_fields",
                     },
                     by_alias=True,
@@ -210,22 +188,6 @@ class ProductService:
             flush=True,
         )
         assert product.id is not None
-
-        if create_schema.medias is not None:
-            for order, file_id in enumerate(create_schema.medias):
-                file = await file_service.get_selectable_product_media_file(
-                    session, file_id, organization_id=product.organization_id
-                )
-                if file is None:
-                    errors.append(
-                        {
-                            "type": "value_error",
-                            "loc": ("body", "medias", order),
-                            "msg": "File does not exist or is not yet uploaded.",
-                            "input": file_id,
-                        }
-                    )
-                product.product_medias.append(ProductMedia(file=file, order=order))
 
         for order, attached_custom_field in enumerate(
             create_schema.attached_custom_fields
@@ -334,32 +296,6 @@ class ProductService:
                 ]
             )
 
-        if update_schema.medias is not None:
-            medias_errors: list[ValidationError] = []
-            nested = await session.begin_nested()
-            product.medias = []
-            await session.flush()
-
-            for order, file_id in enumerate(update_schema.medias):
-                file = await file_service.get_selectable_product_media_file(
-                    session, file_id, organization_id=product.organization_id
-                )
-                if file is None:
-                    medias_errors.append(
-                        {
-                            "type": "value_error",
-                            "loc": ("body", "medias", order),
-                            "msg": "File does not exist or is not yet uploaded.",
-                            "input": file_id,
-                        }
-                    )
-                    continue
-                product.product_medias.append(ProductMedia(file=file, order=order))
-
-            if medias_errors:
-                await nested.rollback()
-                errors.extend(medias_errors)
-
         if update_schema.attached_custom_fields is not None:
             attached_custom_fields_errors: list[ValidationError] = []
             nested = await session.begin_nested()
@@ -422,7 +358,7 @@ class ProductService:
 
         for attr, value in update_schema.model_dump(
             exclude_unset=True,
-            exclude={"prices", "medias", "attached_custom_fields"},
+            exclude={"prices", "attached_custom_fields"},
             by_alias=True,
         ).items():
             setattr(product, attr, value)
@@ -435,99 +371,6 @@ class ProductService:
         await self._after_product_updated(session, product)
 
         return product
-
-    async def update_benefits(
-        self,
-        session: AsyncSession,
-        product: Product,
-        benefits: Sequence[uuid.UUID],
-        auth_subject: AuthSubject[User | Organization],
-    ) -> tuple[Product, set[Benefit], set[Benefit]]:
-        await assert_resource_permission(
-            session, auth_subject, product, OrganizationPermission.products_manage
-        )
-
-        previous_benefits = set(product.benefits)
-        new_benefits: set[Benefit] = set()
-
-        new_product_benefits: list[ProductBenefit] = []
-        for order, benefit_id in enumerate(benefits):
-            benefit = await benefit_service.get(session, auth_subject, benefit_id)
-            if benefit is None:
-                raise PolarRequestValidationError(
-                    [
-                        {
-                            "type": "value_error",
-                            "loc": ("body", "benefits", order),
-                            "msg": "Benefit does not exist.",
-                            "input": benefit_id,
-                        }
-                    ]
-                )
-            if benefit.organization_id != product.organization_id:
-                raise PolarRequestValidationError(
-                    [
-                        {
-                            "type": "value_error",
-                            "loc": ("body", "benefits", order),
-                            "msg": "Benefit must be on the same organization as the product.",
-                            "input": benefit_id,
-                        }
-                    ]
-                )
-            if not benefit.selectable and benefit not in previous_benefits:
-                raise PolarRequestValidationError(
-                    [
-                        {
-                            "type": "value_error",
-                            "loc": ("body", "benefits", order),
-                            "msg": "Benefit is not selectable.",
-                            "input": benefit_id,
-                        }
-                    ]
-                )
-            new_benefits.add(benefit)
-            new_product_benefits.append(ProductBenefit(benefit=benefit, order=order))
-
-        # Remove all previous benefits: flush to actually remove them
-        product.product_benefits = []
-        session.add(product)
-        await session.flush()
-
-        # Set the new benefits
-        product.product_benefits = new_product_benefits
-
-        added_benefits = new_benefits - previous_benefits
-        deleted_benefits = previous_benefits - new_benefits
-
-        for deleted_benefit in deleted_benefits:
-            if not deleted_benefit.selectable:
-                raise PolarRequestValidationError(
-                    [
-                        {
-                            "type": "value_error",
-                            "loc": (
-                                "body",
-                                "benefits",
-                            ),
-                            "msg": "Benefit is not selectable.",
-                            "input": deleted_benefit.id,
-                        }
-                    ]
-                )
-
-        session.add(product)
-
-        if added_benefits or deleted_benefits:
-            enqueue_job(
-                "subscription.subscription.update_product_benefits_grants", product.id
-            )
-            enqueue_job("order.update_product_benefits_grants", product.id)
-            enqueue_job("customer_seat.update_product_benefits_grants", product.id)
-
-        await self._after_product_updated(session, product)
-
-        return product, added_benefits, deleted_benefits
 
     async def get_validated_prices(
         self,
@@ -545,10 +388,6 @@ class ProductService:
         builtins.list[ProductPrice],
         builtins.list[ValidationError],
     ]:
-        meter_repository = MeterRepository.from_session(session)
-        meter_org_ids = await get_accessible_org_ids(
-            session, auth_subject, permission=OrganizationPermission.products_read
-        )
         prices: list[ProductPrice] = []
         prices_per_currency = defaultdict[str, list[tuple[ProductPrice, int]]](list)
         existing_prices: set[ProductPrice] = set()
@@ -575,46 +414,6 @@ class ProductService:
                 price = model_class(
                     product=product, source=source, **price_schema.model_dump()
                 )
-                if isinstance(price_schema, ProductPriceSeatBasedCreate):
-                    if not organization.feature_settings.get(
-                        "seat_based_pricing_enabled", False
-                    ):
-                        errors.append(
-                            {
-                                "type": "value_error",
-                                "loc": (*error_prefix, index),
-                                "msg": "Seat-based pricing is not enabled for this organization.",
-                                "input": price_schema,
-                            }
-                        )
-                        continue
-                if is_metered_price(price) and isinstance(
-                    price_schema, ProductPriceMeteredCreateBase
-                ):
-                    if recurring_interval is None:
-                        errors.append(
-                            {
-                                "type": "value_error",
-                                "loc": (*error_prefix, index),
-                                "msg": "Metered pricing is not supported on one-time products.",
-                                "input": price_schema,
-                            }
-                        )
-                        continue
-
-                    price.meter = await meter_repository.get_readable_by_id(
-                        price_schema.meter_id, meter_org_ids
-                    )
-                    if price.meter is None:
-                        errors.append(
-                            {
-                                "type": "value_error",
-                                "loc": (*error_prefix, index, "meter_id"),
-                                "msg": "Meter does not exist.",
-                                "input": price_schema.meter_id,
-                            }
-                        )
-                        continue
                 added_prices.append(price)
             prices.append(price)
             prices_per_currency[price.price_currency].append((price, index))
@@ -630,7 +429,7 @@ class ProductService:
             )
 
         # Track price structure per currency for cross-currency validation
-        price_structure_per_currency: dict[str, tuple[int, int]] = {}
+        price_structure_per_currency: dict[str, int] = {}
 
         for currency, currency_prices in prices_per_currency.items():
             # Check that only one static price exists per currency
@@ -647,40 +446,7 @@ class ProductService:
                         }
                     )
 
-            # Check that a meter appears only once per currency
-            currency_meters: set[uuid.UUID] = set()
-            for metered_price, index in (
-                (p, i) for p, i in currency_prices if is_metered_price(p)
-            ):
-                if metered_price.meter_id in currency_meters:
-                    errors.append(
-                        {
-                            "type": "value_error",
-                            "loc": (*error_prefix, index, "meter_id"),
-                            "msg": "Meter is already used for another price.",
-                            "input": metered_price.meter_id,
-                        }
-                    )
-                    continue
-                currency_meters.add(metered_price.meter_id)
-
-            # Check that all prices in the same currency have the same tax_behavior
-            tax_behaviors = {p.tax_behavior for p, _ in currency_prices}
-            if len(tax_behaviors) > 1:
-                errors.append(
-                    {
-                        "type": "value_error",
-                        "loc": error_prefix,
-                        "msg": "All prices for the same currency must have the same tax behavior.",
-                        "input": prices_schema,
-                    }
-                )
-
-            # Record the structure: (static_count, metered_count)
-            price_structure_per_currency[currency] = (
-                len(static_prices),
-                len(currency_meters),
-            )
+            price_structure_per_currency[currency] = len(static_prices)
 
         # Check that all currencies have the same price structure
         unique_structures = set(price_structure_per_currency.values())

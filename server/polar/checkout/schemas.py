@@ -11,7 +11,6 @@ from pydantic import (
     Tag,
     computed_field,
     field_validator,
-    model_validator,
 )
 from pydantic.json_schema import SkipJsonSchema
 
@@ -27,7 +26,7 @@ from polar.discount.schemas import (
     DiscountPercentageBase,
     DiscountRepeatDurationBase,
 )
-from polar.enums import PaymentProcessor, TaxBehavior
+from polar.enums import PaymentProcessor
 from polar.kit.address import Address, AddressInput
 from polar.kit.currency import PresentmentCurrency
 from polar.kit.email import EmailStrDNS
@@ -61,9 +60,7 @@ from polar.models.checkout import (
 from polar.models.discount import DiscountDuration, DiscountType
 from polar.organization.schemas import OrganizationPublicBase
 from polar.product.schemas import (
-    BenefitPublicList,
     ProductBase,
-    ProductMediaList,
     ProductPrice,
     ProductPriceCreateList,
     ProductPriceList,
@@ -136,14 +133,6 @@ _allow_discount_codes_description = (
     "If you apply a discount through `discount_id`, it'll still be applied, "
     "but the customer won't be able to change it."
 )
-_require_billing_address_description = (
-    "Whether to require the customer to fill their full billing address, instead of "
-    "just the country. "
-    "Customers in the US will always be required to fill their full address, "
-    "regardless of this setting. "
-    "If you preset the billing address, this setting will be automatically set to "
-    "`true`."
-)
 _allow_trial_description = (
     "Whether to enable the trial period for the checkout session. "
     "If `false`, the trial period will be disabled, even if the selected product "
@@ -192,41 +181,7 @@ class CheckoutCreateBase(
     allow_discount_codes: bool = Field(
         default=True, description=_allow_discount_codes_description
     )
-    require_billing_address: bool = Field(
-        default=False, description=_require_billing_address_description
-    )
     amount: Amount | None = None
-    seats: int | None = Field(
-        default=None,
-        ge=1,
-        le=1000,
-        description="Predefined number of seats (works with seat-based pricing only)",
-    )
-    min_seats: int | None = Field(
-        default=None,
-        ge=1,
-        le=1000,
-        description=("Minimum number of seats (works with seat-based pricing only)"),
-    )
-    max_seats: int | None = Field(
-        default=None,
-        ge=1,
-        le=1000,
-        description=("Maximum number of seats (works with seat-based pricing only)"),
-    )
-
-    @model_validator(mode="after")
-    def _validate_seat_constraints(self) -> "CheckoutCreateBase":
-        if self.min_seats is not None and self.max_seats is not None:
-            if self.min_seats > self.max_seats:
-                raise ValueError("min_seats must be less than or equal to max_seats")
-        if self.seats is not None and self.min_seats is not None:
-            if self.seats < self.min_seats:
-                raise ValueError("seats must be greater than or equal to min_seats")
-        if self.seats is not None and self.max_seats is not None:
-            if self.seats > self.max_seats:
-                raise ValueError("seats must be less than or equal to max_seats")
-        return self
 
     allow_trial: bool = Field(default=True, description=_allow_trial_description)
     customer_id: UUID4 | None = Field(
@@ -250,7 +205,6 @@ class CheckoutCreateBase(
     customer_ip_address: CustomerIPAddress | None = None
     customer_billing_name: Annotated[str | None, EmptyStrToNoneValidator] = None
     customer_billing_address: CustomerBillingAddressInput | None = None
-    customer_tax_id: Annotated[str | None, EmptyStrToNoneValidator] = None
     customer_metadata: MetadataField = Field(
         default_factory=dict, description=_customer_metadata_description
     )
@@ -361,18 +315,11 @@ class CheckoutUpdateBase(CustomFieldDataInputMixin, Schema):
         ),
     )
     amount: Amount | None = None
-    seats: int | None = Field(
-        default=None,
-        ge=1,
-        le=1000,
-        description="Number of seats for seat-based pricing.",
-    )
     is_business_customer: bool | None = None
     customer_name: CustomerNameInput | None = None
     customer_email: CustomerEmail | None = None
     customer_billing_name: Annotated[str | None, EmptyStrToNoneValidator] = None
     customer_billing_address: CustomerBillingAddressInput | None = None
-    customer_tax_id: Annotated[str | None, EmptyStrToNoneValidator] = None
     locale: Locale | None = None
 
 
@@ -387,9 +334,6 @@ class CheckoutUpdate(
     )
     allow_discount_codes: bool | None = Field(
         default=None, description=_allow_discount_codes_description
-    )
-    require_billing_address: bool | None = Field(
-        default=None, description=_require_billing_address_description
     )
     allow_trial: bool | None = Field(default=None, description=_allow_trial_description)
     customer_ip_address: CustomerIPAddress | None = None
@@ -421,19 +365,10 @@ class CheckoutUpdatePublic(CheckoutUpdateBase):
 class CheckoutConfirmBase(CheckoutUpdatePublic): ...
 
 
-class CheckoutConfirmStripe(CheckoutConfirmBase):
-    """Confirm a checkout session using a Stripe confirmation token."""
+class CheckoutConfirm(CheckoutConfirmBase):
+    """Confirm a checkout session."""
 
-    confirmation_token_id: str | None = Field(
-        None,
-        description=(
-            "ID of the Stripe confirmation token. "
-            "Required for fixed prices and custom prices."
-        ),
-    )
-
-
-CheckoutConfirm = CheckoutConfirmStripe
+    pass
 
 
 class CheckoutOpened(Schema):
@@ -489,37 +424,9 @@ class CheckoutBase(CustomFieldDataOutputMixin, TimestampedSchema, IDSchema):
         )
     )
     amount: int = Field(description="Amount in cents, before discounts and taxes.")
-    seats: int | None = Field(
-        default=None,
-        description="Predefined number of seats (works with seat-based pricing only)",
-    )
-    min_seats: int | None = Field(
-        default=None,
-        description=("Minimum number of seats (works with seat-based pricing only)"),
-    )
-    max_seats: int | None = Field(
-        default=None,
-        description=("Maximum number of seats (works with seat-based pricing only)"),
-    )
     discount_amount: int = Field(description="Discount amount in cents.")
-    net_amount: int = Field(
-        description="Amount in cents, after discounts but before taxes."
-    )
-    tax_amount: int | None = Field(
-        description=(
-            "Sales tax amount in cents. "
-            "If `null`, it means there is no enough information yet to calculate it."
-        )
-    )
-    tax_behavior: TaxBehavior | None = Field(
-        description=(
-            "Tax behavior of the checkout. "
-            "`inclusive` means the price includes tax, "
-            "`exclusive` means tax is added on top. "
-            "If `null`, tax is not yet calculated."
-        )
-    )
-    total_amount: int = Field(description="Amount in cents, after discounts and taxes.")
+    net_amount: int = Field(description="Amount in cents, after discounts.")
+    total_amount: int = Field(description="Amount in cents, after discounts.")
     currency: str = Field(description="Currency code of the checkout session.")
 
     allow_trial: bool | None = Field(description=_allow_trial_description)
@@ -552,9 +459,6 @@ class CheckoutBase(CustomFieldDataOutputMixin, TimestampedSchema, IDSchema):
         description="ID of the discount applied to the checkout."
     )
     allow_discount_codes: bool = Field(description=_allow_discount_codes_description)
-    require_billing_address: bool = Field(
-        description=_require_billing_address_description
-    )
     is_discount_applicable: bool = Field(
         description=(
             "Whether the discount is applicable to the checkout. "
@@ -590,9 +494,6 @@ class CheckoutBase(CustomFieldDataOutputMixin, TimestampedSchema, IDSchema):
     customer_ip_address: CustomerIPAddress | None
     customer_billing_name: str | None
     customer_billing_address: CustomerBillingAddress | None
-    customer_tax_id: str | None = Field(
-        validation_alias=AliasChoices("customer_tax_id_number", "customer_tax_id")
-    )
     locale: str | None = None
 
     payment_processor_metadata: dict[str, str]
@@ -621,8 +522,6 @@ class CheckoutProduct(ProductBase):
     """Product data for a checkout session."""
 
     prices: ProductPriceList
-    benefits: BenefitPublicList
-    medias: ProductMediaList
 
 
 class CheckoutDiscountBase(IDSchema):

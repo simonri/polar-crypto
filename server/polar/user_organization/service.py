@@ -10,11 +10,7 @@ from polar.exceptions import PolarError
 from polar.integrations.polar.service import polar_self as polar_self_service
 from polar.kit.utils import utc_now
 from polar.models import User, UserOrganization
-from polar.models.user import IdentityVerificationStatus
-from polar.models.user_organization import (
-    OrganizationNotificationSettings,
-    OrganizationRole,
-)
+from polar.models.user_organization import OrganizationRole
 from polar.postgres import AsyncReadSession, AsyncSession, sql
 
 from .repository import UserOrganizationRepository
@@ -82,16 +78,6 @@ class OwnerRoleCannotBeRemoved(UserOrganizationError):
         )
         super().__init__(message, 400)
 
-
-class NewOwnerNotVerified(UserOrganizationError):
-    def __init__(self, user_id: UUID, status: IdentityVerificationStatus) -> None:
-        self.user_id = user_id
-        message = (
-            f"User {user_id} cannot be promoted to 'owner': "
-            f"identity verification status is {status.get_display_name()}, "
-            f"must be {IdentityVerificationStatus.verified.get_display_name()}."
-        )
-        super().__init__(message, 400)
 
 
 class AlreadyOwner(UserOrganizationError):
@@ -233,9 +219,6 @@ class UserOrganizationService:
         """
         Atomically demote the current `owner` (if any) to `admin` and
         promote `new_owner_user_id` to `owner`.
-
-        Fires the `IdentityVerificationStatus.verified` gate on the new
-        owner, since payouts route through whoever holds `owner`.
         """
         new_owner_user_org = await self.get_by_user_and_org(
             session, new_owner_user_id, organization_id
@@ -247,14 +230,6 @@ class UserOrganizationService:
 
         if new_owner_user_org.role == OrganizationRole.owner:
             raise AlreadyOwner(new_owner_user_id, organization_id)
-
-        if (
-            new_owner_user.identity_verification_status
-            != IdentityVerificationStatus.verified
-        ):
-            raise NewOwnerNotVerified(
-                new_owner_user_id, new_owner_user.identity_verification_status
-            )
 
         repository = UserOrganizationRepository.from_session(session)
         previous_owner_user_id = await repository.demote_current_owner(organization_id)
@@ -408,22 +383,6 @@ class UserOrganizationService:
             stmt = stmt.order_by(UserOrganization.created_at.asc())
 
         return stmt
-
-    async def update_notification_settings(
-        self,
-        session: AsyncSession,
-        *,
-        user_id: UUID,
-        organization_id: UUID,
-        notification_settings: OrganizationNotificationSettings,
-    ) -> UserOrganization:
-        """Update the current user's notification settings for an organization."""
-        user_org = await self.get_by_user_and_org(session, user_id, organization_id)
-        if user_org is None:
-            raise UserNotMemberOfOrganization(user_id, organization_id)
-
-        user_org.notification_settings = notification_settings
-        return user_org
 
 
 user_organization = UserOrganizationService()

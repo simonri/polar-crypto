@@ -76,7 +76,7 @@ def is_environment_ready() -> tuple[bool, list[str]]:
     if not status:
         issues.append("Docker containers not running")
     else:
-        required = ["db", "redis", "minio"]
+        required = ["db", "redis"]
         for service in required:
             found = any(service in name and running for name, running in status.items())
             if not found:
@@ -146,7 +146,7 @@ def up(
     ] = False,
     skip_integrations: Annotated[
         bool,
-        typer.Option("--skip-integrations", help="Skip GitHub/Stripe setup prompts"),
+        typer.Option("--skip-integrations", help="Skip GitHub setup prompts"),
     ] = False,
     skip_tinybird: Annotated[
         bool,
@@ -163,7 +163,7 @@ def up(
     Prepare the development environment.
 
     Installs dependencies, starts infrastructure, runs migrations,
-    and prompts to configure GitHub and Stripe integrations.
+    and prompts to configure GitHub integration.
     """
     console.print()
     console.print(
@@ -207,13 +207,12 @@ def up(
     next_steps.add_row("dev seed", "Load sample data")
     next_steps.add_row()
     next_steps.add_row("[dim]Start all services", "")
-    next_steps.add_row("dev start", "API, worker, web, and Stripe in a tmux session")
+    next_steps.add_row("dev start", "API, worker, and web in a tmux session")
     next_steps.add_row()
     next_steps.add_row("[dim]Start specific services", "")
     next_steps.add_row("dev api", "API server")
     next_steps.add_row("dev worker", "Background worker")
     next_steps.add_row("dev web", "Frontend dev server")
-    next_steps.add_row("dev stripe", "Stripe webhook listener")
     next_steps.add_row()
     next_steps.add_row("[dim]Need assistance?", "")
     next_steps.add_row("dev help", "Show all available commands")

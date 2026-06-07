@@ -345,25 +345,22 @@ During the migration period, if a bug is found or a merchant complaint, disable 
 ### Phase 5: Dashboard
 **Goal**: The dashboard should display member-related information. Benefits should point to members. Members should be shown for B2B customers only.
 
-### Phase 6: Event ingestion
-**Goal**: Event ingestion should support members. CustomerMeter should be the aggregation of all member events and a new MemberEventMeter should be created.
-
-### Phase 7: Seats
+### Phase 6: Seats
 **Goal**: Seats should point to members.
 
-### Phase 8: Webhooks
+### Phase 7: Webhooks
 **Goal**: Webhooks should include member information. Create webhooks for member events.
 
-### Phase 9: Adapters
+### Phase 8: Adapters
 **Goal**: Adapters should work out of the box with the member model.
 
-### Phase 10: Mobile app
+### Phase 9: Mobile app
 **Goal**: Mobile app should work out of the box with the member model.
 
-### Phase 11: Documentation
+### Phase 10: Documentation
 **Goal**: Document member model and migration process.
 
-### Phase 12: Rollout
+### Phase 11: Rollout
 **Goal**: Rollout member model to production for B2C and B2B customers. Migrate existing B2B customers to member model.
 
 ---
@@ -380,7 +377,7 @@ During the migration period, if a bug is found or a merchant complaint, disable 
 
 #### What is Changing?
 
-We're introducing a new **Member** entity to improve how Polar handles team subscriptions and usage-based billing. This change provides:
+We're introducing a new **Member** entity to improve how Polar handles team subscriptions. This change provides:
 
 1. **Better billing accuracy**: Clear separation between who pays (Customer) and who uses the product (Member)
 2. **Multi-company support**: Users can be members of multiple companies without confusion

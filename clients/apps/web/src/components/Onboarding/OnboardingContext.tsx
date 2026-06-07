@@ -14,12 +14,6 @@ import {
 const STORAGE_KEY = 'polar_onboarding_v2'
 
 export interface OnboardingData {
-  // Screen 1 — Personal
-  firstName?: string
-  lastName?: string
-  country?: string
-  dateOfBirth?: string
-
   // Screen 2 — Business
   organizationType?: 'individual' | 'company'
   orgName?: string

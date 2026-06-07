@@ -5,7 +5,6 @@ import CustomFieldValue from '@/components/CustomFields/CustomFieldValue'
 import { DashboardBody } from '@/components/Layout/DashboardLayout'
 import { InlineModal } from '@/components/Modal/InlineModal'
 import { useModal } from '@/components/Modal/useModal'
-import { DownloadInvoiceDashboard } from '@/components/Orders/DownloadInvoice'
 import { OrderStatus } from '@/components/Orders/OrderStatus'
 import PaymentMethod from '@/components/PaymentMethod/PaymentMethod'
 import PaymentStatus from '@/components/PaymentStatus/PaymentStatus'
@@ -15,18 +14,11 @@ import {
   RefundStatusDisplayColor,
   RefundStatusDisplayTitle,
 } from '@/components/Refunds/utils'
-import { SeatViewOnlyTable } from '@/components/Seats/SeatViewOnlyTable'
 import { DetailRow } from '@/components/Shared/DetailRow'
 import { useCustomFields, useProduct } from '@/hooks/queries'
-import { useDisputes } from '@/hooks/queries/disputes'
 import { useOrder } from '@/hooks/queries/orders'
 import { usePayments } from '@/hooks/queries/payments'
 import { useRefunds } from '@/hooks/queries/refunds'
-import { useOrganizationSeats } from '@/hooks/queries/seats'
-import {
-  DisputeStatusDisplayColor,
-  DisputeStatusDisplayTitle,
-} from '@/utils/dispute'
 import { formatCountry } from '@/utils/formatters'
 import ArrowOutwardOutlined from '@mui/icons-material/ArrowOutwardOutlined'
 import { ArrowUpRightIcon } from 'lucide-react'
@@ -51,7 +43,7 @@ const ClientPage: React.FC<ClientPageProps> = ({
   organization,
   order: _order,
 }) => {
-  const { data: order, refetch: refetchOrder } = useOrder(_order.id, _order)
+  const { data: order } = useOrder(_order.id, _order)
   const { data: product } = useProduct(_order.product_id)
   const { data: customFields } = useCustomFields(organization.id)
   const { data: payments, isLoading: paymentsLoading } = usePayments(
@@ -59,10 +51,6 @@ const ClientPage: React.FC<ClientPageProps> = ({
     { order_id: _order.id },
   )
   const { data: refunds, isLoading: refundsLoading } = useRefunds(_order.id)
-  const { data: disputes, isLoading: disputesLoading } = useDisputes(
-    organization.id,
-    { order_id: _order.id },
-  )
 
   const {
     isShown: isRefundModalShown,
@@ -72,17 +60,6 @@ const ClientPage: React.FC<ClientPageProps> = ({
 
   const canRefund =
     order?.paid && (order?.refunded_amount ?? 0) < (order?.net_amount ?? 0)
-
-  // Seat management for seat-based orders (view-only)
-  const hasSeatBasedOrder = !!order?.seats && order.seats > 0
-
-  const { data: seatsData, isLoading: isLoadingSeats } = useOrganizationSeats(
-    hasSeatBasedOrder ? { orderId: order?.id } : undefined,
-  )
-
-  const totalSeats = seatsData?.total_seats || 0
-  const availableSeats = seatsData?.available_seats || 0
-  const seats = seatsData?.seats || []
 
   if (!order) {
     return null
@@ -97,15 +74,6 @@ const ClientPage: React.FC<ClientPageProps> = ({
             <OrderStatus status={order.status} />
           </div>
         </div>
-      }
-      header={
-        order.paid ? (
-          <DownloadInvoiceDashboard
-            order={order}
-            organization={organization}
-            onInvoiceGenerated={refetchOrder}
-          />
-        ) : undefined
       }
       className="gap-y-12"
       contextViewTitle="Customer"
@@ -136,7 +104,6 @@ const ClientPage: React.FC<ClientPageProps> = ({
                 )
               }
             />
-            <DetailRow label="Invoice number" value={order.invoice_number} />
             <DetailRow
               label="Order ID"
               value={order.id}
@@ -243,13 +210,6 @@ const ClientPage: React.FC<ClientPageProps> = ({
               )}
             />
             <DetailRow
-              label="Tax"
-              value={formatCurrency('accounting')(
-                order.tax_amount,
-                order.currency,
-              )}
-            />
-            <DetailRow
               label="Total"
               value={formatCurrency('accounting')(
                 order.total_amount,
@@ -276,27 +236,11 @@ const ClientPage: React.FC<ClientPageProps> = ({
             )}
 
             {order.billing_address ||
-            order.billing_name ||
-            order.customer.tax_id ? (
+            order.billing_name ? (
               <>
                 <Separator className="dark:bg-polar-700 my-4 h-px bg-gray-300" />
                 {order.billing_name ? (
                   <DetailRow label="Billing Name" value={order.billing_name} />
-                ) : null}
-                {order.customer.tax_id ? (
-                  <DetailRow
-                    label="Tax ID"
-                    value={
-                      <span className="flex flex-row items-center gap-1.5">
-                        <span>{order.customer.tax_id[0]}</span>
-                        <span className="font-mono text-xs opacity-70">
-                          {order.customer.tax_id[1]
-                            .toLocaleUpperCase()
-                            .replace('_', ' ')}
-                        </span>
-                      </span>
-                    }
-                  />
                 ) : null}
                 {order.billing_address ? (
                   <>
@@ -488,75 +432,6 @@ const ClientPage: React.FC<ClientPageProps> = ({
             ]}
             data={refunds?.items ?? []}
           />
-        </div>
-      )}
-
-      {disputes && disputes.items.length > 0 && (
-        <div className="flex flex-col gap-6">
-          <h3 className="text-lg">Disputes</h3>
-
-          <DataTable
-            isLoading={disputesLoading}
-            columns={[
-              {
-                accessorKey: 'created_at',
-                header: 'Created At',
-                cell: ({ row }) => (
-                  <FormattedDateTime
-                    dateStyle="long"
-                    datetime={row.original.created_at}
-                  />
-                ),
-              },
-              {
-                accessorKey: 'amount',
-                header: 'Amount',
-                cell: ({ row }) =>
-                  formatCurrency('standard')(
-                    row.original.amount,
-                    row.original.currency,
-                  ),
-              },
-              {
-                accessorKey: 'status',
-                header: 'Status',
-                cell: ({ row }) => (
-                  <Status
-                    className={twMerge(
-                      DisputeStatusDisplayColor[row.original.status],
-                      'w-fit',
-                    )}
-                    status={DisputeStatusDisplayTitle[row.original.status]}
-                  />
-                ),
-              },
-            ]}
-            data={disputes?.items ?? []}
-          />
-        </div>
-      )}
-
-      {hasSeatBasedOrder && (
-        <div className="flex flex-col gap-6">
-          <div className="flex flex-col gap-y-2">
-            <h3 className="text-lg">Seats</h3>
-            <p className="dark:text-polar-500 text-sm text-gray-500">
-              {availableSeats} of {totalSeats} seats available
-            </p>
-          </div>
-
-          {!isLoadingSeats && seats.length > 0 && (
-            <div className="flex flex-col gap-4">
-              <h4 className="text-base font-medium">Assigned Seats</h4>
-              <SeatViewOnlyTable seats={seats} />
-            </div>
-          )}
-
-          {!isLoadingSeats && seats.length === 0 && (
-            <p className="dark:text-polar-500 text-sm text-gray-500">
-              No seats have been assigned yet.
-            </p>
-          )}
         </div>
       )}
 

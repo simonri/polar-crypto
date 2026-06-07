@@ -27,8 +27,6 @@ from polar.models import BackupCodesEnrollment, EmailOTP, TOTPEnrollment
 from polar.postgres import AsyncSession, get_db_session
 from polar.user.repository import UserRepository
 
-from .oauth2.apple import AppleFactor, get_apple_factor
-from .oauth2.github import GitHubFactor, get_github_factor
 from .oauth2.google import GoogleFactor, get_google_factor
 
 if typing.TYPE_CHECKING:
@@ -128,6 +126,15 @@ class EmailOTPFactor(EmailOTPFactorBase):
             code = settings.APP_REVIEW_OTP_CODE
             email_otp.code_hash = get_token_hash(code, secret=self.hash_secret)
             await self.update(email_otp)
+
+        if settings.is_development() or settings.is_testing():
+            log.info(
+                "\n"
+                "╔══════════════════════════════════════════════════════════╗\n"
+                f"║            🔑 LOGIN CODE: {code:<6}                        ║\n"
+                "╚══════════════════════════════════════════════════════════╝",
+                email=request.email,
+            )
 
         delta = email_otp.expires_at - int(utc_now().timestamp())
         code_lifetime_minutes = int(ceil(delta / 60))
@@ -278,15 +285,11 @@ async def get_factors(
     email_otp_factor: EmailOTPFactor = Depends(get_email_otp_factor),
     totp_factor: TOTPFactor = Depends(get_totp_factor),
     backup_codes_factor: BackupCodesFactor = Depends(get_backup_codes_factor),
-    apple_factor: AppleFactor = Depends(get_apple_factor),
-    github_factor: GitHubFactor = Depends(get_github_factor),
     google_factor: GoogleFactor = Depends(get_google_factor),
 ) -> set[FactorBase[typing.Any]]:
     return {
         email_otp_factor,
         totp_factor,
         backup_codes_factor,
-        apple_factor,
-        github_factor,
         google_factor,
     }

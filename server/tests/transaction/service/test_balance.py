@@ -5,7 +5,6 @@ import pytest
 from pytest_mock import MockerFixture
 from sqlalchemy.orm import joinedload
 
-from polar.integrations.stripe.service import StripeService
 from polar.models import Account, Transaction, User
 from polar.models.transaction import TransactionType
 from polar.postgres import AsyncSession
@@ -19,8 +18,10 @@ from tests.fixtures.random_objects import create_payment_transaction
 
 @pytest.fixture(autouse=True)
 def stripe_service_mock(mocker: MockerFixture) -> MagicMock:
-    mock = MagicMock(spec=StripeService)
-    mocker.patch("polar.transaction.service.balance.stripe_service", new=mock)
+    mock = MagicMock()
+    mocker.patch(
+        "polar.transaction.service.balance.stripe_service", new=mock, create=True
+    )
     return mock
 
 
@@ -165,7 +166,6 @@ async def create_balance_transactions(
         amount=-amount,  # Subtract the amount
         account_currency=currency,
         account_amount=-amount,  # Subtract the amount
-        tax_amount=0,
     )
     incoming_transaction = Transaction(
         account=destination_account,  # User account
@@ -174,7 +174,6 @@ async def create_balance_transactions(
         amount=amount,  # Add the amount
         account_currency=currency,
         account_amount=amount,  # Add the amount
-        tax_amount=0,
     )
 
     await save_fixture(outgoing_transaction)

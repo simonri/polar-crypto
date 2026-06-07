@@ -1,141 +1,23 @@
-from enum import StrEnum
-from typing import Annotated, Literal
+from typing import Literal
 from uuid import UUID
 
-from pydantic import BeforeValidator, Field
+from pydantic import Field
 
 from polar.enums import PayoutAccountType
 from polar.kit.schemas import IDSchema, Schema, TimestampedSchema
 
 
-class StripeAccountCountry(StrEnum):
-    AL = "AL"
-    AG = "AG"
-    AR = "AR"
-    AM = "AM"
-    AU = "AU"
-    AT = "AT"
-    BH = "BH"
-    BE = "BE"
-    BO = "BO"
-    BA = "BA"
-    BG = "BG"
-    KH = "KH"
-    CA = "CA"
-    CL = "CL"
-    CO = "CO"
-    CR = "CR"
-    HR = "HR"
-    CY = "CY"
-    CZ = "CZ"
-    CI = "CI"
-    DK = "DK"
-    DO = "DO"
-    EC = "EC"
-    EG = "EG"
-    SV = "SV"
-    EE = "EE"
-    ET = "ET"
-    FI = "FI"
-    FR = "FR"
-    GM = "GM"
-    DE = "DE"
-    GH = "GH"
-    GR = "GR"
-    GT = "GT"
-    GY = "GY"
-    HK = "HK"
-    HU = "HU"
-    IS = "IS"
-    IN = "IN"
-    ID = "ID"
-    IE = "IE"
-    IL = "IL"
-    IT = "IT"
-    JM = "JM"
-    JP = "JP"
-    JO = "JO"
-    KE = "KE"
-    KW = "KW"
-    LV = "LV"
-    LI = "LI"
-    LT = "LT"
-    LU = "LU"
-    MO = "MO"
-    MG = "MG"
-    MY = "MY"
-    MT = "MT"
-    MU = "MU"
-    MX = "MX"
-    MD = "MD"
-    MN = "MN"
-    MA = "MA"
-    NA = "NA"
-    NL = "NL"
-    NZ = "NZ"
-    NG = "NG"
-    MK = "MK"
-    NO = "NO"
-    OM = "OM"
-    PA = "PA"
-    PY = "PY"
-    PE = "PE"
-    PH = "PH"
-    PL = "PL"
-    PT = "PT"
-    QA = "QA"
-    RO = "RO"
-    RW = "RW"
-    SA = "SA"
-    SN = "SN"
-    RS = "RS"
-    SG = "SG"
-    SK = "SK"
-    SI = "SI"
-    ZA = "ZA"
-    KR = "KR"
-    ES = "ES"
-    LK = "LK"
-    LC = "LC"
-    SE = "SE"
-    CH = "CH"
-    TZ = "TZ"
-    TH = "TH"
-    TT = "TT"
-    TN = "TN"
-    TR = "TR"
-    AE = "AE"
-    GB = "GB"
-    US = "US"
-    UY = "UY"
-    UZ = "UZ"
-    VN = "VN"
-    DZ = "DZ"
-    AO = "AO"
-    AZ = "AZ"
-    BS = "BS"
-    BD = "BD"
-    BJ = "BJ"
-    BT = "BT"
-    BW = "BW"
-    BN = "BN"
-    GA = "GA"
-    KZ = "KZ"
-    LA = "LA"
-    MC = "MC"
-    MZ = "MZ"
-    NE = "NE"
-    PK = "PK"
-    SM = "SM"
-    TW = "TW"
-
-
 class PayoutAccountCreate(Schema):
-    type: Literal[PayoutAccountType.stripe]
+    type: Literal[PayoutAccountType.manual] = PayoutAccountType.manual
     organization_id: UUID = Field(
         description="Organization ID to create or get account for"
     )
-    country: Annotated[StripeAccountCountry, BeforeValidator(str.upper)]
+    country: str = Field(
+        default="US",
+        min_length=2,
+        max_length=2,
+        description="ISO 3166-1 alpha-2 country code",
+    )
 
 
 class PayoutAccount(TimestampedSchema, IDSchema):

@@ -40,12 +40,9 @@ export function APIPreview({ step }: { step: APIPreviewStep }) {
   const body = useMemo(() => {
     switch (step) {
       case 'personal': {
-        const obj: Partial<schemas['UserUpdate']> = {}
-        if (data.firstName) obj.first_name = data.firstName
-        if (data.lastName) obj.last_name = data.lastName
-        if (data.country)
-          obj.country = data.country as schemas['UserUpdate']['country']
-        if (data.dateOfBirth) obj.date_of_birth = data.dateOfBirth
+        const obj: Partial<schemas['UserUpdate']> = {
+          accepted_terms_of_service: true,
+        }
         return obj
       }
       case 'sandbox': {

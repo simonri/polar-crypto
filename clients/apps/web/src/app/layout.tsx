@@ -2,7 +2,6 @@ import '../styles/globals.css'
 
 import SandboxBanner from '@/components/Sandbox/SandboxBanner'
 import { getExperimentNames } from '@/experiments'
-import { getDistinctId } from '@/experiments/distinct-id'
 import { ExperimentProvider } from '@/experiments/ExperimentProvider'
 import { getExperiments } from '@/experiments/server'
 import { UserContextProvider } from '@/providers/auth'
@@ -14,7 +13,6 @@ import { Viewport } from 'next/types'
 import {
   NavigationHistoryProvider,
   PolarNuqsProvider,
-  PolarPostHogProvider,
   PolarQueryClientProvider,
 } from './providers'
 
@@ -40,10 +38,7 @@ export default async function RootLayout({
     }
   }
 
-  const distinctId = await getDistinctId()
-  const experimentVariants = await getExperiments(getExperimentNames(), {
-    distinctId,
-  })
+  const experimentVariants = await getExperiments(getExperimentNames())
 
   return (
     <html lang="en" suppressHydrationWarning className="antialiased">
@@ -82,16 +77,13 @@ export default async function RootLayout({
             user={authenticatedUser}
             userOrganizations={userOrganizations}
           >
-            <PolarPostHogProvider>
-              <PolarQueryClientProvider>
-                <PolarNuqsProvider>
-                  <NavigationHistoryProvider>
-                    {CONFIG.IS_SANDBOX && <SandboxBanner />}
-                    {children}
-                  </NavigationHistoryProvider>
-                </PolarNuqsProvider>
-              </PolarQueryClientProvider>
-            </PolarPostHogProvider>
+            <PolarQueryClientProvider>
+              <PolarNuqsProvider>
+                <NavigationHistoryProvider>
+                  {children}
+                </NavigationHistoryProvider>
+              </PolarNuqsProvider>
+            </PolarQueryClientProvider>
           </UserContextProvider>
         </ExperimentProvider>
       </body>

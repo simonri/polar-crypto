@@ -30,10 +30,10 @@ from sqlalchemy import (
 from sqlalchemy.sql import Select
 from sqlalchemy.sql.util import ClauseAdapter
 
+from polar.event.filter import Filter, FilterClause, FilterConjunction, FilterOperator
 from polar.event.repository import EventRepository
 from polar.kit.db.postgres import AsyncReadSession
 from polar.logging import Logger
-from polar.meter.filter import Filter, FilterClause, FilterConjunction, FilterOperator
 from polar.models import Event
 from polar.models.event import EventSource
 
@@ -176,9 +176,6 @@ def _event_to_tinybird(
         parent_id=str(event.parent_id) if event.parent_id else None,
         root_id=str(event.root_id) if event.root_id else None,
         event_type_id=str(event.event_type_id) if event.event_type_id else None,
-        meter_id=pop("meter_id"),
-        units=pop("units"),
-        rollover=pop("rollover"),
         product_id=pop("product_id"),
         subscription_id=pop("subscription_id"),
         order_id=pop("order_id"),
@@ -193,7 +190,6 @@ def _event_to_tinybird(
         amount=pop("amount"),
         currency=pop("currency"),
         net_amount=pop("net_amount"),
-        tax_amount=pop("tax_amount"),
         discount_amount=pop("discount_amount"),
         applied_balance_amount=pop("applied_balance_amount"),
         platform_fee=pop("platform_fee"),
@@ -226,8 +222,6 @@ def _event_to_tinybird(
         checkout_status=pop("checkout_status"),
         customer_email=pop("customer_email"),
         customer_name=pop("customer_name"),
-        tax_state=pop("tax_state"),
-        tax_country=pop("tax_country"),
         cost_amount=cost.get("amount"),
         cost_currency=cost.get("currency"),
         llm_vendor=llm.get("vendor"),

@@ -24,8 +24,6 @@ class CustomerOrganizationService(ResourceServiceReader[Organization]):
                         Product.is_archived.is_(False),
                         Product.visibility == Visibility.public,
                     )
-                ).options(
-                    selectinload(Product.product_medias),
                 )
             )
         )

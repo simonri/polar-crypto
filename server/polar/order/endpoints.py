@@ -5,10 +5,7 @@ from fastapi.responses import StreamingResponse
 from pydantic import UUID4
 
 from polar.auth.permission import OrganizationPermission
-from polar.authz.service import (
-    assert_organization_permission,
-    assert_resource_permission,
-)
+from polar.authz.service import assert_organization_permission
 from polar.customer.schemas.customer import CustomerID, ExternalCustomerID
 from polar.exceptions import ResourceNotFound
 from polar.kit.csv import IterableCSVWriter
@@ -36,14 +33,10 @@ from .schemas import (
     OrderCreate,
     OrderFinalize,
     OrderID,
-    OrderInvoice,
     OrderNotFound,
-    OrderReceipt,
     OrderUpdate,
 )
 from .service import (
-    MissingInvoiceBillingDetails,
-    NotPaidOrder,
     OffSessionChargesNotEnabled,
     OrderNotDraft,
     OrganizationNotReadyForPayments,
@@ -157,7 +150,6 @@ async def export(
                 "Amount",
                 "Currency",
                 "Status",
-                "Invoice number",
             )
         )
 
@@ -178,7 +170,6 @@ async def export(
                     order.net_amount / 100,
                     order.currency,
                     order.status,
-                    order.invoice_number,
                 )
             )
 
@@ -300,77 +291,3 @@ async def finalize(
     )
 
 
-@router.post(
-    "/{id}/invoice",
-    status_code=202,
-    summary="Generate Order Invoice",
-    responses={
-        422: {
-            "description": "Order is not paid or is missing billing name or address.",
-            "model": MissingInvoiceBillingDetails.schema() | NotPaidOrder.schema(),
-        },
-    },
-)
-async def generate_invoice(
-    id: OrderID,
-    auth_subject: auth.OrdersRead,
-    session: AsyncSession = Depends(get_db_session),
-) -> None:
-    """Trigger generation of an order's invoice."""
-    order = await order_service.get(session, auth_subject, id)
-
-    if order is None:
-        raise ResourceNotFound()
-
-    await assert_resource_permission(
-        session, auth_subject, order, OrganizationPermission.sales_manage
-    )
-
-    await order_service.trigger_invoice_generation(session, order)
-
-
-@router.get(
-    "/{id}/invoice",
-    summary="Get Order Invoice",
-    response_model=OrderInvoice,
-    responses={404: OrderNotFound},
-)
-async def invoice(
-    id: OrderID,
-    auth_subject: auth.OrdersRead,
-    session: AsyncReadSession = Depends(get_db_read_session),
-) -> OrderInvoice:
-    """Get an order's invoice data."""
-    order = await order_service.get(session, auth_subject, id)
-
-    if order is None:
-        raise ResourceNotFound()
-
-    return await order_service.get_order_invoice(order)
-
-
-@router.get(
-    "/{id}/receipt",
-    summary="Get Order Receipt",
-    response_model=OrderReceipt,
-    responses={
-        202: {"description": "Receipt generation in progress."},
-        404: OrderNotFound,
-    },
-)
-async def receipt(
-    id: OrderID,
-    auth_subject: auth.OrdersRead,
-    session: AsyncReadSession = Depends(get_db_read_session),
-) -> Response | OrderReceipt:
-    """Get a presigned URL to download an order's receipt PDF."""
-    order = await order_service.get(session, auth_subject, id)
-
-    if order is None:
-        raise ResourceNotFound()
-
-    receipt = await order_service.get_order_receipt(order)
-    if receipt is None:
-        return Response(status_code=202)
-
-    return receipt

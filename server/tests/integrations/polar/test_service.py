@@ -937,7 +937,6 @@ def _make_subscription(
             "product": _make_product(id=product_id).model_dump(mode="json"),
             "discount": None,
             "prices": [],
-            "meters": [],
             "pending_update": None,
         }
     )

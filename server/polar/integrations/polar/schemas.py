@@ -236,24 +236,6 @@ class OrganizationSubscription(Schema):
     ends_at: datetime | None = None
     pending_change: OrganizationSubscriptionPendingChange | None = None
     discount: OrganizationSubscriptionDiscount | None = None
-    startup_program_status: str | None = Field(
-        default=None,
-        description=(
-            "Polar Startup Program status for this organization. Derived from "
-            "the organization's Startup Program discount: 'invited' when the "
-            "discount exists and hasn't been redeemed, 'consumed' once it has. "
-            "Null when the feature is disabled or the organization hasn't "
-            "been invited."
-        ),
-    )
-    startup_program_scale_product_id: str | None = Field(
-        default=None,
-        description=(
-            "Polar product id of the Scale plan, against which the Startup "
-            "Program discount applies. Null when the feature is disabled."
-        ),
-    )
-
     @classmethod
     def free(cls, *, plan: OrganizationPlan) -> "OrganizationSubscription":
         currency = plan.price.currency if plan.price is not None else "usd"
@@ -327,33 +309,6 @@ class OrganizationCheckoutResponse(Schema):
         )
 
 
-class OrganizationStartupProgramClaimRequest(Schema):
-    """Inputs for claiming the Startup Program discount.
-
-    The checkout URLs are only used when the org is on the Free plan and
-    needs a checkout to set up a payment method; they're ignored on the
-    PATCH path (already-paid orgs).
-    """
-
-    success_url: Annotated[str, AfterValidator(get_safe_return_url)] | None = None
-    return_url: Annotated[str, AfterValidator(get_safe_return_url)] | None = None
-    embed_origin: str | None = None
-
-
-class OrganizationStartupProgramClaimResponse(Schema):
-    """Result of claiming the Startup Program discount.
-
-    Exactly one field is set:
-    - ``checkout`` — Free → Scale: org needs to complete the checkout. The
-      discount is already attached.
-    - ``subscription`` — Paid → Scale: the existing paid subscription was
-      switched to Scale and the discount applied immediately.
-    """
-
-    checkout: OrganizationCheckoutResponse | None = None
-    subscription: OrganizationSubscription | None = None
-
-
 class OrganizationSubscriptionUpdate(Schema):
     product_id: str = Field(description="Polar product ID to switch the plan to.")
 
@@ -404,20 +359,11 @@ class OrganizationBillingDetails(Schema):
         default=None,
         description="Postal address used on invoices.",
     )
-    tax_id: str | None = Field(
-        default=None,
-        description="Tax identifier value (without the format suffix).",
-    )
 
     @classmethod
     def from_sdk(
         cls, customer: "CustomerPortalCustomer"
     ) -> "OrganizationBillingDetails":
-        tax_id_value: str | None = None
-        if customer.tax_id:
-            first = customer.tax_id[0]
-            if isinstance(first, str):
-                tax_id_value = first
         billing_address = (
             AddressInput.model_validate(
                 customer.billing_address.model_dump(mode="json")
@@ -428,14 +374,12 @@ class OrganizationBillingDetails(Schema):
         return cls(
             billing_name=customer.billing_name,
             billing_address=billing_address,
-            tax_id=tax_id_value,
         )
 
 
 class OrganizationBillingDetailsUpdate(Schema):
     billing_name: str | None = None
     billing_address: AddressInput | None = None
-    tax_id: str | None = None
 
 
 class OrganizationPaymentMethodCardMetadata(Schema):

@@ -2,7 +2,6 @@ import dataclasses
 import string
 import time
 from collections.abc import Sequence
-from datetime import datetime
 from enum import StrEnum
 from typing import TYPE_CHECKING, Any
 from uuid import UUID
@@ -12,13 +11,11 @@ from alembic_utils.pg_function import PGFunction
 from alembic_utils.pg_trigger import PGTrigger
 from alembic_utils.replaceable_entity import register_entities
 from sqlalchemy import (
-    TIMESTAMP,
     Boolean,
     Column,
     ColumnElement,
     ForeignKey,
     Index,
-    Integer,
     String,
     UniqueConstraint,
     Uuid,
@@ -32,11 +29,8 @@ from sqlalchemy.orm import Mapped, declared_attr, mapped_column, relationship
 from polar.kit.address import Address, AddressType
 from polar.kit.db.models import RecordModel
 from polar.kit.metadata import MetadataMixin
-from polar.tax.tax_id import TaxID, TaxIDType
 
 if TYPE_CHECKING:
-    from .benefit_grant import BenefitGrant
-    from .customer_meter import CustomerMeter
     from .member import Member
     from .organization import Organization
     from .payment_method import PaymentMethod
@@ -60,7 +54,6 @@ def short_id_to_base26(short_id: int) -> str:
 
 class CustomerOAuthPlatform(StrEnum):
     github = "github"
-    discord = "discord"
 
     def get_account_key(self, account_id: str) -> str:
         return f"{self.value}:{account_id}"
@@ -68,15 +61,11 @@ class CustomerOAuthPlatform(StrEnum):
     def get_account_id(self, data: dict[str, Any]) -> str:
         if self == CustomerOAuthPlatform.github:
             return str(data["id"])
-        if self == CustomerOAuthPlatform.discord:
-            return str(data["id"])
         raise NotImplementedError()
 
     def get_account_username(self, data: dict[str, Any]) -> str:
         if self == CustomerOAuthPlatform.github:
             return data["login"]
-        if self == CustomerOAuthPlatform.discord:
-            return data["username"]
         raise NotImplementedError()
 
 
@@ -145,10 +134,6 @@ class Customer(MetadataMixin, RecordModel):
     )
     email: Mapped[str | None] = mapped_column(String(320), nullable=True)
     email_verified: Mapped[bool] = mapped_column(Boolean, nullable=False, default=False)
-    stripe_customer_id: Mapped[str | None] = mapped_column(
-        String, nullable=True, default=None, unique=False
-    )
-
     name: Mapped[str | None] = mapped_column(String, nullable=True, default=None)
     locale: Mapped[str | None] = mapped_column(String, nullable=True)
     _billing_name: Mapped[str | None] = mapped_column(
@@ -157,8 +142,6 @@ class Customer(MetadataMixin, RecordModel):
     billing_address: Mapped[Address | None] = mapped_column(
         AddressType, nullable=True, default=None
     )
-    tax_id: Mapped[TaxID | None] = mapped_column(TaxIDType, nullable=True, default=None)
-
     _oauth_accounts: Mapped[dict[str, dict[str, Any]]] = mapped_column(
         "oauth_accounts", JSONB, nullable=False, default=dict
     )
@@ -178,18 +161,6 @@ class Customer(MetadataMixin, RecordModel):
 
     For new customers, this field will be null.
     """
-
-    meters_dirtied_at: Mapped[datetime | None] = mapped_column(
-        TIMESTAMP(timezone=True), nullable=True, default=None, index=True, deferred=True
-    )
-    meters_updated_at: Mapped[datetime] = mapped_column(
-        TIMESTAMP(timezone=True), nullable=True, default=None, index=True, deferred=True
-    )
-
-    invoice_next_number: Mapped[int] = mapped_column(Integer, nullable=False, default=1)
-    receipt_next_number: Mapped[int] = mapped_column(
-        Integer, nullable=False, default=1, server_default="1"
-    )
 
     organization_id: Mapped[UUID] = mapped_column(
         Uuid,
@@ -339,22 +310,6 @@ class Customer(MetadataMixin, RecordModel):
     @active_subscriptions.setter
     def active_subscriptions(self, value: Sequence["Subscription"]) -> None:
         self._active_subscriptions = value
-
-    @property
-    def granted_benefits(self) -> Sequence["BenefitGrant"] | None:
-        return getattr(self, "_granted_benefits", None)
-
-    @granted_benefits.setter
-    def granted_benefits(self, value: Sequence["BenefitGrant"]) -> None:
-        self._granted_benefits = value
-
-    @property
-    def active_meters(self) -> Sequence["CustomerMeter"] | None:
-        return getattr(self, "_active_meters", None)
-
-    @active_meters.setter
-    def active_meters(self, value: Sequence["CustomerMeter"]) -> None:
-        self._active_meters = value
 
     @property
     def billing_name(self) -> str | None:

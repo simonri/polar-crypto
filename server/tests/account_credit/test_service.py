@@ -1,16 +1,8 @@
-from unittest.mock import ANY
-
 import pytest
-from pytest_mock import MockerFixture
 
 from polar.account_credit.repository import AccountCreditRepository
 from polar.account_credit.service import account_credit_service
-from polar.models import Account, Organization
-from polar.notifications.notification import (
-    MaintainerAccountCreditsGrantedNotificationPayload,
-    NotificationType,
-)
-from polar.notifications.service import PartialNotification
+from polar.models import Account
 from polar.postgres import AsyncSession
 from tests.fixtures.database import SaveFixture
 
@@ -38,47 +30,6 @@ class TestGrant:
 
         await session.refresh(account)
         assert account.credit_balance == 5000
-
-    async def test_grant_with_organization_sends_notification(
-        self,
-        mocker: MockerFixture,
-        session: AsyncSession,
-        save_fixture: SaveFixture,
-        account: Account,
-        organization: Organization,
-    ) -> None:
-        send_to_org_members_mock = mocker.patch(
-            "polar.account_credit.service.notifications_service.send_to_org_members"
-        )
-
-        credit = await account_credit_service.grant(
-            session,
-            account=account,
-            amount=5000,
-            title="Signup Bonus",
-            organization=organization,
-        )
-
-        assert credit.account_id == account.id
-        assert credit.amount == 5000
-        assert credit.title == "Signup Bonus"
-
-        # Verify notification was sent
-        send_to_org_members_mock.assert_called_once_with(
-            session,
-            org_id=organization.id,
-            notif=ANY,
-        )
-
-        # Verify notification payload
-        call_args = send_to_org_members_mock.call_args
-        notification: PartialNotification = call_args.kwargs["notif"]
-        assert notification.type == NotificationType.maintainer_account_credits_granted
-        assert isinstance(
-            notification.payload, MaintainerAccountCreditsGrantedNotificationPayload
-        )
-        assert notification.payload.organization_name == organization.name
-        assert notification.payload.amount == 5000
 
     async def test_grant_updates_account_balance(
         self,

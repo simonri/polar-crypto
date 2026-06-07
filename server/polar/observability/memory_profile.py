@@ -1,5 +1,4 @@
 import gc
-import json
 import os
 import resource
 import socket
@@ -10,7 +9,6 @@ from collections import Counter
 import structlog
 
 from polar.config import settings
-from polar.integrations.aws.s3.client import client as s3_client
 from polar.kit.utils import utc_now
 
 log = structlog.get_logger()
@@ -102,34 +100,13 @@ def _collect_snapshot() -> dict[str, object]:
     }
 
 
-def _take_and_upload_snapshot(bucket: str) -> None:
+def _take_snapshot(bucket: str) -> None:
     snapshot = _collect_snapshot()
 
-    now = utc_now()
-    date_str = now.strftime("%Y-%m-%d")
-    time_str = now.strftime("%H-%M-%S")
-
-    key = (
-        f"memory-profiles/"
-        f"{date_str}-{_GIT_SHA}-{_INSTANCE_ID}/"
-        f"{time_str}_pid{snapshot['pid']}.json"
-    )
-
-    data = json.dumps(snapshot, indent=2, default=str).encode()
-
-    s3_client.put_object(
-        Bucket=bucket,
-        Key=key,
-        Body=data,
-        ContentType="application/json",
-    )
-
     log.info(
-        "memory_profile_snapshot_uploaded",
-        s3_key=key,
+        "memory_profile_snapshot",
         rss_mb=snapshot["rss_mb"],
         total_gc_objects=snapshot["total_gc_objects"],
-        size_bytes=len(data),
     )
 
 
@@ -144,7 +121,7 @@ def _run_profile_loop(
             break
 
         try:
-            _take_and_upload_snapshot(bucket)
+            _take_snapshot(bucket)
         except Exception as e:
             log.error(
                 "memory_profile_snapshot_failed",

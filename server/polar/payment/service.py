@@ -1,20 +1,17 @@
 import uuid
 from collections.abc import Sequence
 
-import stripe as stripe_lib
 from sqlalchemy import func, or_
 
 from polar.auth.models import AuthSubject, Organization, User
 from polar.auth.permission import OrganizationPermission
 from polar.authz.service import get_accessible_org_ids
-from polar.enums import PaymentProcessor
 from polar.exceptions import PolarError
 from polar.kit.pagination import PaginationParams
 from polar.kit.sorting import Sorting
-from polar.kit.utils import generate_uuid
-from polar.models import Checkout, Order, Payment, Wallet
-from polar.models.payment import PaymentStatus, PaymentTrigger
-from polar.postgres import AsyncReadSession, AsyncSession
+from polar.models import Checkout, Order, Payment
+from polar.models.payment import PaymentStatus
+from polar.postgres import AsyncReadSession
 
 from .repository import PaymentRepository
 from .sorting import PaymentSortProperty
@@ -117,111 +114,6 @@ class PaymentService:
         )
         statement = repository.get_statement_by_org_ids(org_ids).where(Payment.id == id)
         return await repository.get_one_or_none(statement)
-
-    async def upsert_from_stripe_charge(
-        self,
-        session: AsyncSession,
-        charge: stripe_lib.Charge,
-        organization: Organization,
-        checkout: Checkout | None,
-        wallet: Wallet | None,
-        order: Order | None,
-        trigger: PaymentTrigger | None = None,
-    ) -> Payment:
-        repository = PaymentRepository.from_session(session)
-
-        payment = await repository.get_by_processor_id(
-            PaymentProcessor.stripe, charge.id
-        )
-        if payment is None:
-            payment = Payment(
-                id=generate_uuid(),
-                processor=PaymentProcessor.stripe,
-                processor_id=charge.id,
-            )
-
-        payment.status = PaymentStatus.from_stripe_charge(charge.status)
-        payment.amount = charge.amount
-        payment.currency = charge.currency
-
-        payment_method_details = charge.payment_method_details
-        assert payment_method_details is not None
-        payment.method = payment_method_details.type
-        payment.method_metadata = dict(
-            payment_method_details[payment_method_details.type]
-        )
-        payment.customer_email = charge.billing_details.email
-
-        if charge.outcome is not None:
-            payment.decline_reason = charge.outcome.reason
-            # Stripe also sets success message, but we don't need it
-            if payment.decline_reason is not None:
-                payment.decline_message = charge.outcome.seller_message
-
-            risk_level = charge.outcome.risk_level
-            if risk_level is not None and risk_level != "not_assessed":
-                payment.risk_level = risk_level
-                payment.risk_score = charge.outcome.get("risk_score")
-
-        payment.trigger = trigger
-        payment.checkout = checkout
-        payment.order = order
-        payment.wallet = wallet
-        payment.organization = organization
-
-        return await repository.update(payment)
-
-    async def upsert_from_stripe_payment_intent(
-        self,
-        session: AsyncSession,
-        payment_intent: stripe_lib.PaymentIntent,
-        organization: Organization,
-        checkout: Checkout | None,
-        order: Order | None,
-        trigger: PaymentTrigger | None = None,
-    ) -> Payment:
-        # Only handle payment intents that are not linked to a charge, and which
-        # have a last_payment_error.
-        # It's the case when the payment method fails authentication, like 3DS.
-        # In other cases, we handle it through the charge (see above).
-        if (
-            payment_intent.latest_charge is not None
-            or payment_intent.last_payment_error is None
-        ):
-            raise UnhandledPaymentIntent(payment_intent.id)
-
-        repository = PaymentRepository.from_session(session)
-
-        payment = await repository.get_by_processor_id(
-            PaymentProcessor.stripe, payment_intent.id
-        )
-        if payment is None:
-            payment = Payment(
-                id=generate_uuid(),
-                processor=PaymentProcessor.stripe,
-                processor_id=payment_intent.id,
-            )
-
-        payment.status = PaymentStatus.failed
-        payment.amount = payment_intent.amount
-        payment.currency = payment_intent.currency
-
-        payment_error = payment_intent.last_payment_error
-        payment_method = payment_error.payment_method
-        assert payment_method is not None
-        payment.method = payment_method.type
-        payment.method_metadata = dict(payment_method[payment_method.type])
-        payment.customer_email = payment_intent.receipt_email
-
-        payment.decline_reason = getattr(payment_error, "code", None)
-        payment.decline_message = payment_error.message
-
-        payment.trigger = trigger
-        payment.checkout = checkout
-        payment.order = order
-        payment.organization = organization
-
-        return await repository.update(payment)
 
 
 payment = PaymentService()

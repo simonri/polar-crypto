@@ -80,18 +80,17 @@ class TestEventToTinybird:
             name="custom.event",
             source=EventSource.user,
             user_metadata={
-                "meter_id": "meter_credits_usage",
+                "usage_id": "credits_usage",
                 "amount": 0.24,
                 "currency": "usd",
             },
         )
         result = _event_to_tinybird(event)
 
-        assert result["meter_id"] is None
         assert result["amount"] is None
         assert result["currency"] is None
         metadata = json.loads(result["user_metadata"])
-        assert metadata["meter_id"] == "meter_credits_usage"
+        assert metadata["usage_id"] == "credits_usage"
         assert metadata["amount"] == 0.24
         assert metadata["currency"] == "usd"
 
@@ -127,7 +126,6 @@ class TestEventToTinybird:
         assert result["customer_id"] is None
         assert result["external_customer_id"] is None
         assert result["parent_id"] is None
-        assert result["meter_id"] is None
         assert result["amount"] is None
 
 

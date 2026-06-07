@@ -5,13 +5,11 @@ import pytest
 from pytest_mock import MockerFixture
 
 from polar.models import Account, Organization, User, UserOrganization
-from polar.models.user import IdentityVerificationStatus
 from polar.models.user_organization import OrganizationRole
 from polar.user_organization.service import (
     AlreadyOwner,
     CannotRemoveOrganizationOwner,
     InvalidOwnerRoleAssignment,
-    NewOwnerNotVerified,
     OrganizationNotFound,
     OrganizationWouldHaveNoAdmins,
     OwnerRoleCannotBeRemoved,
@@ -408,9 +406,6 @@ class TestTransferOwnership:
                 role=OrganizationRole.member,
             )
         )
-        user_second.identity_verification_status = IdentityVerificationStatus.verified
-        await save_fixture(user_second)
-
         await user_organization_service.transfer_ownership(
             session,
             new_owner_user_id=user_second.id,
@@ -427,29 +422,6 @@ class TestTransferOwnership:
         assert previous.role == OrganizationRole.admin
         assert new is not None
         assert new.role == OrganizationRole.owner
-
-    async def test_rejects_unverified_user(
-        self,
-        save_fixture: SaveFixture,
-        session: Any,
-        organization: Organization,
-        user_second: User,
-    ) -> None:
-        await save_fixture(
-            UserOrganization(
-                user_id=user_second.id,
-                organization_id=organization.id,
-                role=OrganizationRole.member,
-            )
-        )
-        # user_second left at the default unverified status
-
-        with pytest.raises(NewOwnerNotVerified):
-            await user_organization_service.transfer_ownership(
-                session,
-                new_owner_user_id=user_second.id,
-                organization_id=organization.id,
-            )
 
     async def test_rejects_non_member(
         self,
@@ -478,9 +450,6 @@ class TestTransferOwnership:
                 role=OrganizationRole.owner,
             )
         )
-        user.identity_verification_status = IdentityVerificationStatus.verified
-        await save_fixture(user)
-
         with pytest.raises(AlreadyOwner):
             await user_organization_service.transfer_ownership(
                 session,

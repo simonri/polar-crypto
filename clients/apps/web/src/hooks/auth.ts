@@ -1,10 +1,8 @@
-import { usePostHog } from '@/hooks/posthog'
 import { AuthContext } from '@/providers/auth'
 import { api } from '@/utils/client'
 import { schemas, unwrap } from '@polar-sh/client'
-import * as Sentry from '@sentry/nextjs'
 import { useMutation, useQuery } from '@tanstack/react-query'
-import { useContext, useEffect } from 'react'
+import { useContext } from 'react'
 
 export const useAuth = (): {
   authenticated: boolean
@@ -15,7 +13,6 @@ export const useAuth = (): {
     React.SetStateAction<schemas['OrganizationWithRole'][]>
   >
 } => {
-  const posthog = usePostHog()
   const {
     user: currentUser,
     setUser: setCurrentUser,
@@ -27,19 +24,6 @@ export const useAuth = (): {
     const user = await unwrap(api.GET('/v1/users/me'))
     setCurrentUser(user)
   }
-
-  useEffect(() => {
-    if (currentUser) {
-      Sentry.setUser({
-        id: currentUser.id,
-        email: currentUser.email,
-      })
-
-      posthog.identify(currentUser)
-    } else {
-      Sentry.setUser(null)
-    }
-  }, [currentUser, posthog])
 
   return {
     currentUser,

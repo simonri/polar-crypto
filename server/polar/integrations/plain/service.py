@@ -24,16 +24,12 @@ from plain_client import (
     ComponentTextColor,
     ComponentTextInput,
     ComponentTextSize,
-    CreateNoteInput,
     CreateThreadInput,
     CustomerIdentifierInput,
-    CustomerImpersonationInput,
     EmailAddressInput,
-    ImpersonationInput,
     OptionalStringInput,
     Plain,
     RemoveCustomerFromTenantsInput,
-    ReplyToThreadInput,
     TenantIdentifierInput,
     ThreadsFilter,
     ThreadStatus,
@@ -49,7 +45,6 @@ from plain_client import (
     UpsertTenantInput,
 )
 from plain_client.exceptions import GraphQLClientGraphQLMultiError
-from pydantic_ai import Agent
 from sqlalchemy import func, or_, select
 from sqlalchemy.orm import contains_eager, joinedload
 
@@ -60,8 +55,6 @@ from polar.kit.currency import format_currency
 from polar.kit.db.postgres import AsyncReadSessionMaker
 from polar.models import (
     Customer,
-    Feedback,
-    FeedbackType,
     OAuthAccount,
     Order,
     Organization,
@@ -86,100 +79,6 @@ PLAIN_WORKSPACE_ID = "w_01JE9TRRX9KT61D8P2CH77XDQM"
 
 def plain_thread_url(thread_id: str) -> str:
     return f"https://app.plain.com/workspace/{PLAIN_WORKSPACE_ID}/thread/{thread_id}"
-
-
-# Markers used by the question chat flow when it builds the feedback message
-# (see `clients/apps/web/src/components/Feedback/QuestionFlow.tsx`). The frontend
-# submits either:
-#   "<note>\n\n---\n\n## Transcript\n\n<transcript>"   (an extra note was added)
-#   "## Transcript\n\n<transcript>"                     (no extra note)
-_TRANSCRIPT_SEPARATOR = "\n\n---\n\n## Transcript\n\n"
-_TRANSCRIPT_PREFIX = "## Transcript\n\n"
-_TRANSCRIPT_USER_HEADING = "**User**"
-_TRANSCRIPT_ASSISTANT_HEADING = "**Assistant**"
-
-
-def _split_feedback_message(message: str) -> tuple[str, str | None]:
-    """
-    Split a feedback message produced by the question chat flow into the user's
-    free-text note and the conversation transcript.
-
-    Returns `(note, transcript)`. `transcript` is `None` when the message does
-    not come from the chat flow (e.g. a direct bug/feedback submission), in
-    which case the whole message is treated as the note.
-    """
-    if _TRANSCRIPT_SEPARATOR in message:
-        note, transcript = message.split(_TRANSCRIPT_SEPARATOR, 1)
-        return note.strip(), transcript.strip()
-    if message.startswith(_TRANSCRIPT_PREFIX):
-        return "", message[len(_TRANSCRIPT_PREFIX) :].strip()
-    return message.strip(), None
-
-
-def _first_user_message(transcript: str) -> str | None:
-    """
-    Extract the customer's original question (the first `**User**` turn) from a
-    chat transcript, used as the impersonated message when no extra note was
-    added.
-    """
-    heading = f"{_TRANSCRIPT_USER_HEADING}\n\n"
-    if not transcript.startswith(heading):
-        return None
-    body = transcript[len(heading) :]
-    # The first user turn runs until the next speaker heading.
-    cut = len(body)
-    for next_heading in (
-        f"\n\n{_TRANSCRIPT_ASSISTANT_HEADING}\n\n",
-        f"\n\n{_TRANSCRIPT_USER_HEADING}\n\n",
-    ):
-        index = body.find(next_heading)
-        if index != -1:
-            cut = min(cut, index)
-    return body[:cut].strip() or None
-
-
-_SUBJECT_SYSTEM_PROMPT = """\
-You write the subject line for a customer support email.
-
-You are given a customer's support message, which may include a chat transcript \
-of an earlier conversation with an assistant. Write a single subject line that \
-captures what the customer needs help with, as if they wrote it themselves.
-
-Rules:
-- At most 60 characters.
-- Be specific about the topic; never generic like "Support request" or "Question".
-- No surrounding quotes, no "Subject:" prefix, no trailing punctuation.
-- Output only the subject line, nothing else.
-"""
-
-
-async def _generate_thread_subject(content: str, fallback: str) -> str:
-    """
-    Write a concise, specific subject line from the feedback content using the
-    configured gateway model. Falls back to `fallback` when the content is empty
-    or the model call fails for any reason, so thread creation never depends on
-    the LLM.
-    """
-    if not content.strip():
-        return fallback
-    try:
-        # Use the gateway's default model so we don't depend on a provider
-        # extra that may not be installed (e.g. anthropic).
-        model_instance, _, model_name = settings.get_pydantic_gateway_model()
-        agent = Agent(
-            model_instance,
-            output_type=str,
-            system_prompt=_SUBJECT_SYSTEM_PROMPT,
-            # gpt-5.5+ reasoning models reject any non-default temperature.
-            model_settings=(
-                {} if model_name.startswith("gpt-5.5") else {"temperature": 0}
-            ),
-        )
-        result = await asyncio.wait_for(agent.run(content[:4000]), timeout=10)
-        subject = result.output.strip().strip('"').strip()
-        return subject or fallback
-    except Exception:
-        return fallback
 
 
 class PlainServiceError(PolarError): ...
@@ -208,15 +107,6 @@ class TenantOperationError(PlainServiceError):
         self.message = message
         super().__init__(
             f"Plain tenant {operation} failed for {tenant_external_id!r}: {message}"
-        )
-
-
-class FeedbackThreadCreationError(PlainServiceError):
-    def __init__(self, feedback_id: uuid.UUID, message: str) -> None:
-        self.feedback_id = feedback_id
-        self.message = message
-        super().__init__(
-            f"Error creating Plain thread for feedback {feedback_id}: {message}"
         )
 
 
@@ -448,34 +338,6 @@ class PlainService:
                     ComponentContainerContentInput(
                         component_text=ComponentTextInput(
                             text=user.created_at.date().isoformat()
-                        )
-                    ),
-                    ComponentContainerContentInput(
-                        component_row=ComponentRowInput(
-                            row_main_content=[
-                                ComponentRowContentInput(
-                                    component_text=ComponentTextInput(
-                                        text="Identity Verification",
-                                        text_size=ComponentTextSize.S,
-                                        text_color=ComponentTextColor.MUTED,
-                                    )
-                                ),
-                                ComponentRowContentInput(
-                                    component_text=ComponentTextInput(
-                                        text=user.identity_verification_status
-                                    )
-                                ),
-                            ],
-                            row_aside_content=[
-                                ComponentRowContentInput(
-                                    component_link_button=ComponentLinkButtonInput(
-                                        link_button_label="Stripe ↗",
-                                        link_button_url=f"https://dashboard.stripe.com/identity/verification-sessions/{user.identity_verification_id}",
-                                    )
-                                )
-                            ]
-                            if user.identity_verification_id
-                            else [],
                         )
                     ),
                 ]
@@ -814,37 +676,6 @@ class PlainService:
                         if country
                         else []
                     ),
-                    ComponentContainerContentInput(
-                        component_spacer=ComponentSpacerInput(
-                            spacer_size=ComponentSpacerSize.M
-                        )
-                    ),
-                    ComponentContainerContentInput(
-                        component_row=ComponentRowInput(
-                            row_main_content=[
-                                ComponentRowContentInput(
-                                    component_text=ComponentTextInput(
-                                        text="Stripe Customer ID",
-                                        text_size=ComponentTextSize.S,
-                                        text_color=ComponentTextColor.MUTED,
-                                    )
-                                ),
-                                ComponentRowContentInput(
-                                    component_text=ComponentTextInput(
-                                        text=customer.stripe_customer_id or "N/A",
-                                    )
-                                ),
-                            ],
-                            row_aside_content=[
-                                ComponentRowContentInput(
-                                    component_link_button=ComponentLinkButtonInput(
-                                        link_button_label="Stripe ↗",
-                                        link_button_url=f"https://dashboard.stripe.com/customers/{customer.stripe_customer_id}",
-                                    )
-                                )
-                            ],
-                        )
-                    ),
                 ]
             )
 
@@ -1104,18 +935,6 @@ class PlainService:
                     ComponentContainerContentInput(
                         component_text=ComponentTextInput(
                             text=format_currency(order.net_amount, order.currency)
-                        )
-                    ),
-                    ComponentContainerContentInput(
-                        component_text=ComponentTextInput(
-                            text="Tax Amount",
-                            text_size=ComponentTextSize.S,
-                            text_color=ComponentTextColor.MUTED,
-                        )
-                    ),
-                    ComponentContainerContentInput(
-                        component_text=ComponentTextInput(
-                            text=format_currency(order.tax_amount, order.currency)
                         )
                     ),
                 ]
@@ -1393,109 +1212,6 @@ class PlainService:
         if customer_result.customer is None:
             raise PlainCustomerError(user.id, "No customer returned by upsert")
         return customer_result.customer.id
-
-    async def create_feedback_thread(self, feedback: Feedback) -> str:
-        """
-        Open a Plain thread for a feedback record. Returns the URL of the new
-        thread.
-
-        For feedback that came out of the question chat flow, the customer's
-        message is posted into the thread impersonated as the customer (so it
-        reads as an email sent *from* them), and the full conversation
-        transcript is attached as an internal note. For direct submissions the
-        message is attached as an internal note as before.
-
-        Requires `feedback.user` to be loaded (e.g. via `joinedload`).
-        """
-        if not self.enabled:
-            raise FeedbackThreadCreationError(
-                feedback.id, "Plain integration is disabled"
-            )
-
-        noun_by_type = {
-            FeedbackType.bug: "bug report",
-            FeedbackType.feedback: "feedback",
-            FeedbackType.question: "question",
-        }
-        fallback_title = f"Re: your recent {noun_by_type[feedback.type]}"
-        title = await _generate_thread_subject(feedback.message, fallback_title)
-
-        note, transcript = _split_feedback_message(feedback.message)
-
-        async with self._get_plain_client() as plain:
-            try:
-                customer_id = await self._upsert_customer_id_for_user(
-                    plain, feedback.user
-                )
-            except PlainCustomerError as e:
-                raise FeedbackThreadCreationError(feedback.id, e.message) from e
-
-            thread_result = await plain.create_thread(
-                CreateThreadInput(
-                    customer_identifier=CustomerIdentifierInput(
-                        customer_id=customer_id
-                    ),
-                    title=title,
-                )
-            )
-            if thread_result.error is not None:
-                raise FeedbackThreadCreationError(
-                    feedback.id, thread_result.error.message
-                )
-            if thread_result.thread is None:
-                raise FeedbackThreadCreationError(
-                    feedback.id, "No thread returned by create_thread"
-                )
-            thread_id = thread_result.thread.id
-
-            if transcript is not None:
-                # Chat escalation: post the customer's message as if it came
-                # from them, falling back to their original question when no
-                # extra note was added.
-                customer_message = note or _first_user_message(transcript)
-                if customer_message:
-                    reply_result = await plain.reply_to_thread(
-                        ReplyToThreadInput(
-                            thread_id=thread_id,
-                            text_content=customer_message,
-                            impersonation=ImpersonationInput(
-                                as_customer=CustomerImpersonationInput(
-                                    customer_identifier=CustomerIdentifierInput(
-                                        customer_id=customer_id
-                                    )
-                                )
-                            ),
-                        )
-                    )
-                    if reply_result.error is not None:
-                        raise FeedbackThreadCreationError(
-                            feedback.id, reply_result.error.message
-                        )
-                note_text = transcript
-            else:
-                # Direct submission (e.g. manual backoffice reply for a bug
-                # or feedback report): keep the message itself as the note.
-                note_text = feedback.message
-
-            # Link back to the backoffice feedback record so whoever picks
-            # up the thread can jump straight to it.
-            backoffice_url = settings.generate_backoffice_url(
-                f"/feedbacks/{feedback.id}"
-            )
-            note_result = await plain.create_note(
-                CreateNoteInput(
-                    customer_id=customer_id,
-                    thread_id=thread_id,
-                    text=f"{note_text}\n\nView in backoffice: {backoffice_url}",
-                    markdown=(f"{note_text}\n\n[View in backoffice]({backoffice_url})"),
-                )
-            )
-            if note_result.error is not None:
-                raise FeedbackThreadCreationError(
-                    feedback.id, note_result.error.message
-                )
-
-            return plain_thread_url(thread_id)
 
     async def check_thread_exists(
         self, customer_email: str, thread_title: str, fuzzy: bool = False
@@ -1866,29 +1582,6 @@ class PlainService:
                                                     )
                                                 )
                                             ],
-                                        )
-                                    ),
-                                    # Next Review Threshold
-                                    ComponentContainerContentInput(
-                                        component_row=ComponentRowInput(
-                                            row_main_content=[
-                                                ComponentRowContentInput(
-                                                    component_text=ComponentTextInput(
-                                                        text="Next Review Threshold",
-                                                        text_size=ComponentTextSize.S,
-                                                        text_color=ComponentTextColor.MUTED,
-                                                    )
-                                                ),
-                                                ComponentRowContentInput(
-                                                    component_text=ComponentTextInput(
-                                                        text=format_currency(
-                                                            organization.next_review_threshold,
-                                                            "usd",
-                                                        )
-                                                    )
-                                                ),
-                                            ],
-                                            row_aside_content=[],
                                         )
                                     ),
                                     # Backoffice Link

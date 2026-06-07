@@ -154,7 +154,7 @@ export interface CheckoutContextProps {
     data: schemas['CheckoutUpdatePublic'],
   ) => Promise<Result<'checkouts:client_update'>>
   confirm: (
-    data: schemas['CheckoutConfirmStripe'],
+    data: schemas['CheckoutConfirm'],
   ) => Promise<Result<'checkouts:client_confirm'>>
   client: Client
 }
@@ -253,7 +253,7 @@ export const CheckoutProvider = ({
   )
 
   const confirm = useCallback(
-    async (data: schemas['CheckoutConfirmStripe']) => {
+    async (data: schemas['CheckoutConfirm']) => {
       const result = await checkoutsClientConfirm(
         client,
         { client_secret: clientSecret },

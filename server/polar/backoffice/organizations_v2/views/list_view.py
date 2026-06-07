@@ -2,7 +2,6 @@
 
 import contextlib
 import json
-import uuid
 from collections.abc import Generator
 from datetime import UTC, datetime
 from typing import Any, Literal
@@ -14,12 +13,10 @@ from tagflow import tag, text
 
 from polar.models import Organization, PayoutAccount
 from polar.models.organization import (
-    FIRST_REVIEW_THRESHOLD_CENTS,
     OrganizationStatus,
 )
 from polar.postgres import AsyncSession
 
-from ... import formatters
 from ...components import (
     Tab,
     action_bar,
@@ -27,9 +24,6 @@ from ...components import (
     status_badge,
     tab_nav,
 )
-from ..priority import Signals
-
-FIRST_REVIEW_THRESHOLD_LABEL = formatters.currency(FIRST_REVIEW_THRESHOLD_CENTS, "usd")
 
 DeletedFilter = Literal["exclude", "include", "only"]
 
@@ -195,14 +189,8 @@ class OrganizationListView:
         self,
         request: Request,
         org: Organization,
-        *,
-        signals: Signals | None = None,
     ) -> Generator[None]:
-        """Render a single organization row in the table.
-
-        When ``signals`` is non-None the Review-tab Priority cell is rendered
-        so the column count matches ``_render_org_list``'s Review-only header.
-        """
+        """Render a single organization row in the table."""
         days_in_status = self.calculate_days_in_status(org)
 
         with tag.tr(classes="hover:bg-base-100"):
@@ -222,46 +210,13 @@ class OrganizationListView:
                             title=org.name,
                         ):
                             text(org.name)
-                        if org.is_first_review:
-                            with tag.span(
-                                classes="badge badge-warning",
-                                title=(
-                                    "First review — never reviewed before "
-                                    f"or next review threshold is ≤ "
-                                    f"{FIRST_REVIEW_THRESHOLD_LABEL}"
-                                ),
-                                **{"aria-label": "first review status"},
-                            ):
-                                text("First Review")
-                        else:
-                            with status_badge(org.status):
-                                pass
+                        with status_badge(org.status):
+                            pass
                     with tag.div(
                         classes="text-xs text-base-content/60 font-mono truncate max-w-[200px]",
                         title=org.slug,
                     ):
                         text(org.slug)
-                    # Appeal indicator
-                    if (
-                        org.review
-                        and org.review.appeal_submitted_at
-                        and not org.review.appeal_reviewed_at
-                    ):
-                        with tag.span(classes="badge badge-info badge-xs mt-1"):
-                            text("Appeal Pending")
-
-            # Priority — Review tab only, sits next to Organization
-            if signals is not None:
-                tooltip = (
-                    f"Aging {signals.aging_pts:.0f} + "
-                    f"Risk {signals.risk_pts:.0f} + "
-                    f"Payments {signals.payment_pts:.0f} + "
-                    f"Fast Mover {signals.fast_mover_pts:.0f} + "
-                    f"Held Payouts {signals.held_payout_pts:.0f}"
-                )
-                with tag.td(classes="text-sm font-bold text-center"):
-                    with tag.span(title=tooltip):
-                        text(f"{signals.priority:.0f}")
 
             # Country
             with tag.td(classes="text-sm"):
@@ -279,23 +234,6 @@ class OrganizationListView:
             # Days in status
             with tag.td(classes="text-sm font-semibold text-center"):
                 text(f"{days_in_status}d")
-
-            # Risk — hidden on Review tab (encoded in Priority breakdown)
-            if signals is None:
-                with tag.td(classes="text-sm text-center"):
-                    if org.review and org.review.risk_score is not None:
-                        risk = org.review.risk_score
-                        if risk >= 75:
-                            color = "text-error"
-                        elif risk >= 50:
-                            color = "text-warning"
-                        else:
-                            color = "text-success"
-                        with tag.span(classes=f"font-bold {color}"):
-                            text(str(risk))
-                    else:
-                        with tag.span(classes="text-base-content/40"):
-                            text("—")
 
             # Total balance
             with tag.td(classes="text-sm text-right"):
@@ -326,17 +264,13 @@ class OrganizationListView:
         status_counts: dict[OrganizationStatus, int],
         page: int,
         has_more: bool,
-        current_sort: str = "priority",
-        current_direction: str = "asc",
+        current_sort: str = "created_at",
+        current_direction: str = "desc",
         countries: list[str] | None = None,
         selected_country: str | None = None,
-        selected_first_reviews: str | None = None,
         selected_q: str | None = None,
-        selected_risk_level: str | None = None,
         selected_days_in_status: str | None = None,
-        selected_has_appeal: str | None = None,
         selected_deleted: DeletedFilter = "exclude",
-        signals_by_org: dict[uuid.UUID, Signals] | None = None,
     ) -> Generator[None]:
         """Render the complete list view."""
 
@@ -358,20 +292,6 @@ class OrganizationListView:
                 url=str(request.url_for("organizations:list")),
                 active=status_filter is None,
                 count=sum(status_counts.values()),
-            ),
-            Tab(
-                label="Review",
-                url=str(request.url_for("organizations:list")) + "?status=review",
-                active=status_filter == OrganizationStatus.REVIEW,
-                count=status_counts.get(OrganizationStatus.REVIEW, 0),
-                badge_variant="warning",
-            ),
-            Tab(
-                label="Snoozed",
-                url=str(request.url_for("organizations:list")) + "?status=snoozed",
-                active=status_filter == OrganizationStatus.SNOOZED,
-                count=status_counts.get(OrganizationStatus.SNOOZED, 0),
-                badge_variant="warning",
             ),
             Tab(
                 label="Active",
@@ -482,7 +402,6 @@ class OrganizationListView:
                     classes="hidden mt-4 p-4 bg-base-200 rounded-lg",
                 ):
                     with tag.div(classes="space-y-3"):
-                        # Row 1: Basic filters
                         with tag.div(classes="grid grid-cols-1 md:grid-cols-3 gap-3"):
                             # Country filter
                             with tag.div():
@@ -513,30 +432,6 @@ class OrganizationListView:
                                             with tag.option(**option_attrs):
                                                 text(f"{country_code} - {display_name}")
 
-                            # Risk filter
-                            with tag.div():
-                                with tag.label(classes="label"):
-                                    with tag.span(
-                                        classes="label-text text-xs font-semibold"
-                                    ):
-                                        text("Risk Level")
-                                with tag.select(
-                                    classes="select select-bordered select-sm w-full filter-select",
-                                    name="risk_level",
-                                ):
-                                    for opt_value, opt_label in (
-                                        ("", "All Risk Levels"),
-                                        ("high", "High (≥75)"),
-                                        ("medium", "Medium (50-74)"),
-                                        ("low", "Low (<50)"),
-                                        ("unscored", "Unscored"),
-                                    ):
-                                        opt_attrs: dict[str, str] = {"value": opt_value}
-                                        if (selected_risk_level or "") == opt_value:
-                                            opt_attrs["selected"] = ""
-                                        with tag.option(**opt_attrs):
-                                            text(opt_label)
-
                             # Days in status
                             with tag.div():
                                 with tag.label(classes="label"):
@@ -555,33 +450,8 @@ class OrganizationListView:
                                         ("7", ">7 days"),
                                         ("30", ">30 days"),
                                     ):
-                                        opt_attrs = {"value": opt_value}
+                                        opt_attrs: dict[str, str] = {"value": opt_value}
                                         if (selected_days_in_status or "") == opt_value:
-                                            opt_attrs["selected"] = ""
-                                        with tag.option(**opt_attrs):
-                                            text(opt_label)
-
-                        # Row 2: Appeal filter
-                        with tag.div(classes="grid grid-cols-1 md:grid-cols-3 gap-3"):
-                            # Has appeal
-                            with tag.div():
-                                with tag.label(classes="label"):
-                                    with tag.span(
-                                        classes="label-text text-xs font-semibold"
-                                    ):
-                                        text("Appeal Status")
-                                with tag.select(
-                                    classes="select select-bordered select-sm w-full filter-select",
-                                    name="has_appeal",
-                                ):
-                                    for opt_value, opt_label in (
-                                        ("", "All"),
-                                        ("pending", "Pending Appeal"),
-                                        ("reviewed", "Reviewed"),
-                                        ("none", "No Appeal"),
-                                    ):
-                                        opt_attrs = {"value": opt_value}
-                                        if (selected_has_appeal or "") == opt_value:
                                             opt_attrs["selected"] = ""
                                         with tag.option(**opt_attrs):
                                             text(opt_label)
@@ -608,31 +478,6 @@ class OrganizationListView:
                                         with tag.option(**opt_attrs):
                                             text(opt_label)
 
-                            # Only meaningful on the Review tab
-                            if status_filter == OrganizationStatus.REVIEW:
-                                with tag.div():
-                                    with tag.label(classes="label"):
-                                        with tag.span(
-                                            classes="label-text text-xs font-semibold"
-                                        ):
-                                            text("First Reviews")
-                                    with tag.select(
-                                        classes="select select-bordered select-sm w-full filter-select",
-                                        name="first_reviews",
-                                    ):
-                                        for opt_value, opt_label in (
-                                            ("", "All reviews"),
-                                            ("true", "Only first reviews"),
-                                            ("false", "Exclude first reviews"),
-                                        ):
-                                            opt_attrs = {"value": opt_value}
-                                            if (
-                                                selected_first_reviews or ""
-                                            ) == opt_value:
-                                                opt_attrs["selected"] = ""
-                                            with tag.option(**opt_attrs):
-                                                text(opt_label)
-
         self._render_org_list(
             request,
             organizations,
@@ -641,7 +486,6 @@ class OrganizationListView:
             has_more,
             current_sort,
             current_direction,
-            signals_by_org,
         )
 
         yield
@@ -655,16 +499,12 @@ class OrganizationListView:
         has_more: bool,
         current_sort: str,
         current_direction: str,
-        signals_by_org: dict[uuid.UUID, Signals] | None = None,
     ) -> None:
-        """Render the ``#org-list`` block — table with Review-only columns.
+        """Render the ``#org-list`` block.
 
         Shared by ``render`` (full page) and ``render_table_only`` (HTMX
         partial swap), so both paths agree on column count.
         """
-        signals_by_org = signals_by_org or {}
-        is_review_tab = status_filter == OrganizationStatus.REVIEW
-
         with tag.div(id="org-list", classes="overflow-x-auto"):
             if not organizations:
                 with empty_state(
@@ -685,20 +525,6 @@ class OrganizationListView:
                                 status_filter=status_filter,
                             ):
                                 pass
-
-                            # Priority sits next to Organization on the Review
-                            # tab — primary sort, eye lands here second.
-                            if is_review_tab:
-                                with self.sortable_header(
-                                    request,
-                                    "Priority",
-                                    "priority",
-                                    current_sort,
-                                    current_direction,
-                                    "center",
-                                    status_filter=status_filter,
-                                ):
-                                    pass
 
                             with self.sortable_header(
                                 request,
@@ -731,20 +557,6 @@ class OrganizationListView:
                             ):
                                 pass
 
-                            # Risk hidden on Review tab — it's already
-                            # encoded in the Priority breakdown tooltip.
-                            if not is_review_tab:
-                                with self.sortable_header(
-                                    request,
-                                    "Risk",
-                                    "risk",
-                                    current_sort,
-                                    current_direction,
-                                    "center",
-                                    status_filter=status_filter,
-                                ):
-                                    pass
-
                             with self.sortable_header(
                                 request,
                                 "Balance",
@@ -764,7 +576,6 @@ class OrganizationListView:
                             with self.organization_row(
                                 request,
                                 org,
-                                signals=signals_by_org.get(org.id),
                             ):
                                 pass
 
@@ -785,10 +596,8 @@ class OrganizationListView:
         status_filter: OrganizationStatus | None,
         page: int,
         has_more: bool,
-        current_sort: str = "priority",
-        current_direction: str = "asc",
-        *,
-        signals_by_org: dict[uuid.UUID, Signals] | None = None,
+        current_sort: str = "created_at",
+        current_direction: str = "desc",
     ) -> Generator[None]:
         """Render only the organization table (for HTMX updates)."""
 
@@ -800,7 +609,6 @@ class OrganizationListView:
             has_more,
             current_sort,
             current_direction,
-            signals_by_org,
         )
 
         yield

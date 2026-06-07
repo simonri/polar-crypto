@@ -177,124 +177,6 @@ export const usePortalAuthenticatedUser = (api: Client) =>
     retry: defaultRetry,
   })
 
-export const useCustomerPaymentMethods = (api: Client) =>
-  useQuery({
-    queryKey: ['customer_payment_methods'],
-    queryFn: () =>
-      unwrap(api.GET('/v1/customer-portal/customers/me/payment-methods')),
-    retry: defaultRetry,
-  })
-
-export const useDeleteCustomerPaymentMethod = (api: Client) =>
-  useMutation({
-    mutationFn: async (id: string) => {
-      const result = await api.DELETE(
-        '/v1/customer-portal/customers/me/payment-methods/{id}',
-        {
-          params: { path: { id } },
-        },
-      )
-      if (result.error) {
-        const errorMessage =
-          typeof result.error.detail === 'string'
-            ? result.error.detail
-            : 'Failed to delete payment method'
-        throw new Error(errorMessage)
-      }
-      return result
-    },
-    onSuccess: async () => {
-      getQueryClient().invalidateQueries({
-        queryKey: ['customer_payment_methods'],
-      })
-    },
-  })
-
-export const useCustomerBenefitGrants = (
-  api: Client,
-  parameters?: operations['customer_portal:benefit-grants:list']['parameters']['query'],
-) =>
-  useQuery({
-    queryKey: ['customer_benefit_grants', { ...(parameters || {}) }],
-    queryFn: () =>
-      unwrap(
-        api.GET('/v1/customer-portal/benefit-grants/', {
-          params: { query: parameters },
-        }),
-      ),
-    retry: defaultRetry,
-  })
-
-export const useCustomerBenefitGrantUpdate = (api: Client) =>
-  useMutation({
-    mutationFn: (variables: {
-      id: string
-      body: schemas['CustomerBenefitGrantUpdate']
-    }) =>
-      api.PATCH('/v1/customer-portal/benefit-grants/{id}', {
-        params: { path: { id: variables.id } },
-        body: variables.body,
-      }),
-    onSuccess: async (result) => {
-      if (result.error) {
-        return
-      }
-      getQueryClient().invalidateQueries({
-        queryKey: ['customer_benefit_grants'],
-      })
-    },
-  })
-
-export const useCustomerLicenseKey = (api: Client, id: string) =>
-  useQuery({
-    queryKey: ['customer_license_keys', { id }],
-    queryFn: () =>
-      unwrap(
-        api.GET('/v1/customer-portal/license-keys/{id}', {
-          params: { path: { id } },
-        }),
-      ),
-    retry: defaultRetry,
-  })
-
-export const useCustomerLicenseKeyDeactivate = (api: Client, id: string) =>
-  useMutation({
-    mutationFn: (opts: {
-      key: string
-      organizationId: string
-      activationId: string
-    }) =>
-      api.POST('/v1/customer-portal/license-keys/deactivate', {
-        body: {
-          key: opts.key,
-          organization_id: opts.organizationId,
-          activation_id: opts.activationId,
-        },
-      }),
-    onSuccess: async (result) => {
-      if (result.error) {
-        return
-      }
-      getQueryClient().invalidateQueries({
-        queryKey: ['customer_license_keys', { id }],
-      })
-    },
-  })
-
-export const useCustomerDownloadables = (
-  api: Client,
-  parameters?: operations['customer_portal:downloadables:list']['parameters']['query'],
-) =>
-  useQuery({
-    queryKey: ['customer_downloadables', { ...(parameters || {}) }],
-    queryFn: () =>
-      unwrap(
-        api.GET('/v1/customer-portal/downloadables/', {
-          params: { query: parameters },
-        }),
-      ),
-    retry: defaultRetry,
-  })
 
 export const useCustomerOrders = (
   api: Client,
@@ -343,9 +225,6 @@ export const useCustomerUpdateSubscription = (api: Client) =>
       })
       queryClient.invalidateQueries({
         queryKey: ['customer_subscription_charge_preview'],
-      })
-      queryClient.invalidateQueries({
-        queryKey: ['customer_seats'],
       })
     },
   })
@@ -396,23 +275,6 @@ export const useCustomerUncancelSubscription = (api: Client) =>
     },
   })
 
-export const useCustomerCustomerMeters = (
-  api: Client,
-  parameters?: operations['customer_portal:customer_meters:list']['parameters']['query'],
-) =>
-  useQuery({
-    queryKey: ['customer_customer_meters', { parameters }],
-    queryFn: () =>
-      unwrap(
-        api.GET('/v1/customer-portal/meters/', {
-          params: {
-            query: parameters || {},
-          },
-        }),
-      ),
-    retry: defaultRetry,
-  })
-
 export const useCustomerOrderConfirmPayment = (api: Client) =>
   useMutation({
     mutationFn: async (variables: {
@@ -430,7 +292,7 @@ export const useCustomerOrderConfirmPayment = (api: Client) =>
           ...(variables.payment_method_id && {
             payment_method_id: variables.payment_method_id,
           }),
-          payment_processor: variables.payment_processor || 'stripe',
+          payment_processor: variables.payment_processor || 'crypto',
         } as schemas['CustomerOrderConfirmPayment'],
       }),
     onSuccess: async (result, variables) => {
@@ -454,94 +316,6 @@ export const useCustomerOrderPaymentStatus = (api: Client) =>
       api.GET('/v1/customer-portal/orders/{id}/payment-status', {
         params: { path: { id: variables.orderId } },
       }),
-  })
-
-export const useCustomerSeats = (
-  api: Client,
-  parameters?: { subscriptionId?: string; orderId?: string },
-) =>
-  useQuery({
-    queryKey: ['customer_seats', parameters],
-    queryFn: () =>
-      unwrap(
-        api.GET('/v1/customer-portal/seats', {
-          params: {
-            query: {
-              ...(parameters?.subscriptionId && {
-                subscription_id: parameters.subscriptionId,
-              }),
-              ...(parameters?.orderId && { order_id: parameters.orderId }),
-            },
-          },
-        }),
-      ),
-    retry: defaultRetry,
-    enabled: !!parameters?.subscriptionId || !!parameters?.orderId,
-  })
-
-export const useAssignSeat = (api: Client) =>
-  useMutation({
-    mutationFn: async (
-      variables: Omit<schemas['SeatAssign'], 'immediate_claim'> & {
-        immediate_claim?: boolean
-      },
-    ) =>
-      api.POST('/v1/customer-portal/seats', {
-        body: {
-          ...variables,
-          immediate_claim: variables.immediate_claim ?? false,
-        },
-      }),
-    onSuccess: async (result) => {
-      if (result.error) {
-        return
-      }
-      getQueryClient().invalidateQueries({
-        queryKey: ['customer_seats'],
-      })
-    },
-  })
-
-export const useRevokeSeat = (api: Client) =>
-  useMutation({
-    mutationFn: async (seatId: string) => {
-      const result = await api.DELETE('/v1/customer-portal/seats/{seat_id}', {
-        params: { path: { seat_id: seatId } },
-      })
-      if (result.error) {
-        const errorMessage =
-          typeof result.error.detail === 'string'
-            ? result.error.detail
-            : 'Failed to revoke seat'
-        throw new Error(errorMessage)
-      }
-      return result
-    },
-    onSuccess: async () => {
-      getQueryClient().invalidateQueries({
-        queryKey: ['customer_seats'],
-      })
-    },
-  })
-
-export const useResendSeatInvitation = (api: Client) =>
-  useMutation({
-    mutationFn: async (seatId: string) => {
-      const result = await api.POST(
-        '/v1/customer-portal/seats/{seat_id}/resend',
-        {
-          params: { path: { seat_id: seatId } },
-        },
-      )
-      if (result.error) {
-        const errorMessage =
-          typeof result.error.detail === 'string'
-            ? result.error.detail
-            : 'Failed to resend invitation'
-        throw new Error(errorMessage)
-      }
-      return result
-    },
   })
 
 export const useCustomerPortalMembers = (api: Client) =>

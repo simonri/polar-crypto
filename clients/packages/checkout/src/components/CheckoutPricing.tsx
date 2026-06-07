@@ -7,7 +7,6 @@ import { ProductCheckoutPublic } from '../guards'
 import { getDiscountDisplay } from '../utils/discount'
 import { isLegacyRecurringPrice } from '../utils/product'
 import AmountLabel from './AmountLabel'
-import MeteredPricesDisplay from './MeteredPricesDisplay'
 import ProductPriceLabel from './ProductPriceLabel'
 
 const CheckoutProductAmountLabel = ({
@@ -108,7 +107,6 @@ const CheckoutPricing = ({
           )}
         </h1>
 
-        <MeteredPricesDisplay checkout={checkout} locale={locale} />
       </div>
     </div>
   )

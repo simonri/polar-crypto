@@ -4,7 +4,6 @@ from pydantic import UUID4
 from sqlalchemy import func, select
 
 from polar.models import (
-    Benefit,
     CheckoutLink,
     Customer,
     Dispute,
@@ -13,7 +12,6 @@ from polar.models import (
     OrganizationAccessToken,
     Payment,
     Product,
-    ProductBenefit,
     Refund,
     Transaction,
     WebhookEndpoint,
@@ -256,28 +254,6 @@ class OrganizationSetupAnalyticsService:
         )
         return result.scalar() or 0
 
-    async def get_benefits_count(self, organization_id: UUID4) -> int:
-        """Get count of benefits for organization."""
-        result = await self.session.execute(
-            select(func.count(Benefit.id)).where(
-                Benefit.organization_id == organization_id,
-                Benefit.is_deleted.is_(False),
-            )
-        )
-        return result.scalar() or 0
-
-    async def get_enabled_benefits_count(self, organization_id: UUID4) -> int:
-        """Get count of benefits that are attached to at least one product."""
-        result = await self.session.execute(
-            select(func.count(func.distinct(Benefit.id)))
-            .join(ProductBenefit, Benefit.id == ProductBenefit.benefit_id)
-            .where(
-                Benefit.organization_id == organization_id,
-                Benefit.is_deleted.is_(False),
-            )
-        )
-        return result.scalar() or 0
-
     async def check_payout_account_enabled(self, organization: Organization) -> bool:
         """Check if payouts are enabled."""
         try:
@@ -293,7 +269,6 @@ class OrganizationSetupAnalyticsService:
         org_tokens_count: int,
         products_count: int,
         benefits_count: int,
-        user_verified: bool,
         payouts_enabled: bool,
     ) -> int:
         """Calculate setup score based on various metrics."""
@@ -304,7 +279,6 @@ class OrganizationSetupAnalyticsService:
                 1 if org_tokens_count > 0 else 0,
                 1 if products_count > 0 else 0,
                 1 if benefits_count > 0 else 0,
-                1 if user_verified else 0,
                 1 if payouts_enabled else 0,
             ]
         )

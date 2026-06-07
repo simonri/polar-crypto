@@ -1,4 +1,4 @@
-import type { JsonType } from '@posthog/core'
+import type { JsonType } from '@/hooks/posthog'
 
 /**
  * Utilities for telemetry around Polar's *own* billing-plan upgrade flow

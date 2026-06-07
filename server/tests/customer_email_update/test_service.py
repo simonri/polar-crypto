@@ -12,7 +12,6 @@ from polar.customer_email_update.service import (
     InvalidCustomerEmailUpdate,
 )
 from polar.exceptions import PolarRequestValidationError
-from polar.integrations.stripe.service import StripeService
 from polar.kit.crypto import generate_token_hash_pair, get_token_hash
 from polar.kit.utils import utc_now
 from polar.member.repository import MemberRepository
@@ -32,8 +31,10 @@ def mock_enqueue_email(mocker: MockerFixture) -> MagicMock:
 
 @pytest.fixture(autouse=True)
 def stripe_service_mock(mocker: MockerFixture) -> MagicMock:
-    mock = MagicMock(spec=StripeService)
-    mocker.patch("polar.customer_email_update.service.stripe_service", new=mock)
+    mock = MagicMock()
+    mocker.patch(
+        "polar.customer_email_update.service.stripe_service", new=mock, create=True
+    )
     return mock
 
 
@@ -223,14 +224,12 @@ class TestVerify:
             save_fixture,
             organization=organization,
             email="original@example.com",
-            stripe_customer_id="STRIPE_1",
         )
         # Another customer already has the target email
         await create_customer(
             save_fixture,
             organization=organization,
             email="taken@example.com",
-            stripe_customer_id="STRIPE_2",
         )
 
         _record, token = await _create_verification(
@@ -278,11 +277,6 @@ class TestVerify:
         call_args = mock_enqueue_email.call_args
         assert call_args[1]["to_email_addr"] == "old@example.com"
 
-        # Stripe synced
-        stripe_service_mock.update_customer.assert_called_once_with(
-            customer.stripe_customer_id, email="new@example.com"
-        )
-
         # Verification record should be deleted
         stmt = select(CustomerEmailVerification).where(
             CustomerEmailVerification.customer_id == customer.id
@@ -290,6 +284,7 @@ class TestVerify:
         result = await session.execute(stmt)
         assert result.scalars().first() is None
 
+    @pytest.mark.skip(reason="Stripe removed")
     async def test_no_stripe_sync_without_stripe_id(
         self,
         session: AsyncSession,
@@ -301,7 +296,6 @@ class TestVerify:
             save_fixture,
             organization=organization,
             email="nostripe@example.com",
-            stripe_customer_id=None,
         )
 
         _record, token = await _create_verification(
@@ -324,7 +318,6 @@ class TestVerify:
             save_fixture,
             organization=organization,
             email="has-email@example.com",
-            stripe_customer_id=None,
         )
         # Simulate a customer with no old email
         customer.email = None
@@ -352,7 +345,6 @@ class TestVerify:
             save_fixture,
             organization=organization,
             email="correct@example.com",
-            stripe_customer_id=None,
         )
         owner = Member(
             customer_id=customer.id,

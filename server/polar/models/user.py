@@ -1,5 +1,5 @@
 import time
-from datetime import date, datetime
+from datetime import datetime
 from enum import StrEnum
 from typing import Any
 from uuid import UUID
@@ -10,7 +10,6 @@ from sqlalchemy import (
     Boolean,
     Column,
     ColumnElement,
-    Date,
     ForeignKey,
     Integer,
     String,
@@ -25,7 +24,6 @@ from sqlalchemy.orm import Mapped, declared_attr, mapped_column, relationship
 from sqlalchemy.schema import Index, UniqueConstraint
 
 from polar.kit.db.models import RecordModel
-from polar.kit.extensions.sqlalchemy.types import StringEnum
 from polar.kit.schemas import Schema
 
 from .account import Account
@@ -38,20 +36,6 @@ class OAuthPlatform(StrEnum):
     google = "google"
     apple = "apple"
 
-
-class IdentityVerificationStatus(StrEnum):
-    unverified = "unverified"
-    pending = "pending"
-    verified = "verified"
-    failed = "failed"
-
-    def get_display_name(self) -> str:
-        return {
-            IdentityVerificationStatus.unverified: "Unverified",
-            IdentityVerificationStatus.pending: "Pending",
-            IdentityVerificationStatus.verified: "Verified",
-            IdentityVerificationStatus.failed: "Failed",
-        }[self]
 
 
 class OAuthAccount(RecordModel):
@@ -161,23 +145,6 @@ class User(RecordModel):
     def accepted_terms_of_service(self) -> bool:
         return self.accepted_terms_of_service_at is not None
 
-    stripe_customer_id: Mapped[str | None] = mapped_column(
-        String, nullable=True, default=None, unique=True
-    )
-
-    identity_verification_status: Mapped[IdentityVerificationStatus] = mapped_column(
-        StringEnum(IdentityVerificationStatus),
-        nullable=False,
-        default=IdentityVerificationStatus.unverified,
-    )
-    identity_verification_id: Mapped[str | None] = mapped_column(
-        String, nullable=True, default=None, unique=True
-    )
-
-    @property
-    def identity_verified(self) -> bool:
-        return self.identity_verification_status == IdentityVerificationStatus.verified
-
     # Time of blocking traffic/activity for given user
     blocked_at: Mapped[datetime | None] = mapped_column(
         TIMESTAMP(timezone=True),
@@ -186,18 +153,6 @@ class User(RecordModel):
     )
 
     meta: Mapped[dict[str, Any]] = mapped_column(JSONB, nullable=False, default=dict)
-
-    first_name: Mapped[str | None] = mapped_column(String, nullable=True, default=None)
-    last_name: Mapped[str | None] = mapped_column(String, nullable=True, default=None)
-    country: Mapped[str | None] = mapped_column(String(2), nullable=True, default=None)
-    date_of_birth: Mapped[date | None] = mapped_column(
-        Date, nullable=True, default=None
-    )
-
-    @property
-    def full_name(self) -> str | None:
-        parts = [p for p in (self.first_name, self.last_name) if p]
-        return " ".join(parts) if parts else None
 
     @hybrid_property
     def can_authenticate(self) -> bool:
@@ -244,10 +199,6 @@ class User(RecordModel):
 
     def get_github_account(self) -> OAuthAccount | None:
         return self.get_oauth_account(OAuthPlatform.github)
-
-    @property
-    def posthog_distinct_id(self) -> str:
-        return f"user:{self.id}"
 
     @property
     def public_name(self) -> str:

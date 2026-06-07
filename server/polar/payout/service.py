@@ -1,22 +1,15 @@
 import datetime
 import uuid
 from collections.abc import AsyncIterable, Sequence
-from typing import Any, cast
+from typing import Any
 
-import sentry_sdk
-import stripe as stripe_lib
 import structlog
 
 from polar.auth.models import AuthSubject, User
 from polar.auth.permission import OrganizationPermission
 from polar.authz.service import get_accessible_org_ids
 from polar.config import settings
-from polar.enums import PayoutAccountType
-from polar.eventstream.service import publish as eventstream_publish
-from polar.exceptions import PolarError, PolarRequestValidationError
-from polar.integrations.stripe.service import stripe as stripe_service
-from polar.integrations.stripe.utils import get_expandable_id
-from polar.invoice.service import invoice as invoice_service
+from polar.exceptions import PolarError
 from polar.kit.csv import IterableCSVWriter
 from polar.kit.currency import format_currency
 from polar.kit.db.postgres import AsyncSessionMaker
@@ -28,11 +21,8 @@ from polar.logging import Logger
 from polar.models import Account, Organization, Payout, PayoutAttempt
 from polar.models.organization import OrganizationStatus
 from polar.models.payout import PayoutStatus
-from polar.models.payout_attempt import PayoutAttemptStatus
-from polar.organization.repository import OrganizationRepository
 from polar.postgres import AsyncReadSession, AsyncSession
 from polar.transaction.repository import (
-    PayoutReversalTransactionRepository,
     PayoutTransactionRepository,
     TransactionRepository,
 )
@@ -46,8 +36,8 @@ from polar.transaction.service.platform_fee import (
 from polar.transaction.service.transaction import transaction as transaction_service
 from polar.worker import enqueue_job
 
-from .repository import PayoutAttemptRepository, PayoutRepository
-from .schemas import PayoutEstimate, PayoutGenerateInvoice, PayoutInvoice
+from .repository import PayoutRepository
+from .schemas import PayoutEstimate
 from .sorting import PayoutSortProperty
 
 log: Logger = structlog.get_logger()
@@ -174,39 +164,6 @@ class PayoutAttemptDoesNotExist(PayoutError):
             f"Received payout {payout_id} from Stripe, "
             "but it's not associated to a Payout."
         )
-        super().__init__(message, 404)
-
-
-class InvoiceAlreadyExists(PayoutError):
-    def __init__(self, payout: Payout) -> None:
-        self.payout = payout
-        message = f"An invoice already exists for payout {payout.id}."
-        super().__init__(message, 409)
-
-
-class PayoutNotSucceeded(PayoutError):
-    def __init__(self, payout: Payout) -> None:
-        self.payout = payout
-        message = (
-            f"Can't generate an invoice for payout {payout.id} because "
-            "it has not succeeded yet."
-        )
-        super().__init__(message, 400)
-
-
-class MissingInvoiceBillingDetails(PayoutError):
-    def __init__(self, payout: Payout) -> None:
-        self.payout = payout
-        message = (
-            "You must provide billing details for the account to generate an invoice."
-        )
-        super().__init__(message, 400)
-
-
-class InvoiceDoesNotExist(PayoutError):
-    def __init__(self, payout: Payout) -> None:
-        self.payout = payout
-        message = f"Invoice does not exist for payout {payout.id}."
         super().__init__(message, 404)
 
 
@@ -418,9 +375,6 @@ class PayoutService:
                     account_amount=balance_amount_after_fees,
                     account=account,
                     payout_account=payout_account,
-                    invoice_number=await self._get_next_invoice_number(
-                        session, account
-                    ),
                     attempts=[],
                 )
             )
@@ -441,293 +395,17 @@ class PayoutService:
 
             return payout
 
-    async def transfer(self, session: AsyncSession, payout: Payout) -> Payout:
-        """Move funds for a payout, whatever its processor.
+    async def update_from_stripe(self, *args: Any, **kwargs: Any) -> "PayoutAttempt":
+        raise NotImplementedError("Stripe payouts removed")
 
-        The caller (the ``payout.transfer`` task) holds a FOR UPDATE lock on the
-        payout row, so this re-checks the payout is still payable, guards against
-        a payout-account swap, and only then dispatches to the processor-specific
-        transfer. Kept processor-agnostic so any future processor inherits the
-        guards.
-        """
-        if payout.status in (PayoutStatus.canceled, PayoutStatus.held):
-            log.warning(
-                "payout.transfer.skipped_not_payable",
-                payout_id=str(payout.id),
-                status=payout.status,
-            )
-            return payout
+    async def sync_with_provider(self, *args: Any, **kwargs: Any) -> "PayoutAttempt":
+        raise NotImplementedError("Stripe payouts removed")
 
-        # The payout pins the payout account it was created against. If the org
-        # has since swapped its payout account (a release can win the race
-        # against the swap-cancel job), transferring would send funds to the
-        # abandoned account. Before any transfer is made, cancel + refund instead
-        # so the merchant re-requests against the current account.
-        payout_transaction_repository = PayoutTransactionRepository.from_session(
-            session
-        )
-        transaction = await payout_transaction_repository.get_by_payout_id(payout.id)
-        assert transaction is not None
-        if transaction.transfer_id is None:
-            organization_repository = OrganizationRepository.from_session(session)
-            organization = await organization_repository.get_by_account(
-                payout.account_id
-            )
-            if (
-                organization is not None
-                and organization.payout_account_id is not None
-                and organization.payout_account_id != payout.payout_account_id
-            ):
-                log.warning(
-                    "payout.transfer.skipped_payout_account_changed",
-                    payout_id=str(payout.id),
-                    pinned_payout_account_id=str(payout.payout_account_id),
-                    current_payout_account_id=str(organization.payout_account_id),
-                )
-                return await self.cancel(session, payout)
+    async def trigger_stripe_payouts(self, *args: Any, **kwargs: Any) -> None:
+        raise NotImplementedError("Stripe payouts removed")
 
-        if payout.processor == PayoutAccountType.stripe:
-            return await self.transfer_stripe(session, payout)
-
-        return payout
-
-    async def transfer_stripe(self, session: AsyncSession, payout: Payout) -> Payout:
-        """
-        The Stripe payout is a two-steps process:
-
-        1. Make the transfer to the Stripe Connect account
-        2. Trigger a payout on the Stripe Connect account,
-        but later once the balance is actually available.
-
-        This function performs the first step. Callers must go through
-        ``transfer``, which holds the row lock and runs the payable/swap guards.
-        """
-        payout_account = payout.payout_account
-        assert payout_account.stripe_id is not None
-
-        payout_transaction_repository = PayoutTransactionRepository.from_session(
-            session
-        )
-        transaction = await payout_transaction_repository.get_by_payout_id(payout.id)
-        assert transaction is not None
-
-        stripe_transfer = await stripe_service.transfer(
-            payout_account.stripe_id,
-            payout.amount,
-            metadata={
-                "payout_id": str(payout.id),
-                "payout_transaction_id": str(transaction.id),
-            },
-            idempotency_key=f"payout-{payout.id}",
-        )
-
-        transaction.transfer_id = stripe_transfer.id
-
-        # Different source and destination currencies: get the converted amount
-        account_amount = payout.account_amount
-        if transaction.currency != transaction.account_currency:
-            assert stripe_transfer.destination_payment is not None
-            stripe_destination_charge = await stripe_service.get_charge(
-                get_expandable_id(stripe_transfer.destination_payment),
-                stripe_account=payout_account.stripe_id,
-                expand=["balance_transaction"],
-            )
-            # Case where the charge don't lead to a balance transaction,
-            # e.g. when the converted amount is 0
-            if stripe_destination_charge.balance_transaction is None:
-                original_account_amount = 0
-            else:
-                stripe_destination_balance_transaction = cast(
-                    stripe_lib.BalanceTransaction,
-                    stripe_destination_charge.balance_transaction,
-                )
-                original_account_amount = stripe_destination_balance_transaction.amount
-
-            # For zero-decimal payout currencies (ISK, HUF, TWD, UGX), adjust
-            # the amount to be payable by Stripe (rounded down to nearest 100)
-            account_amount, remainder = _adjust_payout_amount_for_zero_decimal_currency(
-                original_account_amount, transaction.account_currency
-            )
-            if remainder > 0:
-                log.info(
-                    "Adjusted transfer amount for zero-decimal currency",
-                    payout_id=str(payout.id),
-                    original_amount=original_account_amount,
-                    adjusted_amount=account_amount,
-                    remainder=remainder,
-                    currency=transaction.account_currency,
-                )
-
-        await payout_transaction_repository.update(
-            transaction,
-            update_dict={
-                "account_amount": -account_amount,
-                "transfer_id": stripe_transfer.id,
-            },
-        )
-
-        payout_repository = PayoutRepository.from_session(session)
-        payout = await payout_repository.update(
-            payout, update_dict={"account_amount": account_amount}
-        )
-
-        return payout
-
-    async def update_from_stripe(
-        self, session: AsyncSession, stripe_payout: stripe_lib.Payout
-    ) -> PayoutAttempt:
-        """Update payout attempt status from Stripe webhook."""
-        attempt_repository = PayoutAttemptRepository.from_session(session)
-
-        attempt = await attempt_repository.get_by_processor_id(
-            PayoutAccountType.stripe, stripe_payout.id
-        )
-        if attempt is None:
-            raise PayoutAttemptDoesNotExist(stripe_payout.id)
-
-        status = PayoutAttemptStatus.from_stripe(stripe_payout.status)
-        update_dict: dict[str, Any] = {"status": status}
-
-        if status == PayoutAttemptStatus.failed and stripe_payout.failure_code:
-            update_dict["failed_reason"] = stripe_payout.failure_code
-            if stripe_payout.failure_message:
-                update_dict["failed_reason"] += f": {stripe_payout.failure_message}"
-
-        if (
-            status == PayoutAttemptStatus.succeeded
-            and stripe_payout.arrival_date is not None
-        ):
-            update_dict["paid_at"] = datetime.datetime.fromtimestamp(
-                stripe_payout.arrival_date, datetime.UTC
-            )
-
-        return await attempt_repository.update(attempt, update_dict=update_dict)
-
-    async def sync_with_provider(
-        self, session: AsyncSession, payout: Payout
-    ) -> PayoutAttempt:
-        """Sync the latest payout attempt state with the payment provider.
-
-        Retrieves the current state from the provider API and updates
-        the payout attempt as if a webhook was received.
-        """
-        latest_attempt = next(
-            (
-                attempt
-                for attempt in reversed(payout.attempts)
-                if attempt.processor_id is not None
-            ),
-            None,
-        )
-        if latest_attempt is None:
-            raise NoSyncableAttempt(payout)
-
-        if latest_attempt.processor == PayoutAccountType.stripe:
-            payout_account = payout.payout_account
-            assert payout_account.stripe_id is not None
-            assert latest_attempt.processor_id is not None
-            stripe_payout = await stripe_service.get_payout(
-                payout_id=latest_attempt.processor_id,
-                stripe_account=payout_account.stripe_id,
-            )
-            return await self.update_from_stripe(session, stripe_payout)
-
-        raise NoSyncableAttempt(payout)
-
-    async def trigger_stripe_payouts(self, session: AsyncSession) -> None:
-        """
-        The Stripe payout is a two-steps process:
-
-        1. Make the transfer to the Stripe Connect account.
-        2. Trigger a payout on the Stripe Connect account,
-        but later once our safety delay is passed and the balance is actually available.
-
-        This function performs the second step and tries to trigger pending payouts,
-        if balance is available.
-        """
-        repository = PayoutRepository.from_session(session)
-        for payout in await repository.get_all_stripe_pending():
-            enqueue_job("payout.trigger_stripe_payout", payout_id=payout.id)
-
-    async def trigger_stripe_payout(
-        self, session: AsyncSession, payout: Payout, account_amount: int | None = None
-    ) -> PayoutAttempt:
-        """
-        Trigger a Stripe payout for the given payout.
-        Creates a new payout attempt if none exists yet.
-
-        If account_amount is provided, only this amount will be attempted to be paid out,
-        instead of the full payout.account_amount.
-        This is useful for cases where Stripe refuses to pay out the full amount,
-        because it's too large for the given currency.
-        """
-        if payout.status == PayoutStatus.canceled:
-            raise PayoutCanceled(payout)
-
-        payout_account = payout.payout_account
-        assert payout_account.stripe_id is not None
-
-        if account_amount is not None:
-            if account_amount > payout.account_amount:
-                raise PayoutAmountTooLarge(payout, account_amount)
-        else:
-            account_amount = payout.account_amount
-
-        _, balance = await stripe_service.retrieve_balance(payout_account.stripe_id)
-        if balance < account_amount:
-            log.info(
-                "The Stripe Connect account doesn't have enough balance to make the payout yet",
-                payout_id=str(payout.id),
-                payout_account_id=str(payout_account.id),
-                balance=balance,
-                payout_amount=account_amount,
-            )
-            raise PayoutAccountInsufficientBalance(payout)
-
-        # Create a new payout attempt
-        attempt_repository = PayoutAttemptRepository.from_session(session)
-        attempt = await attempt_repository.create(
-            PayoutAttempt(
-                payout=payout,
-                processor=payout_account.type,
-                amount=account_amount,
-                currency=payout.account_currency,
-                status=PayoutAttemptStatus.pending,
-            ),
-            flush=True,
-        )
-
-        # Trigger a payout on the Stripe Connect account
-        try:
-            stripe_payout = await stripe_service.create_payout(
-                stripe_account=payout_account.stripe_id,
-                amount=account_amount,
-                currency=payout.account_currency,
-                metadata={
-                    "payout_id": str(payout.id),
-                    "payout_attempt_id": str(attempt.id),
-                },
-            )
-        except stripe_lib.InvalidRequestError as e:
-            # Capture exception in Sentry for debugging purposes
-            sentry_sdk.capture_exception(
-                e,
-                extras={"payout_id": str(payout.id)},
-            )
-            # Do not raise an error here: we know it happens often, because Stripe
-            # has many hidden rules on payout creation that we cannot control.
-            return await attempt_repository.update(
-                attempt,
-                update_dict={
-                    "status": PayoutAttemptStatus.failed,
-                    "failed_reason": str(e),
-                },
-            )
-
-        return await attempt_repository.update(
-            attempt,
-            update_dict={"processor_id": stripe_payout.id},
-        )
+    async def trigger_stripe_payout(self, *args: Any, **kwargs: Any) -> "PayoutAttempt":
+        raise NotImplementedError("Stripe payouts removed")
 
     async def cancel(self, session: AsyncSession, payout: Payout) -> Payout:
         # Lock + re-read before reversing: serializes concurrent cancels (e.g. a
@@ -738,158 +416,12 @@ class PayoutService:
             raise PayoutNotCancelable(payout)
 
         payout_transaction = payout.transaction
-        payout_reversal_transaction = await payout_transaction_service.reverse(
-            session, payout_transaction, payout
-        )
-
-        if (
-            payout.processor == PayoutAccountType.stripe
-            and payout_transaction.transfer_id is not None
-        ):
-            stripe_reversal = await stripe_service.reverse_transfer(
-                payout_transaction.transfer_id,
-                metadata={
-                    "payout_id": str(payout.id),
-                    "payout_reversal_transaction": str(payout_reversal_transaction.id),
-                },
-            )
-            payout_reversal_transaction_repository = (
-                PayoutReversalTransactionRepository.from_session(session)
-            )
-            await payout_reversal_transaction_repository.update(
-                payout_reversal_transaction,
-                update_dict={"transfer_reversal_id": stripe_reversal.id},
-            )
-        else:
-            # No transfer ran, so the per-payout fees were only reserved, never
-            # paid to Stripe. Return them so the merchant is made whole.
-            await platform_fee_transaction_service.create_payout_fees_reversal_balances(
-                session, payout=payout
-            )
+        await payout_transaction_service.reverse(session, payout_transaction)
 
         repository = PayoutRepository.from_session(session)
         return await repository.update(
             payout, update_dict={"status": PayoutStatus.canceled}
         )
-
-    async def release_held_payouts(
-        self, session: AsyncSession, account_id: uuid.UUID
-    ) -> None:
-        """Release every held payout for an account after its org is approved.
-
-        Moves each held payout back to ``pending`` and enqueues the Stripe
-        transfer that was skipped while it was held. Driven by the
-        ``payout.release_held_payouts`` task when a REVIEW/SNOOZED org becomes
-        ACTIVE.
-        """
-        repository = PayoutRepository.from_session(session)
-        payout_ids = await repository.release_held_by_account(account_id)
-        for payout_id in payout_ids:
-            enqueue_job("payout.transfer", payout_id=payout_id)
-
-    async def cancel_account_payouts(
-        self,
-        session: AsyncSession,
-        account_id: uuid.UUID,
-        *,
-        statuses: Sequence[PayoutStatus] = (
-            PayoutStatus.pending,
-            PayoutStatus.held,
-        ),
-        payout_account_id: uuid.UUID | None = None,
-    ) -> None:
-        """Cancel every in-flight payout for an account.
-
-        Defaults to cancelling both ``pending`` and ``held`` payouts, used when
-        an org leaves the review flow to a terminal state (denied, blocked,
-        offboarding). Restricted to ``held`` when a payout account is swapped
-        while a payout is still held, so the release can't transfer to a stale
-        account. ``payout_account_id`` further scopes the cancel to payouts
-        pinned to that payout account (the swap case passes the previous one).
-        """
-        repository = PayoutRepository.from_session(session)
-        payouts = await repository.get_by_account_and_statuses(
-            account_id,
-            statuses,
-            payout_account_id=payout_account_id,
-            options=repository.get_eager_options(),
-        )
-        for payout in payouts:
-            try:
-                await self.cancel(session, payout)
-            except PayoutNotCancelable:
-                # A concurrent cancel/transition already finalized this payout
-                # (cancel() locks and re-checks the row). Skip it rather than
-                # failing the whole job.
-                continue
-
-    async def trigger_invoice_generation(
-        self,
-        session: AsyncSession,
-        payout: Payout,
-        payout_generate_invoice: PayoutGenerateInvoice,
-    ) -> Payout:
-        if payout.is_invoice_generated:
-            raise InvoiceAlreadyExists(payout)
-
-        if payout.status != PayoutStatus.succeeded:
-            raise PayoutNotSucceeded(payout)
-
-        account = payout.account
-        if account.billing_name is None or account.billing_address is None:
-            raise MissingInvoiceBillingDetails(payout)
-
-        repository = PayoutRepository.from_session(session)
-        if payout_generate_invoice.invoice_number is not None:
-            existing_payout = await repository.get_by_account_and_invoice_number(
-                account.id, payout_generate_invoice.invoice_number
-            )
-            if existing_payout is not None and existing_payout.id != payout.id:
-                raise PolarRequestValidationError(
-                    [
-                        {
-                            "type": "value_error",
-                            "loc": ("body", "invoice_number"),
-                            "msg": "An invoice with this number already exists.",
-                            "input": payout_generate_invoice.invoice_number,
-                        }
-                    ]
-                )
-            payout = await repository.update(
-                payout,
-                update_dict={"invoice_number": payout_generate_invoice.invoice_number},
-            )
-
-        enqueue_job("payout.invoice", payout_id=payout.id)
-
-        return payout
-
-    async def generate_invoice(self, session: AsyncSession, payout: Payout) -> Payout:
-        invoice_path = await invoice_service.create_payout_invoice(session, payout)
-        repository = PayoutRepository.from_session(session)
-        payout = await repository.update(
-            payout, update_dict={"invoice_path": invoice_path}
-        )
-
-        organization_repository = OrganizationRepository.from_session(session)
-        account_organizations = await organization_repository.get_all_by_account(
-            payout.account_id
-        )
-        for organization in account_organizations:
-            await eventstream_publish(
-                "payout.invoice_generated",
-                {"payout_id": payout.id},
-                organization_id=organization.id,
-            )
-
-        return payout
-
-    async def get_invoice(self, payout: Payout) -> PayoutInvoice:
-        if not payout.is_invoice_generated:
-            raise InvoiceDoesNotExist(payout)
-
-        url, _ = await invoice_service.get_payout_invoice_url(payout)
-        return PayoutInvoice(url=url)
 
     async def get_csv(
         self, session: AsyncSession, sessionmaker: AsyncSessionMaker, payout: Payout
@@ -964,23 +496,6 @@ class PayoutService:
                         abs(payout.account_amount / 100),
                     )
                 )
-
-    async def _get_next_invoice_number(
-        self, session: AsyncSession, account: Account, increment: int = 1
-    ) -> str:
-        repository = PayoutRepository.from_session(session)
-        payouts_count = await repository.count_by_account(account.id)
-        invoice_number = (
-            f"{settings.PAYOUT_INVOICES_PREFIX}{payouts_count + increment:04d}"
-        )
-        existing_payout = await repository.get_by_account_and_invoice_number(
-            account.id, invoice_number
-        )
-        if existing_payout is not None:
-            return await self._get_next_invoice_number(
-                session, account, increment=increment + 1
-            )
-        return invoice_number
 
 
 payout = PayoutService()

@@ -5,7 +5,6 @@ import { TabsContent } from '@polar-sh/ui/components/atoms/Tabs'
 import { parseAsString, useQueryState } from 'nuqs'
 import { Events } from '../Events/Events'
 import EventSelect from '../Events/EventSelect'
-import MeterSelector from '../Meter/MeterSelector'
 import { EmptyState } from '../CustomerPortal/EmptyState'
 import ShortTextOutlined from '@mui/icons-material/ShortTextOutlined'
 
@@ -18,7 +17,6 @@ export const CustomerEventsView = ({
   organization: schemas['Organization']
   dateRange: { startDate: Date; endDate: Date }
 }) => {
-  const [meterId, setMeterId] = useQueryState('meterId', parseAsString)
   const [eventName, setEventName] = useQueryState(
     'eventName',
     parseAsString.withDefault('all'),
@@ -32,7 +30,6 @@ export const CustomerEventsView = ({
   } = useInfiniteEvents(customer.organization_id, {
     limit: 50,
     customer_id: customer.id,
-    ...(meterId ? { meter_id: meterId } : {}),
     ...(eventName !== 'all' ? { name: eventName } : {}),
     ...(dateRange?.startDate
       ? { start_timestamp: dateRange.startDate.toISOString() }
@@ -57,13 +54,6 @@ export const CustomerEventsView = ({
               setEventName(eventName)
             }
           }}
-        />
-        <MeterSelector
-          className="min-w-64"
-          organizationId={customer.organization_id}
-          value={meterId}
-          onChange={setMeterId}
-          placeholder="All Meters"
         />
       </div>
       {events?.pages.flatMap((page) => page.items).length === 0 ? (

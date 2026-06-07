@@ -146,8 +146,6 @@ class MemberService:
                     ]
                 )
 
-        enqueue_job("customer_seat.revoke_seats_for_member", member_id=member.id)
-
         deleted_member = await repository.soft_delete(member)
         log.info(
             "member.delete.success",
@@ -179,10 +177,6 @@ class MemberService:
         Unlike delete(), this skips the owner guard since the entire
         customer is being removed.
         """
-        from polar.benefit.grant.service import (
-            benefit_grant as benefit_grant_service,
-        )
-
         repository = MemberRepository.from_session(session)
         members = await repository.list_by_customer(customer_id)
 
@@ -196,10 +190,6 @@ class MemberService:
 
         deleted: list[Member] = []
         for member in members:
-            enqueue_job("customer_seat.revoke_seats_for_member", member_id=member.id)
-            await benefit_grant_service.enqueue_member_grant_deletions(
-                session, member.id
-            )
             deleted_member = await repository.soft_delete(member)
             log.info(
                 "member.delete.success",
@@ -273,10 +263,7 @@ class MemberService:
             Created/existing Member if feature flag enabled, None if flag disabled
         """
         member_model = organization.feature_settings.get("member_model_enabled", False)
-        seat_based = organization.feature_settings.get(
-            "seat_based_pricing_enabled", False
-        )
-        if not member_model and not seat_based:
+        if not member_model:
             log.debug(
                 "member.create_owner_member.skipped",
                 reason="feature_flag_disabled",
@@ -383,10 +370,7 @@ class MemberService:
             Created/existing Member if feature flag enabled, None if flag disabled
         """
         member_model = organization.feature_settings.get("member_model_enabled", False)
-        seat_based = organization.feature_settings.get(
-            "seat_based_pricing_enabled", False
-        )
-        if not member_model and not seat_based:
+        if not member_model:
             return None
 
         if customer.email is None:
@@ -561,10 +545,7 @@ class MemberService:
         member_model = customer.organization.feature_settings.get(
             "member_model_enabled", False
         )
-        seat_based = customer.organization.feature_settings.get(
-            "seat_based_pricing_enabled", False
-        )
-        if not member_model and not seat_based:
+        if not member_model:
             raise NotPermitted("Member management is not enabled for this organization")
 
         email = email.strip()

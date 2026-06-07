@@ -1,5 +1,4 @@
 import builtins
-from decimal import Decimal
 from typing import Annotated, Any, Literal
 
 from pydantic import (
@@ -15,13 +14,11 @@ from pydantic.aliases import AliasChoices
 from pydantic.json_schema import SkipJsonSchema
 from pydantic_core import PydanticCustomError
 
-from polar.benefit.schemas import Benefit, BenefitID, BenefitPublic
 from polar.custom_field.schemas import (
     AttachedCustomField,
     AttachedCustomFieldListCreate,
 )
-from polar.enums import SubscriptionRecurringInterval, TaxBehaviorOption
-from polar.file.schemas import ProductMediaFileRead
+from polar.enums import SubscriptionRecurringInterval
 from polar.kit.currency import (
     MAXIMUM_PRICE_PER_CURRENCY_DOCSTRING,
     MINIMUM_PRICE_PER_CURRENCY_DOCSTRING,
@@ -47,13 +44,11 @@ from polar.kit.schemas import (
 )
 from polar.kit.trial import TrialConfigurationInputMixin, TrialConfigurationOutputMixin
 from polar.kit.visibility import Visibility
-from polar.meter.unit import MeterUnit
 from polar.models.product import ProductVisibility
 from polar.models.product_price import (
     ProductPriceAmountType,
     ProductPriceSource,
     ProductPriceType,
-    SeatTierType,
 )
 from polar.models.product_price import (
     ProductPriceCustom as ProductPriceCustomModel,
@@ -64,19 +59,10 @@ from polar.models.product_price import (
 from polar.models.product_price import (
     ProductPriceFree as ProductPriceFreeModel,
 )
-from polar.models.product_price import (
-    ProductPriceMeteredUnit as ProductPriceMeteredUnitModel,
-)
-from polar.models.product_price import (
-    ProductPriceSeatUnit as ProductPriceSeatUnitModel,
-)
 from polar.organization.schemas import OrganizationID
 
 PRODUCT_NAME_MIN_LENGTH = 3
 PRODUCT_NAME_MAX_LENGTH = 64
-
-# PostgreSQL int4 range limit
-INT_MAX_VALUE = 2_147_483_647
 
 # Product
 
@@ -112,14 +98,6 @@ PriceAmount = Annotated[
         description=f"The price in cents.\nMinimum amounts per currency:\n{MINIMUM_PRICE_PER_CURRENCY_DOCSTRING}",
     ),
 ]
-SeatPriceAmount = Annotated[
-    int,
-    Field(
-        ...,
-        ge=0,
-        description="The price per seat in cents. Can be 0 for free tiers.",
-    ),
-]
 PriceCurrency = Annotated[
     PresentmentCurrency,
     Field(description="The currency in which the customer will be charged."),
@@ -143,13 +121,6 @@ ProductDescription = Annotated[
 class ProductPriceCreateBase(Schema):
     amount_type: ProductPriceAmountType
     price_currency: PriceCurrency = PresentmentCurrency.usd
-    tax_behavior: TaxBehaviorOption | None = Field(
-        default=None,
-        description=(
-            "The tax behavior of the price. "
-            "If not set, it will default to the organization's default tax behavior."
-        ),
-    )
 
     def get_model_class(self) -> builtins.type[Model]:
         raise NotImplementedError()
@@ -241,148 +212,10 @@ class ProductPriceFreeCreate(ProductPriceCreateBase):
         return ProductPriceFreeModel
 
 
-class ProductPriceSeatTier(Schema):
-    """
-    A pricing tier for seat-based pricing.
-    """
-
-    min_seats: int = Field(ge=1, description="Minimum number of seats (inclusive)")
-    max_seats: int | None = Field(
-        default=None,
-        ge=1,
-        description="Maximum number of seats (inclusive). None for unlimited.",
-    )
-    price_per_seat: SeatPriceAmount = Field(
-        description="Price per seat in cents for this tier"
-    )
-
-
-class ProductPriceSeatTiers(Schema):
-    """
-    List of pricing tiers for seat-based pricing.
-
-    The minimum and maximum seat limits are derived from the tiers:
-    - minimum_seats = first tier's min_seats
-    - maximum_seats = last tier's max_seats (None for unlimited)
-    """
-
-    seat_tier_type: SeatTierType = Field(
-        default=SeatTierType.volume,
-        description="How tiers are applied. 'volume' prices all seats at the matching tier's rate. 'graduated' prices each tier's range independently.",
-    )
-    tiers: list[ProductPriceSeatTier] = Field(
-        min_length=1, description="List of pricing tiers"
-    )
-
-    @field_validator("tiers")
-    @classmethod
-    def validate_tiers(
-        cls, v: list[ProductPriceSeatTier]
-    ) -> list[ProductPriceSeatTier]:
-        """Validate that tiers form continuous ranges without gaps or overlaps."""
-        if not v:
-            raise ValueError("At least one tier is required")
-
-        # Sort by min_seats
-        sorted_tiers = sorted(v, key=lambda t: t.min_seats)
-
-        # First tier must start at >= 1
-        if sorted_tiers[0].min_seats < 1:
-            raise ValueError("First tier must start at min_seats >= 1")
-
-        # Validate continuous ranges without gaps/overlaps
-        for i in range(len(sorted_tiers) - 1):
-            current = sorted_tiers[i]
-            next_tier = sorted_tiers[i + 1]
-
-            if current.max_seats is None:
-                raise ValueError(
-                    "Only the last tier can have unlimited max_seats (None)"
-                )
-
-            if next_tier.min_seats != current.max_seats + 1:
-                raise ValueError(
-                    "Gap or overlap between tiers: "
-                    + f"tier ending at {current.max_seats} and tier starting at {next_tier.min_seats}"
-                )
-
-        return sorted_tiers
-
-    @computed_field(
-        description="Minimum number of seats required for purchase, derived from first tier."
-    )
-    def minimum_seats(self) -> int:
-        """Get minimum seats from the first tier.
-
-        Note: tiers are guaranteed to be sorted by the validator.
-        """
-        if not self.tiers:
-            return 1
-        return self.tiers[0].min_seats
-
-    @computed_field(
-        description="Maximum number of seats allowed for purchase, derived from last tier. None for unlimited."
-    )
-    def maximum_seats(self) -> int | None:
-        """Get maximum seats from the last tier.
-
-        Note: tiers are guaranteed to be sorted by the validator.
-        """
-        if not self.tiers:
-            return None
-        return self.tiers[-1].max_seats
-
-
-class ProductPriceSeatBasedCreate(ProductPriceCreateBase):
-    """
-    Schema to create a seat-based price with volume-based tiers.
-    """
-
-    amount_type: Literal[ProductPriceAmountType.seat_based]
-    seat_tiers: ProductPriceSeatTiers = Field(
-        description="Tiered pricing based on seat quantity"
-    )
-
-    def get_model_class(self) -> builtins.type[ProductPriceSeatUnitModel]:
-        return ProductPriceSeatUnitModel
-
-
-class ProductPriceMeteredCreateBase(ProductPriceCreateBase):
-    meter_id: UUID4 = Field(description="The ID of the meter associated to the price.")
-
-
-class ProductPriceMeteredUnitCreate(ProductPriceMeteredCreateBase):
-    """
-    Schema to create a metered price with a fixed unit price.
-    """
-
-    amount_type: Literal[ProductPriceAmountType.metered_unit]
-    unit_amount: Decimal = Field(
-        gt=0,
-        max_digits=17,
-        decimal_places=12,
-        description="The price per unit in cents. Supports up to 12 decimal places.",
-    )
-    cap_amount: int | None = Field(
-        default=None,
-        ge=0,
-        le=INT_MAX_VALUE,
-        description=(
-            "Optional maximum amount in cents that can be charged, "
-            "regardless of the number of units consumed."
-        ),
-    )
-
-    def get_model_class(self) -> builtins.type[ProductPriceMeteredUnitModel]:
-        return ProductPriceMeteredUnitModel
-
-
 ProductPriceCreate = Annotated[
     ProductPriceFixedCreate
     | ProductPriceCustomCreate
-    | ProductPriceFreeCreate
-    | ProductPriceSeatBasedCreate
-    | ProductPriceMeteredUnitCreate,
+    | ProductPriceFreeCreate,
     Discriminator("amount_type"),
 ]
 
@@ -395,8 +228,7 @@ ProductPriceCreateList = Annotated[
             "title": "ProductPriceCreateList",
             "description": (
                 "List of prices for the product. "
-                "At most one static price (fixed, custom or free) is allowed. "
-                "Any number of metered prices can be added."
+                "At most one static price (fixed, custom or free) is allowed."
             ),
         }
     ),
@@ -413,17 +245,7 @@ class ProductCreateBase(MetadataInputMixin, Schema):
     prices: ProductPriceCreateList = Field(
         ...,
         description="List of available prices for this product. "
-        "It should contain at most one static price (fixed, custom or free), and "
-        "any number of metered prices. "
-        "Metered prices are not supported on one-time purchase products.",
-    )
-    medias: list[UUID4] | None = Field(
-        default=None,
-        description=(
-            "List of file IDs. "
-            "Each one must be on the same organization as the product, "
-            "of type `product_media` and correctly uploaded."
-        ),
+        "It should contain at most one static price (fixed, custom or free).",
     )
     attached_custom_fields: AttachedCustomFieldListCreate = Field(default_factory=list)
     organization_id: OrganizationID | None = Field(
@@ -540,28 +362,7 @@ class ProductUpdate(TrialConfigurationInputMixin, MetadataInputMixin, Schema):
             "as an `ExistingProductPrice` object."
         ),
     )
-    medias: list[UUID4] | None = Field(
-        default=None,
-        description=(
-            "List of file IDs. "
-            "Each one must be on the same organization as the product, "
-            "of type `product_media` and correctly uploaded."
-        ),
-    )
     attached_custom_fields: AttachedCustomFieldListCreate | None = None
-
-
-class ProductBenefitsUpdate(Schema):
-    """
-    Schema to update the benefits granted by a product.
-    """
-
-    benefits: list[BenefitID] = Field(
-        description=(
-            "List of benefit IDs. "
-            "Each one must be on the same organization as the product."
-        )
-    )
 
 
 class ProductPriceBase(TimestampedSchema):
@@ -578,12 +379,6 @@ class ProductPriceBase(TimestampedSchema):
     )
     price_currency: str = Field(
         description="The currency in which the customer will be charged."
-    )
-    tax_behavior: TaxBehaviorOption | None = Field(
-        description=(
-            "The tax behavior of the price. "
-            "If null, it defaults to the organization's default tax behavior."
-        )
     )
     is_archived: bool = Field(
         description="Whether the price is archived and no longer available."
@@ -631,28 +426,6 @@ class ProductPriceCustomBase(ProductPriceBase):
 
 class ProductPriceFreeBase(ProductPriceBase):
     amount_type: Literal[ProductPriceAmountType.free]
-
-
-class ProductPriceSeatBasedBase(ProductPriceBase):
-    amount_type: Literal[ProductPriceAmountType.seat_based]
-    seat_tiers: ProductPriceSeatTiers = Field(
-        description="Tiered pricing based on seat quantity"
-    )
-
-    @computed_field(
-        description="Price per seat in cents from the first tier.",
-        deprecated=(
-            "Use `seat_tiers` instead. "
-            "The tiered pricing system supports volume-based pricing with multiple tiers. "
-            "This field returns only the first tier's price for backward compatibility."
-        ),
-    )
-    def price_per_seat(self) -> SkipJsonSchema[int]:
-        """Return price_per_seat from first tier for backward compatibility."""
-        if not self.seat_tiers.tiers:
-            # This shouldn't happen due to validation, but protect against it
-            raise ValueError("seat_tiers must contain at least one tier")
-        return self.seat_tiers.tiers[0].price_per_seat
 
 
 class LegacyRecurringProductPriceMixin:
@@ -739,48 +512,8 @@ class ProductPriceFree(ProductPriceFreeBase):
     """
 
 
-class ProductPriceSeatBased(ProductPriceSeatBasedBase):
-    """
-    A seat-based price for a product.
-    """
-
-
-class ProductPriceMeter(IDSchema):
-    """
-    A meter associated to a metered price.
-    """
-
-    name: str = Field(description="The name of the meter.")
-    unit: MeterUnit = Field(description="The unit of the meter.")
-    custom_label: str | None = Field(None, description="The label for the custom unit.")
-    custom_multiplier: int | None = Field(
-        None, description="The multiplier to convert from base unit to display scale."
-    )
-
-
-class ProductPriceMeteredUnit(ProductPriceBase):
-    """
-    A metered, usage-based, price for a product, with a fixed unit price.
-    """
-
-    amount_type: Literal[ProductPriceAmountType.metered_unit]
-    unit_amount: Decimal = Field(description="The price per unit in cents.")
-    cap_amount: int | None = Field(
-        description=(
-            "The maximum amount in cents that can be charged, "
-            "regardless of the number of units consumed."
-        )
-    )
-    meter_id: UUID4 = Field(description="The ID of the meter associated to the price.")
-    meter: ProductPriceMeter = Field(description="The meter associated to the price.")
-
-
 NewProductPrice = Annotated[
-    ProductPriceFixed
-    | ProductPriceCustom
-    | ProductPriceFree
-    | ProductPriceSeatBased
-    | ProductPriceMeteredUnit,
+    ProductPriceFixed | ProductPriceCustom | ProductPriceFree,
     Discriminator("amount_type"),
     SetSchemaReference("ProductPrice"),
 ]
@@ -833,37 +566,12 @@ ProductPriceList = Annotated[
         description="List of prices for this product.",
     ),
 ]
-BenefitList = Annotated[
-    list[Benefit],
-    Field(
-        description="List of benefits granted by the product.",
-    ),
-]
-ProductMediaList = Annotated[
-    list[ProductMediaFileRead],
-    Field(
-        description="List of medias associated to the product.",
-    ),
-]
-
-
 class Product(MetadataOutputMixin, ProductBase):
     """
     A product.
     """
 
     prices: ProductPriceList
-    benefits: BenefitList
-    medias: ProductMediaList
     attached_custom_fields: list[AttachedCustomField] = Field(
         description="List of custom fields attached to the product."
     )
-
-
-BenefitPublicList = Annotated[
-    list[BenefitPublic],
-    Field(
-        title="BenefitPublic",
-        description="List of benefits granted by the product.",
-    ),
-]

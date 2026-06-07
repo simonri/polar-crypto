@@ -1,22 +1,14 @@
 import uuid
 from collections.abc import Sequence
 
-import stripe as stripe_lib
-
 from polar.auth.models import AuthSubject, Organization, User
 from polar.authz.service import get_accessible_org_ids
-from polar.enums import PaymentProcessor, TaxBehaviorOption
 from polar.exceptions import PolarError
-from polar.integrations.stripe.service import stripe as stripe_service
 from polar.kit.pagination import PaginationParams
 from polar.kit.sorting import Sorting
 from polar.models import Customer, Order, Wallet, WalletTransaction
-from polar.models.payment_method import PaymentMethod
 from polar.models.wallet import WalletType
-from polar.payment_method.service import payment_method as payment_method_service
 from polar.postgres import AsyncReadSession, AsyncSession
-from polar.tax.calculation import TaxBreakdownItem, TaxCode
-from polar.tax.calculation import tax_calculation as tax_calculation_service
 
 from .repository import WalletRepository, WalletTransactionRepository
 from .sorting import WalletSortProperty
@@ -30,24 +22,6 @@ class MissingPaymentMethodError(WalletError):
         self.wallet = wallet
         message = "No payment method available for the wallet's customer."
         super().__init__(message, 402)
-
-
-class InvalidPaymentMethodError(WalletError):
-    def __init__(self, wallet: Wallet, payment_method: PaymentMethod) -> None:
-        self.wallet = wallet
-        self.payment_method = payment_method
-        message = "The payment method does not belong to the wallet's customer."
-        super().__init__(message, 403)
-
-
-class PaymentIntentFailedError(WalletError):
-    def __init__(
-        self, wallet: Wallet, payment_intent: stripe_lib.PaymentIntent
-    ) -> None:
-        self.wallet = wallet
-        self.payment_intent = payment_intent
-        message = "Payment failed."
-        super().__init__(message, 400)
 
 
 class WalletService:
@@ -103,74 +77,15 @@ class WalletService:
         session: AsyncSession,
         wallet: Wallet,
         amount: int,
-        payment_method: PaymentMethod | None = None,
+        payment_method: None = None,
     ) -> WalletTransaction:
-        if payment_method is None:
-            payment_method = await payment_method_service.get_customer_payment_method(
-                session, wallet.customer
-            )
-            if payment_method is None:
-                raise MissingPaymentMethodError(wallet)
-
-        if payment_method.customer != wallet.customer:
-            raise InvalidPaymentMethodError(wallet, payment_method)
-
-        customer = wallet.customer
-        billing_address = customer.billing_address
-
-        # Calculate tax
-        tax_amount = 0
-        tax_calculation_processor_id: str | None = None
-        tax_breakdown: list[TaxBreakdownItem] | None = None
-        if billing_address is not None:
-            tax_id = customer.tax_id
-            tax_calculation, _ = await tax_calculation_service.calculate(
-                f"top_up:{wallet.id}:{uuid.uuid4()}",
-                wallet.currency,
-                amount,
-                TaxBehaviorOption.exclusive,  # TODO: add tax behavior to wallet top-up
-                TaxCode.general_electronically_supplied_services,
-                billing_address,
-                [tax_id] if tax_id is not None else [],
-                False,
-            )
-            tax_calculation_processor_id = tax_calculation["processor_id"]
-            tax_amount = tax_calculation["amount"]
-            tax_breakdown = tax_calculation["tax_breakdown"]
-
-        transaction = await self.create_transaction(
-            session,
-            wallet,
-            amount,
-            tax_amount=tax_amount,
-            tax_breakdown=tax_breakdown,
-            tax_calculation_processor_id=tax_calculation_processor_id,
-            flush=True,
-        )
-        total_amount = amount + tax_amount
-
-        if payment_method.processor == PaymentProcessor.stripe:
-            organization = wallet.organization
-            assert customer.stripe_customer_id is not None
-            payment_intent = await stripe_service.create_payment_intent(
-                amount=total_amount,
-                currency=wallet.currency,
-                payment_method=payment_method.processor_id,
-                customer=customer.stripe_customer_id,
-                confirm=True,
-                off_session=True,
-                statement_descriptor_suffix=organization.statement_descriptor(),
-                description=f"{organization.name} — Wallet Top-Up",
-                metadata={
-                    "organization_id": str(organization.id),
-                    "customer_id": str(wallet.customer.id),
-                    "wallet_id": str(wallet.id),
-                    "wallet_transaction_id": str(transaction.id),
-                },
+        # Crypto wallets do not support top-up via payment method charges
+        if payment_method is not None:
+            raise NotImplementedError(
+                "Wallet top-up via payment method is not supported with crypto payments"
             )
 
-            if payment_intent.status != "succeeded":
-                raise PaymentIntentFailedError(wallet, payment_intent)
+        transaction = await self.create_transaction(session, wallet, amount, flush=True)
 
         # Refresh wallet balance
         await session.flush()
@@ -184,9 +99,6 @@ class WalletService:
         wallet: Wallet,
         amount: int,
         *,
-        tax_amount: int | None = None,
-        tax_breakdown: Sequence[TaxBreakdownItem] | None = None,
-        tax_calculation_processor_id: str | None = None,
         order: Order | None = None,
         flush: bool = False,
     ) -> WalletTransaction:
@@ -196,9 +108,6 @@ class WalletService:
                 currency=wallet.currency,
                 amount=amount,
                 wallet=wallet,
-                tax_amount=tax_amount,
-                tax_breakdown=tax_breakdown,
-                tax_calculation_processor_id=tax_calculation_processor_id,
                 order=order,
             ),
             flush=flush,

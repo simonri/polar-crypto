@@ -4,8 +4,7 @@ import { useBackupCodesVerify } from '@/hooks'
 import { setValidationErrors } from '@/utils/api/errors'
 import { CONFIG } from '@/utils/config'
 import { isValidationError } from '@polar-sh/client'
-import { Button } from '@polar-sh/orbit'
-import { Input } from '@polar-sh/orbit'
+import { Button, Input } from '@polar-sh/orbit'
 import {
   Form,
   FormControl,

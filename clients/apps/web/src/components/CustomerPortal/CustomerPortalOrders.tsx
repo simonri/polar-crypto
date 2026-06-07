@@ -113,7 +113,6 @@ export const CustomerPortalOrders = ({
               <CustomerPortalOrder
                 api={api}
                 order={selectedOrder}
-                customerSessionToken={customerSessionToken}
                 themingPreset={themingPreset}
               />
             </div>

@@ -68,7 +68,7 @@ works because its identity is on the ruleset's bypass list.
 
 ## Docker dev environment
 
-One shared infra stack (postgres, redis, minio, tinybird) plus one app stack (api, worker, web) per worktree, each on its own DB / Redis index / buckets. Service-aware commands auto-route by service name (`api`/`worker`/`web` → this instance, `db`/`redis`/`minio`/`tinybird` → shared). `dev docker --help` for the full list.
+One shared infra stack (postgres, redis, tinybird) plus one app stack (api, worker, web) per worktree, each on its own DB / Redis index. Service-aware commands auto-route by service name (`api`/`worker`/`web` → this instance, `db`/`redis`/`tinybird` → shared). `dev docker --help` for the full list.
 
 ```bash
 dev docker up                           # shared infra (if needed) + this instance's app stack

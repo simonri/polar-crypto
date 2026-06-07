@@ -118,34 +118,3 @@ export const useUpdateProduct = (organization: schemas['Organization']) =>
       })
     },
   })
-
-export const useUpdateProductBenefits = (
-  organization: schemas['Organization'],
-) =>
-  useMutation({
-    mutationFn: ({
-      id,
-      body,
-    }: {
-      id: string
-      body: schemas['ProductBenefitsUpdate']
-    }) => {
-      return api.POST('/v1/products/{id}/benefits', {
-        params: { path: { id } },
-        body,
-      })
-    },
-    onSuccess: async (result, variables) => {
-      if (result.error) {
-        return
-      }
-      const queryClient = getQueryClient()
-      queryClient.invalidateQueries({
-        queryKey: ['products', { organizationId: organization.id }],
-      })
-
-      queryClient.invalidateQueries({
-        queryKey: ['products', { id: variables.id }],
-      })
-    },
-  })

@@ -15,7 +15,6 @@ from polar.config import settings
 from polar.logging import CorrelationID, Logger
 from polar.redis import Redis
 
-from . import _sqs
 from ._debounce import set_debounce_key
 
 log: Logger = structlog.get_logger()
@@ -75,20 +74,7 @@ class JobQueueManager:
             self.reset()
             return
 
-        if settings.WORKER_SQS_ENABLED and settings.WORKER_SQS_ACTORS:
-            sqs_jobs = [
-                job
-                for job in self._enqueued_jobs
-                if job[0] in settings.WORKER_SQS_ACTORS
-            ]
-            redis_jobs = [
-                job
-                for job in self._enqueued_jobs
-                if job[0] not in settings.WORKER_SQS_ACTORS
-            ]
-        else:
-            sqs_jobs = []
-            redis_jobs = self._enqueued_jobs
+        redis_jobs = self._enqueued_jobs
 
         queue_messages = defaultdict[str, list[tuple[str, Any]]](list)
         all_messages: list[tuple[str, Any]] = []
@@ -145,16 +131,6 @@ class JobQueueManager:
         for actor_name, encoded_message in all_messages:
             log.debug(
                 "polar.worker.job_flushed", actor=actor_name, message=encoded_message
-            )
-
-        # Send SQS last so an SQS failure can't drop the Redis jobs above.
-        if sqs_jobs:
-            correlation_id = CorrelationID.get()
-            await _sqs.send_jobs(
-                [
-                    (actor_name, args, kwargs, delay, correlation_id)
-                    for actor_name, args, kwargs, delay in sqs_jobs
-                ]
             )
 
         self.reset()

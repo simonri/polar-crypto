@@ -3,9 +3,7 @@ import { PolarHog, usePostHog } from '@/hooks/posthog'
 import AllInclusiveOutlined from '@mui/icons-material/AllInclusiveOutlined'
 import AttachMoneyOutlined from '@mui/icons-material/AttachMoneyOutlined'
 import CodeOutlined from '@mui/icons-material/CodeOutlined'
-import DiamondOutlined from '@mui/icons-material/DiamondOutlined'
 import DiscountOutlined from '@mui/icons-material/DiscountOutlined'
-import DonutLargeOutlined from '@mui/icons-material/DonutLargeOutlined'
 import HiveOutlined from '@mui/icons-material/HiveOutlined'
 import LinkOutlined from '@mui/icons-material/LinkOutlined'
 import PeopleAltOutlined from '@mui/icons-material/PeopleAltOutlined'
@@ -211,16 +209,6 @@ const generalRoutesList = (org?: schemas['Organization']): Route[] => [
         title: 'Discounts',
         link: `/dashboard/${org?.slug}/products/discounts`,
         icon: <DiscountOutlined fontSize="inherit" />,
-      },
-      {
-        title: 'Benefits',
-        link: `/dashboard/${org?.slug}/products/benefits`,
-        icon: <DiamondOutlined fontSize="inherit" />,
-      },
-      {
-        title: 'Meters',
-        link: `/dashboard/${org?.slug}/products/meters`,
-        icon: <DonutLargeOutlined fontSize="inherit" />,
       },
     ],
   },

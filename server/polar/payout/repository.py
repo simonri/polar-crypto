@@ -101,50 +101,7 @@ class PayoutRepository(
         )
         return await self.count(statement)
 
-    async def get_by_account_and_statuses(
-        self,
-        account_id: UUID,
-        statuses: Sequence[PayoutStatus],
-        *,
-        payout_account_id: UUID | None = None,
-        options: Options = (),
-    ) -> Sequence[Payout]:
-        statement = (
-            self.get_base_statement()
-            .where(
-                Payout.account_id == account_id,
-                Payout.status.in_(statuses),
-            )
-            # Deterministic order so concurrent cancel jobs lock rows in the
-            # same order (FOR UPDATE in cancel()) and can't deadlock.
-            .order_by(Payout.created_at.asc(), Payout.id.asc())
-            .options(*options)
-        )
-        if payout_account_id is not None:
-            statement = statement.where(Payout.payout_account_id == payout_account_id)
-        return await self.get_all(statement)
-
-    async def release_held_by_account(self, account_id: UUID) -> Sequence[UUID]:
-        """Move every held payout for an account back to `pending`.
-
-        Returns the ids of the released payouts so the caller can enqueue the
-        Stripe transfer that was skipped while they were held. Done as a single
-        UPDATE ... RETURNING so concurrent releases can't double-release a row.
-        """
-        statement = (
-            update(Payout)
-            .where(
-                Payout.account_id == account_id,
-                Payout.status == PayoutStatus.held,
-                Payout.deleted_at.is_(None),
-            )
-            .values(status=PayoutStatus.pending)
-            .returning(Payout.id)
-        )
-        result = await self.session.execute(statement)
-        return [row[0] for row in result.all()]
-
-    async def get_all_stripe_pending(
+    async def get_all_pending(
         self, delay: timedelta = settings.ACCOUNT_PAYOUT_DELAY
     ) -> Sequence[Payout]:
         """
@@ -154,7 +111,7 @@ class PayoutRepository(
             self.get_base_statement()
             .distinct(Payout.payout_account_id)
             .where(
-                Payout.processor == PayoutAccountType.stripe,
+                Payout.processor == PayoutAccountType.crypto,
                 Payout.created_at < utc_now() - delay,
                 # Strictly `pending`: `held` payouts are not yet payable, so
                 # they must not be picked up by the hourly Stripe-transfer cron.
@@ -167,15 +124,6 @@ class PayoutRepository(
             .order_by(Payout.payout_account_id.asc(), Payout.created_at.asc())
         )
         return await self.get_all(statement)
-
-    async def get_by_account_and_invoice_number(
-        self, account: UUID, invoice_number: str
-    ) -> Payout | None:
-        statement = self.get_base_statement().where(
-            Payout.account_id == account,
-            Payout.invoice_number == invoice_number,
-        )
-        return await self.get_one_or_none(statement)
 
     def get_eager_options(self) -> Options:
         return (

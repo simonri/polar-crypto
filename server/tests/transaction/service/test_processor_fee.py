@@ -4,10 +4,8 @@ from unittest.mock import MagicMock
 
 import pytest
 import pytest_asyncio
-import stripe as stripe_lib
 from pytest_mock import MockerFixture
 
-from polar.integrations.stripe.service import StripeService
 from polar.models import Customer, Order, Organization, Payment, Product, Transaction
 from polar.models.transaction import Processor, ProcessorFeeType, TransactionType
 from polar.postgres import AsyncSession
@@ -32,8 +30,10 @@ from tests.transaction.conftest import create_async_iterator
 
 @pytest.fixture(autouse=True)
 def stripe_service_mock(mocker: MockerFixture) -> MagicMock:
-    mock = MagicMock(spec=StripeService)
-    mocker.patch("polar.transaction.service.processor_fee.stripe_service", new=mock)
+    mock = MagicMock()
+    mocker.patch(
+        "polar.transaction.service.processor_fee.stripe_service", new=mock, create=True
+    )
     return mock
 
 
@@ -63,6 +63,7 @@ class TestCreatePaymentFees:
         )
         assert len(fee_transactions) == 0
 
+    @pytest.mark.skip(reason="Stripe removed")
     async def test_stripe_no_charge_id(
         self, session: AsyncSession, save_fixture: SaveFixture
     ) -> None:
@@ -75,6 +76,7 @@ class TestCreatePaymentFees:
         )
         assert len(fee_transactions) == 0
 
+    @pytest.mark.skip(reason="Stripe removed")
     async def test_stripe_no_balance_transaction(
         self,
         session: AsyncSession,
@@ -97,6 +99,7 @@ class TestCreatePaymentFees:
                 session, payment_transaction=payment_transaction
             )
 
+    @pytest.mark.skip(reason="Stripe removed")
     async def test_stripe_subscription(
         self,
         session: AsyncSession,
@@ -127,7 +130,7 @@ class TestCreatePaymentFees:
         payment_fee_transaction = fee_transactions[0]
 
         assert payment_fee_transaction.type == TransactionType.processor_fee
-        assert payment_fee_transaction.processor == Processor.stripe
+        assert payment_fee_transaction.processor == Processor.crypto
         assert payment_fee_transaction.processor_fee_type == ProcessorFeeType.payment
         assert payment_fee_transaction.amount == -100
         assert payment_fee_transaction.incurred_by_transaction == payment_transaction
@@ -161,6 +164,7 @@ class TestCreateRefundFees:
         )
         assert len(fee_transactions) == 0
 
+    @pytest.mark.skip(reason="Stripe removed")
     async def test_stripe_refund(
         self,
         session: AsyncSession,
@@ -194,7 +198,7 @@ class TestCreateRefundFees:
         refund_fee_transaction = fee_transactions[0]
 
         assert refund_fee_transaction.type == TransactionType.processor_fee
-        assert refund_fee_transaction.processor == Processor.stripe
+        assert refund_fee_transaction.processor == Processor.crypto
         assert refund_fee_transaction.processor_fee_type == ProcessorFeeType.refund
         assert refund_fee_transaction.amount == -100
         assert (
@@ -225,6 +229,7 @@ class TestCreateDisputeFees:
         assert len(fee_transactions) == 0
 
     @pytest.mark.parametrize("category", ["dispute", "dispute_reversal"])
+    @pytest.mark.skip(reason="Stripe removed")
     async def test_stripe_dispute(
         self,
         category: Literal["dispute", "dispute_reversal"],
@@ -267,7 +272,7 @@ class TestCreateDisputeFees:
         dispute_fee_transaction = fee_transactions[0]
 
         assert dispute_fee_transaction.type == TransactionType.processor_fee
-        assert dispute_fee_transaction.processor == Processor.stripe
+        assert dispute_fee_transaction.processor == Processor.crypto
         assert dispute_fee_transaction.processor_fee_type == ProcessorFeeType.dispute
         assert dispute_fee_transaction.amount == -100
         assert (
@@ -275,6 +280,7 @@ class TestCreateDisputeFees:
         )
 
 
+@pytest.mark.skip(reason="Stripe removed")
 @pytest.mark.asyncio
 class TestSyncStripeFees:
     async def test_sync_stripe_fees(
@@ -433,24 +439,22 @@ class TestSyncStripeFees:
 
         fee_transaction_13 = Transaction(
             type=TransactionType.processor_fee,
-            processor=Processor.stripe,
+            processor=Processor.crypto,
             processor_fee_type=ProcessorFeeType.payout,
             currency="usd",
             amount=-200,
             account_currency="usd",
             account_amount=-200,
-            tax_amount=0,
             fee_balance_transaction_id="STRIPE_BALANCE_TRANSACTION_ID_13",
         )
         fee_transaction_14 = Transaction(
             type=TransactionType.processor_fee,
-            processor=Processor.stripe,
+            processor=Processor.crypto,
             processor_fee_type=ProcessorFeeType.payout,
             currency="usd",
             amount=-100,
             account_currency="usd",
             account_amount=-100,
-            tax_amount=0,
             fee_balance_transaction_id="STRIPE_BALANCE_TRANSACTION_ID_14",
         )
         await save_fixture(fee_transaction_13)

@@ -1,6 +1,5 @@
 import { schemas } from '@polar-sh/client'
 import { EmailSection } from './EmailSection'
-import { IdentityVerificationSection } from './IdentityVerificationSection'
 import { PayoutAccountSection } from './PayoutAccountSection'
 import { ProductConfigurationSection } from './ProductConfigurationSection'
 import { ProductDescriptionSection } from './ProductDescriptionSection'
@@ -8,30 +7,37 @@ import { ProductUrlSection } from './ProductUrlSection'
 import { SetupReadinessSection } from './SetupReadinessSection'
 import { SocialLinksSection } from './SocialLinksSection'
 
+export type OrganizationReviewCheckStatus = 'passed' | 'failed' | 'warning' | 'pending'
+
+export interface OrganizationReviewSubCheck {
+  key: string
+  status: OrganizationReviewCheckStatus
+}
+
+export interface OrganizationReviewCheck {
+  key: string
+  status: OrganizationReviewCheckStatus
+  sub_checks?: OrganizationReviewSubCheck[]
+}
+
 interface SectionProps {
   organization: schemas['Organization']
-  step: schemas['OrganizationReviewCheck']
+  step: OrganizationReviewCheck
   reasonItems: string[]
 }
 
 interface StepConfig {
   label: string
-  reasonLabels?: Partial<
-    Record<schemas['OrganizationReviewCheckReason'], string>
-  >
+  reasonLabels?: Record<string, string>
   render: (props: SectionProps) => React.ReactNode
 }
 
-export const COMMON_REASON_LABELS: Partial<
-  Record<schemas['OrganizationReviewCheckReason'], string>
-> = {
+export const COMMON_REASON_LABELS: Record<string, string> = {
   in_progress: 'In progress',
   external_pending: 'Awaiting external verification',
 }
 
-export const STEP_CONFIG: Partial<
-  Record<schemas['OrganizationReviewCheckKey'], StepConfig>
-> = {
+export const STEP_CONFIG: Record<string, StepConfig> = {
   'identity.email': {
     label: 'Support email',
     reasonLabels: {
@@ -51,19 +57,6 @@ export const STEP_CONFIG: Partial<
     label: 'Social links',
     render: ({ organization }) => (
       <SocialLinksSection organization={organization} />
-    ),
-  },
-  'identity.stripe_identity_verification': {
-    label: 'Identity verification',
-    reasonLabels: {
-      'identity.rejected': 'Identity verification was rejected',
-    },
-    render: ({ organization, step, reasonItems }) => (
-      <IdentityVerificationSection
-        organization={organization}
-        step={step}
-        reasonItems={reasonItems}
-      />
     ),
   },
   product_description: {

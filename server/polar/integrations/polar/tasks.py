@@ -1,6 +1,5 @@
 import uuid
 from datetime import timedelta
-from decimal import Decimal
 from typing import Any
 
 from dramatiq import Retry
@@ -168,30 +167,6 @@ async def track_event_ingestion() -> None:
     if not counts:
         return
     await get_client().track_event_ingestion(counts=counts, cutoff=cutoff)
-
-
-@actor(
-    actor_name="polar_self.track_organization_review_usage",
-    priority=TaskPriority.LOW,
-)
-async def track_organization_review_usage(
-    external_customer_id: str,
-    review_context: str,
-    vendor: str,
-    model: str,
-    input_tokens: int,
-    output_tokens: int,
-    cost_usd: str,
-) -> None:
-    await get_client().track_organization_review_usage(
-        external_customer_id=external_customer_id,
-        review_context=review_context,
-        vendor=vendor,
-        model=model,
-        input_tokens=input_tokens,
-        output_tokens=output_tokens,
-        cost_usd=Decimal(cost_usd),
-    )
 
 
 @actor(actor_name="polar_self.webhook.benefit_grant.created", priority=TaskPriority.LOW)

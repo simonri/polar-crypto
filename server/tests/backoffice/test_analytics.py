@@ -159,9 +159,7 @@ class TestGetRefundStats:
         presentment currency amount from Refund.
         """
         org = await create_organization(save_fixture, account)
-        customer = await create_customer(
-            save_fixture, organization=org, stripe_customer_id="STRIPE_CUST_REFUND"
-        )
+        customer = await create_customer(save_fixture, organization=org)
         order = await create_order(save_fixture, customer=customer)
         payment = await create_payment(
             save_fixture,
@@ -195,9 +193,7 @@ class TestGetRefundStats:
         refund records. The total amount should still sum all refunds.
         """
         org = await create_organization(save_fixture, account)
-        customer = await create_customer(
-            save_fixture, organization=org, stripe_customer_id="STRIPE_CUST_SPLIT"
-        )
+        customer = await create_customer(save_fixture, organization=org)
         order = await create_order(save_fixture, customer=customer)
         payment = await create_payment(
             save_fixture,
@@ -243,9 +239,7 @@ class TestGetRefundStats:
         Refunds on different orders should each be counted.
         """
         org = await create_organization(save_fixture, account)
-        customer = await create_customer(
-            save_fixture, organization=org, stripe_customer_id="STRIPE_CUST_MULTI"
-        )
+        customer = await create_customer(save_fixture, organization=org)
         order1 = await create_order(save_fixture, customer=customer)
         payment1 = await create_payment(
             save_fixture,
@@ -317,9 +311,7 @@ class TestGetDisputeStats:
         presentment currency amount from Dispute.
         """
         org = await create_organization(save_fixture, account)
-        customer = await create_customer(
-            save_fixture, organization=org, stripe_customer_id="STRIPE_CUST_DISPUTE"
-        )
+        customer = await create_customer(save_fixture, organization=org)
         order = await create_order(save_fixture, customer=customer)
         payment = await create_payment(
             save_fixture,
@@ -358,7 +350,6 @@ class TestGetDisputeStats:
         customer = await create_customer(
             save_fixture,
             organization=org,
-            stripe_customer_id="STRIPE_CUST_CHARGEBACK",
         )
         order = await create_order(save_fixture, customer=customer)
         payment = await create_payment(

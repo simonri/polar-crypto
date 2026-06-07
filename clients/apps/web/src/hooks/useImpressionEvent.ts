@@ -1,7 +1,7 @@
 'use client'
 
 import { EventName, usePostHog } from '@/hooks/posthog'
-import type { JsonType } from '@posthog/core'
+import type { JsonType } from '@/hooks/posthog'
 import { useEffect, useRef } from 'react'
 
 interface UseImpressionEventOptions {

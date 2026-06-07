@@ -137,7 +137,6 @@ async def export(
                 "Created At",
                 "Email",
                 "Name",
-                "Tax ID",
                 "Billing Address Line 1",
                 "Billing Address Line 2",
                 "Billing Address City",
@@ -164,7 +163,6 @@ async def export(
                     customer.created_at.isoformat(),
                     customer.email,
                     customer.name,
-                    customer.tax_id,
                     billing_address.line1 if billing_address else None,
                     billing_address.line2 if billing_address else None,
                     billing_address.city if billing_address else None,
@@ -441,8 +439,8 @@ async def delete(
         default=False,
         description=(
             "If true, also anonymize the customer's personal data for GDPR compliance. "
-            "This replaces email with a hashed version, hashes name and billing name "
-            "(name preserved for businesses with tax_id), clears billing address, "
+            "This replaces email with a hashed version, hashes name and billing name, "
+            "clears billing address, "
             "and removes OAuth account data."
         ),
     ),

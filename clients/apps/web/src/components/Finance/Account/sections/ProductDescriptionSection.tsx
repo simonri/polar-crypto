@@ -6,7 +6,6 @@ import { toast } from '@/components/Toast/use-toast'
 import { usePostHog } from '@/hooks/posthog'
 import { useUpdateOrganization } from '@/hooks/queries'
 import { useOrganizationKYC } from '@/hooks/queries/org'
-import { useAupValidation } from '@/hooks/useAupValidation'
 import { setValidationErrors } from '@/utils/api/errors'
 import { getQueryClient } from '@/utils/api/query'
 import { PRICING_MODELS, SELLING_CATEGORIES } from '@/utils/productCategories'
@@ -24,7 +23,7 @@ import { SectionLayout } from './SectionLayout'
 const MIN_LENGTH = 30
 const MAX_LENGTH = 3000
 
-type SubmittingState = 'submitting' | 'submitting-anyway' | null
+type SubmittingState = 'submitting' | null
 
 interface Props {
   organization: schemas['Organization']
@@ -55,7 +54,6 @@ export const ProductDescriptionSection = ({ organization }: Props) => {
   const sellingCategories = useWatch({ control, name: 'selling_categories' })
   const pricingModels = useWatch({ control, name: 'pricing_models' })
 
-  const aup = useAupValidation()
   const [submitting, setSubmitting] = useState<SubmittingState>(null)
 
   useEffect(() => {
@@ -106,7 +104,6 @@ export const ProductDescriptionSection = ({ organization }: Props) => {
     }
 
     reset(values)
-    aup.reset()
     getQueryClient().invalidateQueries({
       queryKey: ['organizationReviewState', organization.id],
     })
@@ -121,30 +118,8 @@ export const ProductDescriptionSection = ({ organization }: Props) => {
       organization_id: organization.id,
       section: 'product_description',
     })
-    const result = await aup.validate({
-      product_description: values.product_description,
-      selling_categories: values.selling_categories,
-      pricing_models: values.pricing_models,
-    })
-
-    if (!result.ok) {
-      toast({
-        title: 'Validation failed',
-        description: 'Something went wrong, please try again.',
-      })
-      return
-    }
-
-    if (result.verdict === 'DENY' || result.verdict === 'CLARIFY') return
-
     setSubmitting('submitting')
     await persistDetails(values)
-    setSubmitting(null)
-  }
-
-  const onContinueAnyway = async () => {
-    setSubmitting('submitting-anyway')
-    await persistDetails(form.getValues())
     setSubmitting(null)
   }
 
@@ -169,16 +144,7 @@ export const ProductDescriptionSection = ({ organization }: Props) => {
   }
   const counterColor = getCounterColor()
 
-  const showContinueAnyway =
-    aup.verdict === 'CLARIFY' &&
-    aup.history.length >= 3 &&
-    productDescription.trim().length > 30 &&
-    !aup.isValidating
-
-  const submitDisabled =
-    submitting === 'submitting-anyway' ||
-    blockedSelected.length > 0 ||
-    (!formState.isDirty && !aup.verdict)
+  const submitDisabled = blockedSelected.length > 0 || !formState.isDirty
 
   return (
     <Form {...form}>
@@ -187,26 +153,14 @@ export const ProductDescriptionSection = ({ organization }: Props) => {
           description="Describe what your product is and does, who it's for, and your pricing model."
           footerEnd={
             <Box display="flex" alignItems="center" columnGap="s">
-              {showContinueAnyway && (
-                <Button
-                  type="button"
-                  variant="ghost"
-                  size="sm"
-                  onClick={onContinueAnyway}
-                  loading={submitting === 'submitting-anyway'}
-                  disabled={submitting === 'submitting'}
-                >
-                  Continue without review
-                </Button>
-              )}
               <Button
                 type="submit"
                 size="sm"
                 onClick={() => form.clearErrors()}
-                loading={aup.isValidating || submitting === 'submitting'}
+                loading={submitting === 'submitting'}
                 disabled={submitDisabled}
               >
-                {aup.verdict ? 'Review again' : 'Save'}
+                Save
               </Button>
             </Box>
           }
@@ -279,31 +233,6 @@ export const ProductDescriptionSection = ({ organization }: Props) => {
                 }
               />
             </Box>
-
-            {aup.verdict && (
-              <Box
-                display="flex"
-                flexDirection="column"
-                rowGap="s"
-                borderRadius="m"
-                borderWidth={1}
-                borderStyle="solid"
-                borderColor="border-warning"
-                backgroundColor="background-warning"
-                padding="l"
-              >
-                <Text variant="label" color="warning">
-                  {aup.verdict === 'CLARIFY'
-                    ? 'Please clarify your use case'
-                    : 'Use case not supported'}
-                </Text>
-                {aup.message && (
-                  <Text variant="caption" color="warning">
-                    {aup.message}
-                  </Text>
-                )}
-              </Box>
-            )}
           </Box>
         </SectionLayout>
       </form>

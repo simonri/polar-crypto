@@ -15,9 +15,7 @@ from polar.authz.service import (
     assert_organization_permission,
     get_accessible_org_ids,
 )
-from polar.benefit.grant.repository import BenefitGrantRepository
 from polar.config import settings
-from polar.customer_meter.repository import CustomerMeterRepository
 from polar.customer_session.service import customer_session as customer_session_service
 from polar.exceptions import PolarRequestValidationError, ValidationError
 from polar.kit.address import Address
@@ -34,28 +32,15 @@ from polar.kit.utils import utc_now
 from polar.member.repository import MemberRepository
 from polar.member.service import member_service
 from polar.member_session.service import member_session as member_session_service
-from polar.models import (
-    BenefitGrant,
-    Customer,
-    Order,
-    Organization,
-    PaymentMethod,
-    Subscription,
-    User,
-)
+from polar.models import Customer, Order, Organization, Subscription, User
 from polar.models.customer import CustomerType
 from polar.models.member import MemberRole
 from polar.models.webhook_endpoint import CustomerWebhookEventType, WebhookEventType
 from polar.order.repository import OrderRepository
 from polar.organization.resolver import get_payload_organization
-from polar.payment_method.repository import PaymentMethodRepository
 from polar.postgres import AsyncReadSession, AsyncSession
 from polar.redis import Redis
 from polar.subscription.repository import SubscriptionRepository
-from polar.tax.tax_id import InvalidTaxID, validate_tax_id
-from polar.user_organization.service import (
-    user_organization as user_organization_service,
-)
 from polar.webhook.service import webhook as webhook_service
 from polar.worker import enqueue_job
 
@@ -215,43 +200,12 @@ class CustomerService:
         if errors:
             raise PolarRequestValidationError(errors)
 
-        validated_tax_id = None
-        if customer_create.tax_id is not None:
-            if customer_create.billing_address is None:
-                raise PolarRequestValidationError(
-                    [
-                        {
-                            "type": "missing",
-                            "loc": ("body", "billing_address"),
-                            "msg": "Country is required to validate tax ID.",
-                            "input": None,
-                        }
-                    ]
-                )
-            try:
-                validated_tax_id = validate_tax_id(
-                    customer_create.tax_id,
-                    customer_create.billing_address.country,
-                )
-            except InvalidTaxID as e:
-                raise PolarRequestValidationError(
-                    [
-                        {
-                            "type": "invalid",
-                            "loc": ("body", "tax_id"),
-                            "msg": "Invalid tax ID.",
-                            "input": customer_create.tax_id,
-                        }
-                    ]
-                ) from e
-
         customer_obj = Customer(
             organization=organization,
             **customer_create.model_dump(
-                exclude={"organization_id", "owner", "tax_id"},
+                exclude={"organization_id", "owner"},
                 by_alias=True,
             ),
-            tax_id=validated_tax_id,
         )
         if created_at is not None:
             customer_obj.created_at = created_at
@@ -469,47 +423,11 @@ class CustomerService:
         if errors:
             raise PolarRequestValidationError(errors)
 
-        # Validate tax_id
-        tax_id = customer_update.tax_id or (
-            customer.tax_id[0] if customer.tax_id else None
-        )
-        if tax_id is not None:
-            billing_address = (
-                customer_update.billing_address
-                if "billing_address" in customer_update.model_fields_set
-                and customer_update.billing_address is not None
-                else customer.billing_address
-            )
-            if billing_address is None:
-                raise PolarRequestValidationError(
-                    [
-                        {
-                            "type": "missing",
-                            "loc": ("body", "billing_address"),
-                            "msg": "Country is required to validate tax ID.",
-                            "input": None,
-                        }
-                    ]
-                )
-            try:
-                customer.tax_id = validate_tax_id(tax_id, billing_address.country)
-            except InvalidTaxID as e:
-                raise PolarRequestValidationError(
-                    [
-                        {
-                            "type": "invalid",
-                            "loc": ("body", "tax_id"),
-                            "msg": "Invalid tax ID.",
-                            "input": customer_update.tax_id,
-                        }
-                    ]
-                ) from e
-
         try:
             updated_customer = await repository.update(
                 customer,
                 update_dict=customer_update.model_dump(
-                    exclude={"email", "tax_id"}, exclude_unset=True, by_alias=True
+                    exclude={"email"}, exclude_unset=True, by_alias=True
                 ),
             )
         except IntegrityError as e:
@@ -542,7 +460,6 @@ class CustomerService:
         anonymize: bool = False,
     ) -> Customer:
         enqueue_job("subscription.cancel_customer", customer_id=customer.id)
-        enqueue_job("benefit.revoke_customer", customer_id=customer.id)
 
         await member_service.delete_by_customer(session, customer.id)
 
@@ -563,8 +480,7 @@ class CustomerService:
 
         This anonymizes personal data while:
         - Preserving the Stripe customer ID for payment history
-        - Preserving external_id and tax_id for legal/tax reasons
-        - Preserving name for businesses (identified by having tax_id)
+        - Preserving external_id for legal reasons
         - Keeping order and subscription records intact (invoices are immutable)
 
         This is idempotent - calling it on an already-anonymized customer
@@ -583,12 +499,8 @@ class CustomerService:
             )
         update_dict["email_verified"] = False
 
-        # Anonymize name only for individuals (no tax_id = individual)
-        # Businesses (has tax_id) retain name for legal reasons
-        if customer.tax_id is None and customer.name:
-            update_dict["name"] = anonymize_for_deletion(
-                customer.name, customer.created_at
-            )
+        if customer.name:
+            update_dict["name"] = anonymize_for_deletion(customer.name)
 
         # Anonymize billing_name (always, if present)
         if customer._billing_name:
@@ -610,7 +522,7 @@ class CustomerService:
         user_metadata["__anonymized_at"] = utc_now().isoformat()
         update_dict["user_metadata"] = user_metadata
 
-        # NOTE: external_id and tax_id are RETAINED for legal reasons
+        # NOTE: external_id is RETAINED for legal reasons
 
         # The repository.update() method automatically enqueues the webhook job
         customer = await repository.update(customer, update_dict=update_dict)
@@ -750,9 +662,6 @@ class CustomerService:
         session: AsyncReadSession,
         customer: Customer,
     ) -> dict[str, Any]:
-        payment_method_repository = PaymentMethodRepository.from_session(session)
-        payment_methods = await payment_method_repository.list_by_customer(customer.id)
-
         subscription_repository = SubscriptionRepository.from_session(session)
         subscriptions = await subscription_repository.get_all_by_customer(
             customer.id,
@@ -765,12 +674,6 @@ class CustomerService:
             options=(joinedload(Order.product),),
         )
 
-        benefit_grant_repository = BenefitGrantRepository.from_session(session)
-        benefit_grants = await benefit_grant_repository.get_all_by_customer(
-            customer.id,
-            options=(joinedload(BenefitGrant.benefit),),
-        )
-
         return {
             "customer": {
                 "id": str(customer.id),
@@ -780,7 +683,6 @@ class CustomerService:
                 "billing_address": customer.billing_address.model_dump()
                 if customer.billing_address
                 else None,
-                "tax_id": list(customer.tax_id) if customer.tax_id else None,
                 "external_id": customer.external_id,
                 "created_at": customer.created_at.isoformat(),
                 "modified_at": customer.modified_at.isoformat()
@@ -817,13 +719,11 @@ class CustomerService:
                 {
                     "id": str(order.id),
                     "status": order.status,
-                    "invoice_number": order.invoice_number,
                     "product_id": str(order.product_id),
                     "product_name": order.product.name if order.product else None,
                     "subtotal_amount": order.subtotal_amount,
                     "discount_amount": order.discount_amount,
                     "net_amount": order.net_amount,
-                    "tax_amount": order.tax_amount,
                     "total_amount": order.total_amount,
                     "currency": order.currency,
                     "billing_reason": order.billing_reason,
@@ -834,40 +734,7 @@ class CustomerService:
                 }
                 for order in orders
             ],
-            "payment_methods": [
-                {
-                    "id": str(pm.id),
-                    "type": pm.type,
-                    "method_metadata": pm.method_metadata,
-                    "created_at": pm.created_at.isoformat(),
-                    "modified_at": pm.modified_at.isoformat()
-                    if pm.modified_at
-                    else None,
-                }
-                for pm in payment_methods
-            ],
-            "benefit_grants": [
-                {
-                    "id": str(grant.id),
-                    "benefit_id": str(grant.benefit_id),
-                    "benefit_type": grant.benefit.type,
-                    "benefit_description": grant.benefit.description,
-                    "is_granted": grant.is_granted,
-                    "is_revoked": grant.is_revoked,
-                    "granted_at": grant.granted_at.isoformat()
-                    if grant.granted_at
-                    else None,
-                    "revoked_at": grant.revoked_at.isoformat()
-                    if grant.revoked_at
-                    else None,
-                    "subscription_id": str(grant.subscription_id)
-                    if grant.subscription_id
-                    else None,
-                    "order_id": str(grant.order_id) if grant.order_id else None,
-                    "created_at": grant.created_at.isoformat(),
-                }
-                for grant in benefit_grants
-            ],
+            "payment_methods": [],  # Saved payment methods removed (crypto payments)
         }
 
     async def get_state(
@@ -879,7 +746,7 @@ class CustomerService:
     ) -> CustomerState:
         # 👋 Whenever you change the state schema,
         # please also update the cache key with a version number.
-        cache_key = f"polar:customer_state:v4:{customer.id}"
+        cache_key = f"polar:customer_state:v5:{customer.id}"
 
         if cache:
             raw_state = await redis.get(cache_key)
@@ -889,18 +756,6 @@ class CustomerService:
         subscription_repository = SubscriptionRepository.from_session(session)
         customer.active_subscriptions = (
             await subscription_repository.list_active_by_customer(customer.id)
-        )
-
-        benefit_grant_repository = BenefitGrantRepository.from_session(session)
-        customer.granted_benefits = (
-            await benefit_grant_repository.list_granted_by_customer(
-                customer.id, options=(joinedload(BenefitGrant.benefit),)
-            )
-        )
-
-        customer_meter_repository = CustomerMeterRepository.from_session(session)
-        customer.active_meters = await customer_meter_repository.get_all_by_customer(
-            customer.id
         )
 
         state = _CustomerStateAdapter.validate_python(customer, from_attributes=True)

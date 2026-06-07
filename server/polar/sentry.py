@@ -22,8 +22,6 @@ from polar.config import settings
 if TYPE_CHECKING:
     from sentry_sdk._types import Event, Hint
 
-POSTHOG_ID_TAG = "posthog_distinct_id"
-
 
 class DramatiqIntegration(_DramatiqIntegration):
     """
@@ -82,4 +80,3 @@ def set_sentry_user(auth_subject: AuthSubject[Subject]) -> None:
     if is_user(auth_subject):
         user = auth_subject.subject
         sentry_sdk.set_user({"id": str(user.id), "email": user.email})
-        sentry_sdk.set_tag(POSTHOG_ID_TAG, user.posthog_distinct_id)
