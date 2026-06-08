@@ -36,5 +36,4 @@ const defaults = {
 export const CONFIG = {
   ...defaults,
   GITHUB_INSTALLATION_URL: `https://github.com/apps/${defaults.GITHUB_APP_NAMESPACE}/installations/new`,
-  IS_SANDBOX: defaults.ENVIRONMENT === 'sandbox',
 }

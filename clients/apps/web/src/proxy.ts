@@ -6,7 +6,6 @@ import { NextResponse } from 'next/server'
 import { COOKIE_MAX_AGE, DISTINCT_ID_COOKIE } from './experiments/constants'
 import { createServerSideAPI } from './utils/client'
 import { CONFIG } from './utils/config'
-import { POLAR_ENV_COOKIE } from './utils/cookies'
 
 const POLAR_AUTH_COOKIE_KEY =
   process.env.POLAR_AUTH_COOKIE_KEY || 'polar_session'

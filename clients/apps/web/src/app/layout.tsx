@@ -1,6 +1,5 @@
 import '../styles/globals.css'
 
-import SandboxBanner from '@/components/Sandbox/SandboxBanner'
 import { getExperimentNames } from '@/experiments'
 import { ExperimentProvider } from '@/experiments/ExperimentProvider'
 import { getExperiments } from '@/experiments/server'

@@ -1,64 +1,43 @@
 import { Metadata } from 'next/types'
 import { PolarThemeProvider } from '../providers'
-import { CONFIG } from '@/utils/config'
 
-export async function generateMetadata(): Promise<Metadata> {
-  const baseMetadata: Metadata = {
-    title: {
-      template: '%s | Polar',
-      default: 'Polar',
-    },
-    description: 'A billing platform for the intelligence era',
-    openGraph: {
-      images: 'https://polar.sh/assets/brand/polar_og.jpg',
-      type: 'website',
-      siteName: 'Polar',
-      title: 'Polar | A billing platform for the intelligence era',
-      description:
-        'Create digital products and SaaS billing with flexible pricing models and seamless payment processing.',
-      locale: 'en_US',
-    },
-    twitter: {
-      images: 'https://polar.sh/assets/brand/polar_og.jpg',
-      card: 'summary_large_image',
-      title: 'Polar | A billing platform for the intelligence era',
-      description:
-        'Create digital products and SaaS billing with flexible pricing models and seamless payment processing.',
-    },
-    metadataBase: new URL('https://polar.sh/'),
-    alternates: {
-      canonical: 'https://polar.sh/',
-    },
-  }
-
-  if (CONFIG.IS_SANDBOX) {
-    return {
-      ...baseMetadata,
-      robots: {
-        index: false,
-        follow: false,
-        googleBot: {
-          index: false,
-          follow: false,
-        },
-      },
-    }
-  }
-
-  return {
-    ...baseMetadata,
-    robots: {
+export const metadata: Metadata = {
+  title: {
+    template: '%s | Polar',
+    default: 'Polar',
+  },
+  description: 'A billing platform for the intelligence era',
+  openGraph: {
+    images: 'https://polar.sh/assets/brand/polar_og.jpg',
+    type: 'website',
+    siteName: 'Polar',
+    title: 'Polar | A billing platform for the intelligence era',
+    description:
+      'Create digital products and SaaS billing with flexible pricing models and seamless payment processing.',
+    locale: 'en_US',
+  },
+  twitter: {
+    images: 'https://polar.sh/assets/brand/polar_og.jpg',
+    card: 'summary_large_image',
+    title: 'Polar | A billing platform for the intelligence era',
+    description:
+      'Create digital products and SaaS billing with flexible pricing models and seamless payment processing.',
+  },
+  metadataBase: new URL('https://polar.sh/'),
+  alternates: {
+    canonical: 'https://polar.sh/',
+  },
+  robots: {
+    index: true,
+    follow: true,
+    googleBot: {
       index: true,
       follow: true,
-      googleBot: {
-        index: true,
-        follow: true,
-        'max-video-preview': -1,
-        'max-image-preview': 'large',
-        'max-snippet': -1,
-      },
+      'max-video-preview': -1,
+      'max-image-preview': 'large',
+      'max-snippet': -1,
     },
-  }
+  },
 }
 
 export default function MainLayout({

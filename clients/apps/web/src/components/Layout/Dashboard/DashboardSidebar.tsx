@@ -59,7 +59,7 @@ export const DashboardSidebar = ({
     // eslint-disable-next-line react-hooks/set-state-in-effect -- client-only cookie read to avoid hydration mismatch
     setIsImpersonating(isImpersonating())
   }, [])
-  const isTopBannerVisible = CONFIG.IS_SANDBOX || _isImpersonating
+  const isTopBannerVisible = _isImpersonating
 
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
@@ -196,11 +196,7 @@ export const DashboardSidebar = ({
                   ))}
                   <DropdownMenuSeparator />
                   <DropdownMenuItem
-                    onClick={() =>
-                      CONFIG.IS_SANDBOX
-                        ? router.push('/onboarding/sandbox')
-                        : router.push('/onboarding/business')
-                    }
+                    onClick={() => router.push('/onboarding/business')}
                   >
                     New Organization
                   </DropdownMenuItem>
@@ -209,15 +205,6 @@ export const DashboardSidebar = ({
                   >
                     User Settings
                   </DropdownMenuItem>
-                  {!CONFIG.IS_SANDBOX && (
-                    <DropdownMenuItem
-                      onClick={() =>
-                        router.push('https://sandbox.polar.sh/start')
-                      }
-                    >
-                      Go to Sandbox
-                    </DropdownMenuItem>
-                  )}
                   <DropdownMenuSeparator />
                   <DropdownMenuItem
                     onClick={() =>
