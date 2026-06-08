@@ -19,7 +19,7 @@ export default async function Page({
   const userOrganizations = await getUserOrganizations()
 
   if (userOrganizations.length === 0) {
-    redirect(`/onboarding/start${qs}`)
+    redirect(`/onboarding/personal${qs}`)
   }
 
   const organization =

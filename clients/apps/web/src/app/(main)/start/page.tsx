@@ -18,7 +18,7 @@ export default async function Page() {
   const userOrganizations = await getUserOrganizations()
 
   if (userOrganizations.length === 0) {
-    redirect('/onboarding/start')
+    redirect('/onboarding/personal')
   }
 
   const lastVisitedOrg = getLastVisitedOrg(await cookies(), userOrganizations)

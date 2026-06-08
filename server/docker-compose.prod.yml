@@ -76,6 +76,21 @@ services:
       timeout: 5s
       retries: 10
 
+  tinybird:
+    image: tinybirdco/tinybird-local:latest
+    platform: linux/amd64
+    restart: unless-stopped
+    volumes:
+      - tinybird_data:/var/lib/tinybird
+      - ./tinybird:/tinybird:ro
+      - /home/polar/tinybird-setup.sh:/scripts/tinybird-setup.sh:ro
+    command: ["bash", "/scripts/tinybird-setup.sh"]
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:7181/"]
+      interval: 5s
+      timeout: 10s
+      retries: 30
+
   btc-daemon:
     image: bitcartcc/bitcart-btc:stable
     restart: unless-stopped
@@ -105,6 +120,7 @@ networks:
 volumes:
   postgres_data:
   redis_data:
+  tinybird_data:
   btc_daemon_data:
   eth_daemon_data:
   ltc_daemon_data:

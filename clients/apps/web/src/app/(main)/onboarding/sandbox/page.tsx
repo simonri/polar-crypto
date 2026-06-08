@@ -4,7 +4,7 @@ import { redirect } from 'next/navigation'
 
 export default function Page() {
   if (!CONFIG.IS_SANDBOX) {
-    redirect('/onboarding/start')
+    redirect('/onboarding/personal')
   }
 
   return <SandboxStep />
