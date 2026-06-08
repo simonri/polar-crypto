@@ -10,6 +10,7 @@ name: polar
 services:
   api:
     image: ghcr.io/simonri/polar:${POLAR_VERSION:-latest}
+    command: uv run uvicorn polar.app:app --host 0.0.0.0 --port 10000 --proxy-headers --forwarded-allow-ips='*' --limit-max-requests 50000 --limit-max-requests-jitter 10000 --timeout-graceful-shutdown 30
     restart: unless-stopped
     env_file: .env
     environment:
