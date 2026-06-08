@@ -1,32 +1,10 @@
 'use client'
 
-import { TrialConfigurationForm } from '@/components/TrialConfiguration/TrialConfigurationForm'
 import { isLegacyRecurringPrice } from '@/utils/product'
 import { schemas } from '@polar-sh/client'
 import { Button } from '@polar-sh/orbit'
-import { Input } from '@polar-sh/orbit'
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from '@polar-sh/orbit'
-import ShadowBox from '@polar-sh/ui/components/atoms/ShadowBox'
-import {
-  FormControl,
-  FormField,
-  FormItem,
-  FormMessage,
-} from '@polar-sh/ui/components/ui/form'
-import { Label } from '@polar-sh/ui/components/ui/label'
-import {
-  RadioGroup,
-  RadioGroupItem,
-} from '@polar-sh/ui/components/ui/radio-group'
-import { useCallback, useEffect, useMemo, useState } from 'react'
+import { useCallback, useMemo, useState } from 'react'
 import { useFieldArray, useFormContext } from 'react-hook-form'
-import { twMerge } from 'tailwind-merge'
 import { Section } from '../../Layout/Section'
 import { CurrencyTabs } from './Pricing/CurrencyTabs'
 import { ProductPriceItem } from './Pricing/ProductPriceItem'
@@ -53,7 +31,7 @@ export const ProductPricingSection = ({
   update,
   compact,
 }: ProductPricingSectionProps) => {
-  const { control, setValue, watch, getValues } =
+  const { control, setValue, getValues } =
     useFormContext<ProductFormType>()
 
   const pricesFieldArray = useFieldArray({
@@ -86,38 +64,6 @@ export const ProductPricingSection = ({
     () => (prices as ProductPrice[]).some(isLegacyRecurringPrice),
     [prices],
   )
-
-  const recurringInterval = watch('recurring_interval')
-  const recurringIntervalCount = watch('recurring_interval_count')
-
-  useEffect(() => {
-    if (recurringInterval !== null) {
-      if (!recurringIntervalCount) {
-        setValue('recurring_interval_count', 1)
-      }
-      return
-    }
-
-    setValue('recurring_interval_count', null)
-  }, [recurringInterval, recurringIntervalCount, setValue])
-
-  const [productType, setProductType] = useState<'one_time' | 'recurring'>(
-    recurringInterval === null ? 'one_time' : 'recurring',
-  )
-
-  useEffect(() => {
-    if (productType === 'one_time') {
-      setValue('recurring_interval', null)
-    } else {
-      if (recurringInterval === null) {
-        setValue('recurring_interval', 'month')
-      }
-
-      if (!recurringIntervalCount) {
-        setValue('recurring_interval_count', 1)
-      }
-    }
-  }, [productType, recurringInterval, recurringIntervalCount, setValue])
 
   const pricesByCurrency = useMemo(
     () => groupPricesByCurrency(prices as ProductFormType['prices']),
@@ -281,122 +227,6 @@ export const ProductPricingSection = ({
       compact={compact}
     >
       <div className="dark:divide-polar-700 flex w-full flex-col divide-y divide-gray-200">
-        <div className="@container flex flex-col gap-y-6 py-6">
-          <RadioGroup
-            value={productType}
-            onValueChange={(v) => setProductType(v as 'one_time' | 'recurring')}
-            className={twMerge(
-              'grid-cols-1 gap-3',
-              compact ? 'grid-cols-1' : '@md:grid-cols-2',
-            )}
-          >
-            {['one_time', 'recurring'].map((option) => (
-              <Label
-                key={option}
-                htmlFor={`price-type-${option}`}
-                className={`flex flex-col gap-3 rounded-2xl border p-4 font-normal transition-colors not-aria-disabled:cursor-pointer ${
-                  productType === option
-                    ? 'dark:bg-polar-800 bg-gray-50'
-                    : 'dark:border-polar-700 dark:not-aria-disabled:hover:border-polar-700 dark:text-polar-500 dark:not-aria-disabled:hover:bg-polar-700 dark:bg-polar-900 border-gray-100 text-gray-500 not-aria-disabled:hover:border-gray-200'
-                }`}
-                aria-disabled={update}
-              >
-                <div>
-                  <div className="flex items-center gap-2.5 font-medium">
-                    <RadioGroupItem
-                      value={option}
-                      id={`price-type-${option}`}
-                      disabled={update}
-                    />
-                    {option === 'one_time'
-                      ? 'One-time purchase'
-                      : 'Recurring subscription'}
-                  </div>
-                </div>
-              </Label>
-            ))}
-          </RadioGroup>
-          {productType === 'recurring' && (
-            <div className="flex items-start gap-3 text-sm">
-              <span className="flex h-10 items-center">Every</span>
-              <FormField
-                control={control}
-                name="recurring_interval_count"
-                rules={{
-                  required: 'This field is required when billing cycle is set',
-                  min: {
-                    value: 1,
-                    message: 'Interval count must be at least 1',
-                  },
-                  max: {
-                    value: 999,
-                    message: 'Interval count cannot exceed 999',
-                  },
-                }}
-                render={({ field }) => {
-                  return (
-                    <Input
-                      type="text"
-                      min="1"
-                      max="999"
-                      pattern="\d*"
-                      defaultValue={field.value || 1}
-                      onChange={(e) => {
-                        const parsedValue = parseInt(e.target.value)
-                        field.onChange(isNaN(parsedValue) ? '' : parsedValue)
-                      }}
-                      disabled={update}
-                      className="min-w-12"
-                    />
-                  )
-                }}
-              />
-              <FormField
-                control={control}
-                name="recurring_interval"
-                render={({ field }) => {
-                  return (
-                    <FormItem>
-                      <FormControl>
-                        <div>
-                          <Select
-                            onValueChange={(value) => field.onChange(value)}
-                            defaultValue={field.value ?? 'month'}
-                            disabled={update}
-                          >
-                            <SelectTrigger>
-                              <SelectValue placeholder="Select a billing cycle" />
-                            </SelectTrigger>
-                            <SelectContent>
-                              <SelectItem value="day">
-                                day
-                                {recurringIntervalCount !== 1 ? 's' : ''}
-                              </SelectItem>
-                              <SelectItem value="week">
-                                week
-                                {recurringIntervalCount !== 1 ? 's' : ''}
-                              </SelectItem>
-                              <SelectItem value="month">
-                                month
-                                {recurringIntervalCount !== 1 ? 's' : ''}
-                              </SelectItem>
-                              <SelectItem value="year">
-                                year
-                                {recurringIntervalCount !== 1 ? 's' : ''}
-                              </SelectItem>
-                            </SelectContent>
-                          </Select>
-                        </div>
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )
-                }}
-              />
-            </div>
-          )}
-        </div>
-
         <CurrencyTabs
           activeCurrencies={activeCurrencies}
           selectedCurrency={validatedSelectedCurrency}
@@ -423,24 +253,6 @@ export const ProductPricingSection = ({
           ))}
         </div>
 
-        {recurringInterval && (
-          <div className="flex flex-col py-6">
-            <TrialConfigurationForm />
-          </div>
-        )}
-
-        {update && recurringInterval && (
-          <div className="flex flex-col py-6">
-            <ShadowBox className="dark:bg-polar-800 flex flex-col gap-2 rounded-2xl! border-none! p-4">
-              <h3 className="text-sm font-medium">Updating pricing model</h3>
-              <p className="dark:text-polar-500 text-gray-5 00 text-sm">
-                Changing pricing model on subscription products will only affect
-                new customers. Current customers will keep their original
-                pricing model.
-              </p>
-            </ShadowBox>
-          </div>
-        )}
       </div>
     </Section>
   )

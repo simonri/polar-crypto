@@ -2,8 +2,6 @@
 import createMDX from '@next/mdx'
 import { themeConfig } from './shiki.config.mjs'
 
-const PREVIEW_BUILD = process.env.POLAR_PREVIEW_BUILD === '1'
-
 // Vercel preview: compute basePath and API URL from PR number + Tailscale hostname
 let previewBasePath = ''
 if (
@@ -93,7 +91,7 @@ const nextConfig = {
   async rewrites() {
     const apiUrl = process.env.POLAR_API_URL || process.env.NEXT_PUBLIC_API_URL
     return [
-      ...(PREVIEW_BUILD && apiUrl
+      ...(apiUrl
         ? [
             {
               source: '/v1/:path*',
