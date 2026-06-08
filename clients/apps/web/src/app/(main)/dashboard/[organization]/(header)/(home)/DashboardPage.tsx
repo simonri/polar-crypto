@@ -2,8 +2,7 @@
 
 import { OverviewSection } from '@/components/DashboardOverview/OverviewSection'
 import { DashboardBody } from '@/components/Layout/DashboardLayout'
-import { PlanUpsell } from '@/components/Upsell/PlanUpsell'
-import { AccountWidget } from '@/components/Widgets/AccountWidget'
+import { AccountWidget} from '@/components/Widgets/AccountWidget'
 import { OrdersWidget } from '@/components/Widgets/OrdersWidget'
 import RevenueWidget from '@/components/Widgets/RevenueWidget'
 import { schemas } from '@polar-sh/client'
@@ -17,7 +16,6 @@ interface OverviewPageProps {
 export default function OverviewPage({ organization }: OverviewPageProps) {
   return (
     <DashboardBody className="gap-y-8 pb-16 md:gap-y-16" title={null}>
-      <PlanUpsell organization={organization} />
       <OverviewSection organization={organization} />
 
       <div className="dark:border-polar-700 overflow-hidden rounded-xl border border-gray-200">

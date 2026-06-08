@@ -34,7 +34,6 @@ import {
   AccountNavigation,
   OrganizationNavigation,
 } from './DashboardNavigation'
-import { useOrganizationSubscription } from '@/hooks/queries'
 
 export const DashboardSidebar = ({
   type = 'organization',
@@ -50,9 +49,6 @@ export const DashboardSidebar = ({
 
   const isCollapsed = state === 'collapsed'
   const [searchOpen, setSearchOpen] = useState(false)
-
-  const subscriptionPlan = useOrganizationSubscription(organization?.id ?? '')
-  const isOnFreePlan = subscriptionPlan.data?.subscription_id === null
 
   const navigateToOrganization = (org: schemas['Organization']) => {
     router.push(`/dashboard/${org.slug}`)
@@ -150,21 +146,6 @@ export const DashboardSidebar = ({
         </motion.div>
       </SidebarContent>
       <SidebarFooter>
-        {isOnFreePlan && !isCollapsed && (
-          <div className="dark:bg-polar-900 dark:border-polar-700 flex flex-col gap-y-2 rounded-sm border border-gray-100 bg-white p-4">
-            <h3 className="text-sm">Introducing Polar Plans</h3>
-            <p className="dark:text-polar-500 text-sm text-gray-500">
-              Get a lower fee with our subscription plans
-            </p>
-            <Link
-              className="text-sm text-indigo-500"
-              href={`/dashboard/${organization?.slug}/settings/billing/change-plan`}
-            >
-              Upgrade
-            </Link>
-          </div>
-        )}
-
         <Link
           className={twMerge(
             'flex flex-row items-center rounded-lg border border-transparent text-sm transition-colors dark:border-transparent',

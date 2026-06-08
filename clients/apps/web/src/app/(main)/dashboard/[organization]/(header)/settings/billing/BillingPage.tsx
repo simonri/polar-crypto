@@ -8,19 +8,13 @@ import { BillingAddressModal } from '@/components/Settings/Billing/BillingAddres
 import { BillingAddressSection } from '@/components/Settings/Billing/BillingAddressSection'
 import { BillingOrdersTable } from '@/components/Settings/Billing/BillingOrdersTable'
 import { BillingPaymentMethods } from '@/components/Settings/Billing/BillingPaymentMethods'
-import { BillingSubscriptionCard } from '@/components/Settings/Billing/BillingSubscriptionCard'
-import { StartupProgramCallout } from '@/components/Settings/Billing/StartupProgramCallout'
 import { Section, SectionDescription } from '@/components/Settings/Section'
 import { LoadingBox } from '@/components/Shared/LoadingBox'
 import { toast } from '@/components/Toast/use-toast'
 import { useHasPermission } from '@/hooks/permissions'
-import { usePostHog } from '@/hooks/posthog'
-import { useBillingPlanCompleteListener } from '@/hooks/useBillingPlanTelemetry'
 import {
   useOrganizationCustomerSession,
   useOrganizationOrders,
-  useOrganizationPlans,
-  useOrganizationSubscription,
 } from '@/hooks/queries/billing'
 
 import { PolarEmbedPaymentMethod } from '@polar-sh/checkout/payment-method'
@@ -29,18 +23,15 @@ import { schemas } from '@polar-sh/client'
 import { Box } from '@polar-sh/orbit/Box'
 import { useQueryClient } from '@tanstack/react-query'
 import { useTheme } from 'next-themes'
-import { useRouter } from 'next/navigation'
-import { useCallback, useState } from 'react'
+import { useState } from 'react'
 
 export default function BillingPage({
   organization,
 }: {
   organization: schemas['Organization']
 }) {
-  const router = useRouter()
   const queryClient = useQueryClient()
   const theme = useTheme()
-  const posthog = usePostHog()
 
   const canManageBilling = useHasPermission(
     organization.id,
@@ -48,25 +39,12 @@ export default function BillingPage({
   )
   const gatedOrgId = canManageBilling ? organization.id : undefined
 
-  const subscriptionQuery = useOrganizationSubscription(gatedOrgId)
-  const plansQuery = useOrganizationPlans(gatedOrgId)
   const ordersQuery = useOrganizationOrders(gatedOrgId)
-
   const customerSessionQuery = useOrganizationCustomerSession(organization.id)
 
   const [addPaymentMethodError, setAddPaymentMethodError] = useState<
     string | null
   >(null)
-
-  useBillingPlanCompleteListener({
-    organizationId: organization.id,
-    redirectPath: `/dashboard/${organization.slug}/settings/billing`,
-    onComplete: useCallback(() => {
-      queryClient.invalidateQueries({
-        queryKey: ['organization-billing', organization.id],
-      })
-    }, [queryClient, organization.id]),
-  })
 
   usePaymentMethodRedirectResult({
     onSuccess: () => toast({ title: 'Payment method added' }),
@@ -107,15 +85,6 @@ export default function BillingPage({
     })
   }
 
-  const onChangePlan = () => {
-    posthog.capture('dashboard:subscriptions:change_plan:click', {
-      organization_id: organization.id,
-      current_plan: subscriptionQuery.data?.plan.name ?? null,
-      current_plan_product_id: subscriptionQuery.data?.product_id ?? null,
-    })
-    router.push(`/dashboard/${organization.slug}/settings/billing/change-plan`)
-  }
-
   if (canManageBilling === false) {
     return (
       <DashboardBody
@@ -130,25 +99,6 @@ export default function BillingPage({
   return (
     <DashboardBody wrapperClassName="max-w-(--breakpoint-md)!" title="Billing">
       <Box display="flex" flexDirection="column" rowGap="3xl">
-        <Section id="subscription">
-          {subscriptionQuery.isLoading || !subscriptionQuery.data ? (
-            <LoadingBox height={240} borderRadius="l" />
-          ) : (
-            <Box display="flex" flexDirection="column" rowGap="xl">
-              <StartupProgramCallout
-                organization={organization}
-                subscription={subscriptionQuery.data}
-                plans={plansQuery.data ?? []}
-              />
-              <BillingSubscriptionCard
-                subscription={subscriptionQuery.data}
-                plans={plansQuery.data ?? []}
-                onChangePlan={onChangePlan}
-              />
-            </Box>
-          )}
-        </Section>
-
         <Section id="payment-methods">
           <BillingPaymentMethods
             organizationId={organization.id}
