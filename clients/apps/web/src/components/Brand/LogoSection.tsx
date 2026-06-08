@@ -2,7 +2,7 @@
 
 import ArrowDownwardOutlined from '@mui/icons-material/ArrowDownwardOutlined'
 import { Text } from '@polar-sh/orbit'
-import { useTheme } from 'next-themes'
+import { useTheme } from '@/providers/theme'
 import React, { useCallback, useState } from 'react'
 import { PolarLogotype } from '../Layout/Public/PolarLogotype'
 import { SectionLayout } from './SectionLayout'

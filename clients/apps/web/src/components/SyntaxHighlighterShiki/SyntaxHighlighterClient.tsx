@@ -1,6 +1,6 @@
 'use client'
 
-import { useTheme } from 'next-themes'
+import { useTheme } from '@/providers/theme'
 import React, { useCallback, useContext, useEffect, useState } from 'react'
 import { BundledLanguage } from 'shiki'
 import { createHighlighterCore, HighlighterCore } from 'shiki/core'

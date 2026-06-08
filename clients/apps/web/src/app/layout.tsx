@@ -71,6 +71,15 @@ export default async function RootLayout({
         )}
       </head>
       <body style={{ textRendering: 'optimizeLegibility' }}>
+        {/* Runs synchronously before React hydrates to prevent flash of wrong theme.
+            Must live in a server component — scripts in client components trigger a
+            React 19 warning and are not re-executed on client navigations anyway. */}
+        <script
+          suppressHydrationWarning
+          dangerouslySetInnerHTML={{
+            __html: `try{var d=document.documentElement,s=localStorage.getItem('theme'),t=s==='dark'||s==='light'?s:window.matchMedia('(prefers-color-scheme: dark)').matches?'dark':'light';d.classList.remove('light','dark');d.classList.add(t);d.style.colorScheme=t}catch(e){}`,
+          }}
+        />
         <ExperimentProvider experiments={experimentVariants}>
           <UserContextProvider
             user={authenticatedUser}

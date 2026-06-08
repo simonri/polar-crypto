@@ -3,7 +3,7 @@
 import { NavigationHistoryProvider } from '@/providers/navigationHistory'
 import { getQueryClient } from '@/utils/api/query'
 import { QueryClientProvider } from '@tanstack/react-query'
-import { ThemeProvider } from 'next-themes'
+import { ThemeProvider } from '@/providers/theme'
 import { usePathname, useSearchParams } from 'next/navigation'
 import { NuqsAdapter } from 'nuqs/adapters/next/app'
 import { PropsWithChildren, Suspense } from 'react'

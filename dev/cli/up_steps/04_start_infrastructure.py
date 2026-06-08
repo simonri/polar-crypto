@@ -12,29 +12,26 @@ from shared import (
 NAME = "Starting infrastructure"
 
 
-def get_docker_compose_status() -> dict[str, bool]:
-    """Get status of docker compose services."""
+def get_running_services() -> set[str]:
+    """Get names of currently-running docker compose services."""
     result = run_command(
-        ["docker", "compose", "ps", "--format", "{{.Name}} {{.State}}"],
+        ["docker", "compose", "ps", "--services", "--filter", "status=running"],
         cwd=SERVER_DIR,
         capture=True,
     )
-    status = {}
-    if result and result.returncode == 0:
-        for line in result.stdout.strip().split("\n"):
-            if line:
-                parts = line.split()
-                if len(parts) >= 2:
-                    name = parts[0]
-                    state = parts[1].lower()
-                    status[name] = state == "running"
-    return status
+    if result and result.returncode == 0 and result.stdout.strip():
+        return set(result.stdout.strip().split("\n"))
+    return set()
 
 
 def run(ctx: Context) -> bool:
     """Start Docker containers."""
-    docker_status = get_docker_compose_status()
-    all_running = bool(docker_status) and all(docker_status.values())
+    required = {"db", "redis"}
+    if not ctx.skip_tinybird:
+        required.add("tinybird")
+
+    running = get_running_services()
+    all_running = required.issubset(running)
 
     if all_running and not ctx.clean:
         step_status(True, "Docker containers", "already running")
@@ -58,9 +55,8 @@ def run(ctx: Context) -> bool:
         )
 
     if result and result.returncode == 0:
-        # Show which containers were started
-        new_status = get_docker_compose_status()
-        services = [name.split("-")[-1] for name in new_status.keys() if new_status.get(name)]
+        new_running = get_running_services()
+        services = sorted(new_running & required)
         step_status(True, "Docker containers", f"started ({', '.join(services)})" if services else "started")
         return True
     else:

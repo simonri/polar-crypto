@@ -12,7 +12,7 @@ import {
   XAxis,
   YAxis,
 } from '@polar-sh/ui/components/ui/chart'
-import { useTheme } from 'next-themes'
+import { useTheme } from '@/providers/theme'
 import { useMemo } from 'react'
 
 export interface CostsBandedChartProps {

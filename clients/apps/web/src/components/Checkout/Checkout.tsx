@@ -20,7 +20,7 @@ import { AcceptedLocale } from '@polar-sh/i18n'
 import Alert from '@polar-sh/ui/components/atoms/Alert'
 import ShadowBox from '@polar-sh/ui/components/atoms/ShadowBox'
 import { getThemePreset } from '@polar-sh/ui/hooks/theming'
-import { useTheme } from 'next-themes'
+import { useTheme } from '@/providers/theme'
 import Link from 'next/link'
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { CheckoutDiscountInput } from './CheckoutDiscountInput'
@@ -198,6 +198,12 @@ const Checkout = ({
         }
         setFullLoading(false)
         throw error
+      }
+
+      if (confirmedCheckout.payment_processor === 'crypto') {
+        setCryptoPendingCheckout(confirmedCheckout)
+        setFullLoading(false)
+        return confirmedCheckout
       }
 
       await checkoutConfirmedRedirect(

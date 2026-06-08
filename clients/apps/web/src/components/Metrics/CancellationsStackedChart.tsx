@@ -16,7 +16,7 @@ import {
   YAxis,
 } from '@polar-sh/ui/components/ui/chart'
 import { addDays, addHours, addMonths, addWeeks, addYears } from 'date-fns'
-import { useTheme } from 'next-themes'
+import { useTheme } from '@/providers/theme'
 import { useCallback, useMemo, useState } from 'react'
 import { CancellationReasonModal } from './cancellations/CancellationReasonModal'
 import {

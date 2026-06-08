@@ -1,7 +1,7 @@
 import { ParsedMetricPeriod } from '@/hooks/queries'
 import { getFormattedMetricValue, getTimestampFormatter } from '@/utils/metrics'
 import { schemas } from '@polar-sh/client'
-import { useTheme } from 'next-themes'
+import { useTheme } from '@/providers/theme'
 import { useMemo } from 'react'
 import type { AxisTick } from 'recharts/types/util/types'
 import { GenericChart } from '../Charts/GenericChart'

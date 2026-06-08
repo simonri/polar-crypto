@@ -14,7 +14,7 @@ import {
   XAxis,
   YAxis,
 } from '@polar-sh/ui/components/ui/chart'
-import { useTheme } from 'next-themes'
+import { useTheme } from '@/providers/theme'
 import React, { useCallback, useId, useMemo, useRef, useState } from 'react'
 import { ReferenceLine } from 'recharts'
 import type { MouseHandlerDataParam } from 'recharts'

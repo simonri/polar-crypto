@@ -9,6 +9,7 @@ import {
   SelectValue,
 } from '@polar-sh/orbit'
 import { Copy, Timer } from 'lucide-react'
+import { QRCodeSVG } from 'qrcode.react'
 import { useCallback, useEffect, useState } from 'react'
 
 interface CryptoPaymentMethod {
@@ -181,7 +182,7 @@ export function CryptoCheckoutStatus({
     return `${m}:${s.toString().padStart(2, '0')}`
   }
 
-  if (!invoiceStatus || !invoiceStatus.payment_methods) {
+  if (!invoiceStatus || !invoiceStatus.payment_methods?.length) {
     return (
       <div className="flex items-center justify-center py-8 text-sm text-gray-500">
         Loading payment details...
@@ -233,13 +234,18 @@ export function CryptoCheckoutStatus({
             )}
           </div>
 
-          {/* QR code link (opens wallet) */}
-          <a
-            href={selectedMethod.payment_url}
-            className="flex items-center justify-center rounded-lg border border-blue-200 bg-blue-50 py-2 text-sm font-medium text-blue-700 hover:bg-blue-100 dark:border-blue-800 dark:bg-blue-900/30 dark:text-blue-300"
-          >
-            Open in Wallet App
-          </a>
+          {/* QR code */}
+          <div className="flex flex-col items-center gap-3">
+            <a href={selectedMethod.payment_url} className="rounded-xl bg-white p-3">
+              <QRCodeSVG value={selectedMethod.payment_url} size={180} />
+            </a>
+            <a
+              href={selectedMethod.payment_url}
+              className="text-xs text-blue-600 hover:underline dark:text-blue-400"
+            >
+              Open in Wallet App
+            </a>
+          </div>
         </>
       )}
 

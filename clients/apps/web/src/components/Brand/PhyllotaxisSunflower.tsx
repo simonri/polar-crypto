@@ -1,6 +1,6 @@
 'use client'
 
-import { useTheme } from 'next-themes'
+import { useTheme } from '@/providers/theme'
 import { useCallback, useEffect, useRef, useState } from 'react'
 import { buildAtlas } from './shaders/pass/ascii'
 

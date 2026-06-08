@@ -22,7 +22,7 @@ import { usePaymentMethodRedirectResult } from '@polar-sh/checkout/react/payment
 import { schemas } from '@polar-sh/client'
 import { Box } from '@polar-sh/orbit/Box'
 import { useQueryClient } from '@tanstack/react-query'
-import { useTheme } from 'next-themes'
+import { useTheme } from '@/providers/theme'
 import { useState } from 'react'
 
 export default function BillingPage({
