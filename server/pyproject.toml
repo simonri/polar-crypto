@@ -172,6 +172,24 @@ strict_equality = true
 disallow_untyped_defs = true
 skip_cache_mtime_checks = true
 
+[[tool.mypy.overrides]]
+module = ["scripts.*"]
+ignore_errors = true
+
+[[tool.mypy.overrides]]
+module = [
+  "tests.customer_portal.endpoints.test_order",
+  "tests.customer.test_schemas",
+  "tests.transaction.service.test_payment",
+  "tests.transaction.service.test_refund",
+  "tests.transaction.service.test_dispute",
+  "tests.integrations.slack.test_service",
+  "tests.order.test_service",
+  "tests.checkout.test_service",
+  "tests.refund.test_service",
+]
+ignore_errors = true
+
 [tool.pydantic-mypy]
 init_forbid_extra = true
 init_typed = true

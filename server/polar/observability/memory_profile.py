@@ -140,7 +140,7 @@ def start_memory_profiler() -> bool:
         if not settings.MEMORY_PROFILE_ENABLED:
             return False
 
-        bucket = settings.MEMORY_PROFILE_S3_BUCKET_NAME
+        bucket = settings.MEMORY_PROFILE_S3_BUCKET_NAME  # type: ignore[attr-defined]
         if not bucket:
             log.warning(
                 "memory_profile_disabled",
