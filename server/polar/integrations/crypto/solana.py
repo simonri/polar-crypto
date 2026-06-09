@@ -143,13 +143,9 @@ class SolanaAdapter:
 
         reference = str(Keypair().pubkey())
 
-        # For SOL the customer sends to the merchant's native address;
-        # for USDC they send to the merchant's USDC token account (ATA).
-        receive_address = (
-            self._merchant_ata_str
-            if self.currency == "sol_usdc"
-            else self._merchant_pubkey_str
-        )
+        # The Solana Pay spec uses the wallet address as recipient for both SOL
+        # and SPL tokens — the paying wallet derives the ATA from it internally.
+        receive_address = self._merchant_pubkey_str
 
         log.info(
             "solana.payment_request.created",
