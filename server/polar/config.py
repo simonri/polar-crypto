@@ -213,8 +213,8 @@ class Settings(BaseSettings):
     # Each entry maps a currency symbol to its daemon URL.
     # Example: POLAR_CRYPTO_DAEMON_BTC_URL=http://localhost:5000
     CRYPTO_DAEMON_BTC_URL: str = "http://localhost:5000"
-    CRYPTO_DAEMON_ETH_URL: str = "http://localhost:5001"
-    CRYPTO_DAEMON_LTC_URL: str = "http://localhost:5002"
+    CRYPTO_DAEMON_LTC_URL: str = "http://localhost:5001"
+    CRYPTO_DAEMON_ETH_URL: str = "http://localhost:5002"
     CRYPTO_DAEMON_RPC_USER: str = "polaruser"
     CRYPTO_DAEMON_RPC_PASS: str = "polarpass"
 
@@ -224,7 +224,7 @@ class Settings(BaseSettings):
     CRYPTO_LTC_XPUB: str | None = None
 
     # Comma-separated list of currencies enabled for payments
-    CRYPTO_CURRENCIES: str = "btc"
+    CRYPTO_CURRENCIES: str = "btc,ltc"
 
     # Invoice expiry in minutes (displayed countdown on checkout)
     CRYPTO_INVOICE_EXPIRY_MINUTES: int = 15
