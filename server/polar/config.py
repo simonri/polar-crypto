@@ -193,21 +193,6 @@ class Settings(BaseSettings):
     GOOGLE_CLIENT_ID: str = ""
     GOOGLE_CLIENT_SECRET: str = ""
 
-    # Apple
-    APPLE_CLIENT_ID: str = ""
-    APPLE_TEAM_ID: str = ""
-    APPLE_KEY_ID: str = ""
-    APPLE_KEY_VALUE: str = ""
-
-    # Organization review website scraping
-    FIRECRAWL_API_KEY: str | None = None
-    # Which scraper backs the JS-render path of the organization-review website
-    # collector. "playwright" uses the in-house headless browser, "firecrawl"
-    # uses Firecrawl Cloud, and "shadow" runs Firecrawl alongside Playwright to
-    # log a comparison while still using Playwright's result for the live verdict.
-    ORGANIZATION_REVIEW_SCRAPER: Literal["playwright", "firecrawl", "shadow"] = (
-        "playwright"
-    )
 
     # Crypto / Bitcart daemon configuration
     # Each entry maps a currency symbol to its daemon URL.
@@ -222,6 +207,13 @@ class Settings(BaseSettings):
     CRYPTO_BTC_XPUB: str | None = None
     CRYPTO_ETH_XPUB: str | None = None
     CRYPTO_LTC_XPUB: str | None = None
+
+    # Solana — no daemon needed; uses RPC directly
+    # merchant_pubkey: base58 public key of the receiving wallet (cold key is fine)
+    # For sol_usdc: the merchant's USDC ATA must be initialised before going live
+    CRYPTO_SOL_MERCHANT_PUBKEY: str | None = None
+    CRYPTO_SOL_RPC_URL: str = "https://api.mainnet-beta.solana.com"
+    CRYPTO_SOL_NETWORK: str = "mainnet-beta"  # "devnet" for testing
 
     # Comma-separated list of currencies enabled for payments
     CRYPTO_CURRENCIES: str = "btc,ltc"

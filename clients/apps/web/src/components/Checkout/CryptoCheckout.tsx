@@ -126,7 +126,7 @@ export function CryptoCheckoutStatus({
         const data: CryptoInvoiceStatus = await res.json()
         setInvoiceStatus(data)
 
-        if (data.status === 'complete') {
+        if (data.status === 'complete' || data.status === 'no_invoice') {
           onConfirmed()
         } else if (data.status === 'expired') {
           onExpired()

@@ -15,7 +15,7 @@ import structlog
 from sqlalchemy import select
 from sqlalchemy.orm import selectinload
 
-from polar.integrations.crypto.exchange_rate import ExchangeRateService
+from polar.integrations.crypto.exchange_rate import ExchangeRateService, get_precision
 from polar.integrations.crypto.service import CryptoService, crypto_service
 from polar.kit.utils import utc_now
 from polar.logging import Logger
@@ -97,9 +97,9 @@ class CryptoInvoiceService:
     ) -> CryptoPaymentMethod:
         # 1. Fetch exchange rate
         rate = await exchange_rate_service.get_rate(currency, invoice.currency.lower())
-        amount_crypto = (invoice.price / rate).quantize(Decimal("0.00000001"))
+        amount_crypto = (invoice.price / rate).quantize(get_precision(currency))
 
-        # 2. Generate payment address via daemon
+        # 2. Generate payment address via daemon / adapter
         payment_address, lookup_field = await self._service.add_payment_request(
             currency=currency,
             amount_crypto=amount_crypto,
@@ -107,8 +107,8 @@ class CryptoInvoiceService:
             expiry_seconds=expiry_minutes * 60,
         )
 
-        # 3. Build payment URL (BIP21 / EIP681)
-        payment_url = _build_payment_url(currency, payment_address, amount_crypto)
+        # 3. Build payment URL (BIP21 / EIP681 / Solana Pay)
+        payment_url = _build_payment_url(currency, payment_address, amount_crypto, lookup_field)
 
         pm = CryptoPaymentMethod(
             invoice_id=invoice.id,
@@ -159,7 +159,12 @@ class CryptoInvoiceService:
         return result.scalar_one_or_none()
 
 
-def _build_payment_url(currency: str, address: str, amount: Decimal) -> str:
+def _build_payment_url(
+    currency: str,
+    address: str,
+    amount: Decimal,
+    lookup_field: str | None = None,
+) -> str:
     cur = currency.lower()
     if cur == "btc":
         return f"bitcoin:{address}?amount={amount}"
@@ -169,6 +174,19 @@ def _build_payment_url(currency: str, address: str, amount: Decimal) -> str:
         return f"ethereum:{address}?value={int(amount * Decimal('1e18'))}"
     if cur == "trx":
         return f"tron:{address}?amount={amount}"
+    if cur in ("sol", "sol_usdc"):
+        from polar.config import settings
+        from polar.integrations.crypto.solana import USDC_MINT_DEVNET, USDC_MINT_MAINNET
+
+        ref = f"&reference={lookup_field}" if lookup_field else ""
+        if cur == "sol_usdc":
+            usdc_mint = (
+                USDC_MINT_DEVNET
+                if settings.CRYPTO_SOL_NETWORK == "devnet"
+                else USDC_MINT_MAINNET
+            )
+            return f"solana:{address}?amount={amount}&spl-token={usdc_mint}{ref}"
+        return f"solana:{address}?amount={amount}{ref}"
     return f"{cur}:{address}?amount={amount}"
 
 

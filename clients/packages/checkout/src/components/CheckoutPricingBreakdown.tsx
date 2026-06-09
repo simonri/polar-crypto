@@ -188,15 +188,7 @@ const CheckoutPricingBreakdown = ({
                   checkout.currency,
                 )}
               </DetailRow>
-              <DetailRow
-                title={t('checkout.pricing.taxableAmount')}
-                className="text-gray-600"
-              >
-                {formatCurrency('standard', locale)(
-                  checkout.net_amount,
-                  checkout.currency,
-                )}
-              </DetailRow>
+
             </>
           )}
 

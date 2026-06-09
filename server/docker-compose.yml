@@ -95,7 +95,7 @@ services:
       - LTC_LOGIN=${POLAR_CRYPTO_DAEMON_RPC_USER:-polaruser}
       - LTC_PASSWORD=${POLAR_CRYPTO_DAEMON_RPC_PASS:-polarpass}
     ports:
-      - "${POLAR_CRYPTO_LTC_DAEMON_PORT:-5002}:5000"
+      - "${POLAR_CRYPTO_LTC_DAEMON_PORT:-5002}:5001"
     volumes:
       - ltc_daemon_data:/root/.electrum-ltc
     profiles:

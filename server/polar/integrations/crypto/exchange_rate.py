@@ -16,9 +16,20 @@ from polar.logging import Logger
 
 log: Logger = structlog.get_logger()
 
-# Precision: 8 decimal places for UTXO coins, 18 for EVM — we use 8 as the
-# common denominator displayed to users.
-CRYPTO_PRECISION = Decimal("0.00000001")
+# Default precision (8 decimal places) covers BTC/LTC/ETH/EVM chains.
+# SOL uses 9 decimals (lamports), USDC uses 6 decimals on Solana.
+CRYPTO_PRECISION = Decimal("0.00000001")  # kept for backward-compat imports
+
+_PRECISION_BY_CURRENCY: dict[str, Decimal] = {
+    "sol": Decimal("0.000000001"),   # 9 decimal places
+    "sol_usdc": Decimal("0.000001"),  # 6 decimal places
+}
+
+
+def get_precision(currency: str) -> Decimal:
+    """Return the appropriate Decimal quantization step for a currency."""
+    return _PRECISION_BY_CURRENCY.get(currency.lower(), CRYPTO_PRECISION)
+
 
 _COINGECKO_IDS: dict[str, str] = {
     "btc": "bitcoin",
@@ -27,6 +38,8 @@ _COINGECKO_IDS: dict[str, str] = {
     "matic": "matic-network",
     "bnb": "binancecoin",
     "trx": "tron",
+    "sol": "solana",
+    # sol_usdc intentionally omitted — stablecoin, always 1:1 with USD
 }
 
 _RATE_CACHE_TTL = 300  # 5 minutes
@@ -41,7 +54,11 @@ class ExchangeRateService:
         self._redis = redis
 
     async def get_rate(self, crypto: str, fiat: str = "usd") -> Decimal:
-        """Return the exchange rate: 1 unit of fiat costs N units of crypto."""
+        """Return the exchange rate: 1 unit of fiat = N units of crypto."""
+        # USDC is a USD stablecoin; no external lookup needed
+        if crypto.lower() == "sol_usdc":
+            return Decimal("1")
+
         cache_key = f"polar:crypto:rate:{crypto.lower()}:{fiat.lower()}"
         cached = await self._redis.get(cache_key)
         if cached:
@@ -64,7 +81,7 @@ class ExchangeRateService:
         # We want: fiat_amount / (fiat_per_crypto)
         # rate from CoinGecko is fiat_per_crypto (e.g. 40000 USD per BTC)
         crypto_amount = (fiat_amount / rate).quantize(
-            CRYPTO_PRECISION, rounding=ROUND_UP
+            get_precision(crypto), rounding=ROUND_UP
         )
         log.debug(
             "exchange_rate.convert",

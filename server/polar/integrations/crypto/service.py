@@ -28,6 +28,9 @@ CONFIRMATION_THRESHOLDS: dict[str, int] = {
     "matic": 12,
     "bnb": 12,
     "trx": 19,
+    # Solana "confirmed" commitment settles in ~0.4 s; 1 is sufficient
+    "sol": 1,
+    "sol_usdc": 1,
 }
 
 
@@ -95,6 +98,40 @@ class CryptoService:
                 log.warning(
                     "crypto.daemon.init_failed", currency=currency, error=str(e)
                 )
+
+        # Solana uses direct RPC — no Bitcart daemon needed
+        enabled = [
+            c.strip().lower()
+            for c in settings.CRYPTO_CURRENCIES.split(",")
+            if c.strip()
+        ]
+        sol_currencies = [c for c in enabled if c in ("sol", "sol_usdc")]
+        if sol_currencies and settings.CRYPTO_SOL_MERCHANT_PUBKEY:
+            from polar.integrations.crypto.solana import SolanaAdapter
+
+            for cur in sol_currencies:
+                try:
+                    self._coins[cur] = SolanaAdapter(
+                        currency=cur,
+                        merchant_pubkey=settings.CRYPTO_SOL_MERCHANT_PUBKEY,
+                        rpc_url=settings.CRYPTO_SOL_RPC_URL,
+                        network=settings.CRYPTO_SOL_NETWORK,
+                    )
+                    log.info(
+                        "crypto.solana.initialized",
+                        currency=cur,
+                        rpc_url=settings.CRYPTO_SOL_RPC_URL,
+                    )
+                except Exception as e:
+                    log.warning(
+                        "crypto.solana.init_failed", currency=cur, error=str(e)
+                    )
+        elif sol_currencies:
+            log.warning(
+                "crypto.solana.skipped",
+                reason="CRYPTO_SOL_MERCHANT_PUBKEY not set",
+                currencies=sol_currencies,
+            )
 
         self._initialized = True
 
@@ -266,6 +303,8 @@ _COINGECKO_IDS: dict[str, str] = {
     "matic": "matic-network",
     "bnb": "binancecoin",
     "trx": "tron",
+    "sol": "solana",
+    # sol_usdc intentionally omitted — stablecoin, rate is always 1
 }
 
 

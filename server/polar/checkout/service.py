@@ -843,16 +843,14 @@ class CheckoutService:
             await self._create_or_update_customer_simple(
                 session, auth_subject, checkout
             )
-            await self._confirm_crypto(session, checkout)
+            if checkout.total_amount == 0:
+                enqueue_job("checkout.handle_free_success", checkout_id=checkout.id)
+            else:
+                await self._confirm_crypto(session, checkout)
         else:
             raise NotImplementedError(
                 f"Unsupported payment processor: {checkout.payment_processor}"
             )
-
-        if not checkout.is_payment_required:
-            # Free products: immediately fulfil (crypto invoice will have 0 amount — skip)
-            if checkout.total_amount == 0:
-                enqueue_job("checkout.handle_free_success", checkout_id=checkout.id)
 
         checkout.status = CheckoutStatus.confirmed
         session.add(checkout)
