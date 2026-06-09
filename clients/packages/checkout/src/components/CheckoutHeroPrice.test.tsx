@@ -133,7 +133,6 @@ describe('CheckoutHeroPrice', () => {
           trial_interval_count: 1,
           visibility: 'public',
           prices: [],
-          medias: [],
           description: null,
           is_archived: false,
           organization_id: 'org_1',
