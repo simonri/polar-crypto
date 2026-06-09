@@ -70,6 +70,7 @@
     "react-dropzone": "^14.4.1",
     "react-focus-lock": "^2.13.7",
     "react-hook-form": "~7.72.1",
+    "react-qr-code": "^2.0.21",
     "react-timeago": "^8.3.0",
     "recharts": "^3.8.1",
     "rehype-mdx-import-media": "^1.4.0",
