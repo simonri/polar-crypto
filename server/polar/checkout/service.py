@@ -506,8 +506,8 @@ class CheckoutService:
             # Crypto checkouts: store enabled currencies in metadata for the UI
             checkout.payment_processor_metadata = {
                 **(checkout.payment_processor_metadata or {}),
-                "accepted_currencies": settings.CRYPTO_CURRENCIES.split(","),
-                "invoice_expiry_minutes": settings.CRYPTO_INVOICE_EXPIRY_MINUTES,
+                "accepted_currencies": settings.CRYPTO_CURRENCIES,
+                "invoice_expiry_minutes": str(settings.CRYPTO_INVOICE_EXPIRY_MINUTES),
             }
 
         # `None` locale would opt in to browser-based language detection.
