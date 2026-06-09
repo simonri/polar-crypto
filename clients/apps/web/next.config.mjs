@@ -58,7 +58,7 @@ const nextConfig = {
   },
 
   experimental: {
-    webpackMemoryOptimizations: true
+    webpackMemoryOptimizations: true,
   },
 
   images: {

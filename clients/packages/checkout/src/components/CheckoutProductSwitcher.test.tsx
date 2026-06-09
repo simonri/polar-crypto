@@ -1,10 +1,7 @@
 import { render, screen } from '@testing-library/react'
 import { describe, expect, it, vi } from 'vitest'
 import type { ProductCheckoutPublic } from '../guards'
-import {
-  createCheckout,
-  createFixedPrice,
-} from '../test-utils/makeCheckout'
+import { createCheckout, createFixedPrice } from '../test-utils/makeCheckout'
 import CheckoutProductSwitcher from './CheckoutProductSwitcher'
 
 const themePreset = {} as Parameters<

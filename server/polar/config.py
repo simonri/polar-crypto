@@ -193,7 +193,6 @@ class Settings(BaseSettings):
     GOOGLE_CLIENT_ID: str = ""
     GOOGLE_CLIENT_SECRET: str = ""
 
-
     # Crypto / Bitcart daemon configuration
     # Each entry maps a currency symbol to its daemon URL.
     # Example: POLAR_CRYPTO_DAEMON_BTC_URL=http://localhost:5000

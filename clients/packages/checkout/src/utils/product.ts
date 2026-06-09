@@ -8,4 +8,3 @@ export const hasLegacyRecurringPrices = (
   prices: schemas['ProductPrice'][],
 ): prices is schemas['LegacyRecurringProductPrice'][] =>
   prices.some(isLegacyRecurringPrice)
-

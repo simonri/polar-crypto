@@ -329,93 +329,93 @@ const Checkout = ({
 
   return (
     <div className="md:grid md:min-h-screen md:grid-cols-2">
-        <div className="md:flex md:justify-end">
-          <div className="mx-auto flex w-full max-w-[480px] flex-col gap-y-8 px-4 py-6 md:mx-0 md:py-12 md:pr-12 md:pl-4">
-            {orgHeader}
-            <div className="flex flex-col gap-y-8 md:sticky md:top-8">
-              {hasProductCheckout(checkout) && (
-                <>
-                  <div className="flex flex-col gap-y-2">
-                    <span className="text-sm font-medium text-gray-900 dark:text-white">
-                      {checkout.product.name}
-                    </span>
-                    <span className="text-3xl font-medium">
-                      <CheckoutHeroPrice checkout={checkout} locale={locale} />
-                    </span>
-                  </div>
-                  {checkout.product_price.amount_type === 'custom' &&
-                    !checkout.amount && (
-                      <CheckoutPWYWForm
-                        checkout={checkout}
-                        update={update}
-                        productPrice={
-                          checkout.product_price as schemas['ProductPriceCustom']
-                        }
-                        locale={locale}
-                      />
-                    )}
-                  {!checkout.is_free_product_price && (
-                    <div className="flex flex-col gap-4 text-sm">
-                      <CheckoutPricingBreakdown
-                        checkout={checkout}
-                        locale={locale}
-                      />
-                      <CheckoutDiscountInput
-                        checkout={checkout}
-                        update={update}
-                        locale={locale}
-                        collapsible
-                      />
-                    </div>
-                  )}
-                  {checkout.product.description && (
-                    <CheckoutProductDescription
-                      description={checkout.product.description}
-                      productName={checkout.product.name}
+      <div className="md:flex md:justify-end">
+        <div className="mx-auto flex w-full max-w-[480px] flex-col gap-y-8 px-4 py-6 md:mx-0 md:py-12 md:pr-12 md:pl-4">
+          {orgHeader}
+          <div className="flex flex-col gap-y-8 md:sticky md:top-8">
+            {hasProductCheckout(checkout) && (
+              <>
+                <div className="flex flex-col gap-y-2">
+                  <span className="text-sm font-medium text-gray-900 dark:text-white">
+                    {checkout.product.name}
+                  </span>
+                  <span className="text-3xl font-medium">
+                    <CheckoutHeroPrice checkout={checkout} locale={locale} />
+                  </span>
+                </div>
+                {checkout.product_price.amount_type === 'custom' &&
+                  !checkout.amount && (
+                    <CheckoutPWYWForm
+                      checkout={checkout}
+                      update={update}
+                      productPrice={
+                        checkout.product_price as schemas['ProductPriceCustom']
+                      }
                       locale={locale}
                     />
                   )}
-                </>
-              )}
-            </div>
-          </div>
-        </div>
-        <div className="dark:md:bg-polar-900 md:bg-white">
-          <div className="mx-auto flex w-full max-w-[480px] flex-col gap-y-8 px-4 py-6 md:mx-0 md:py-12 md:pr-4 md:pl-12">
-            {shouldBlockCheckout && (
-              <PaymentNotReadyBanner
-                organizationStatus={paymentStatus?.organization_status}
-                organizationName={checkout.organization.name}
-              />
-            )}
-            {cryptoPendingCheckout ? (
-              cryptoPaymentView
-            ) : (
-              <CheckoutForm
-                form={form}
-                checkout={checkout}
-                update={update}
-                confirm={confirm}
-                loading={loading}
-                loadingLabel={label}
-                theme={theme}
-                themePreset={themePreset}
-                disabled={disableCheckout}
-                isUpdatePending={isUpdatePending}
-                locale={locale}
-                beforeSubmit={
-                  checkout.payment_processor === 'crypto' ? (
-                    <CryptoCurrencySelector
-                      value={selectedCurrency}
-                      onValueChange={setSelectedCurrency}
+                {!checkout.is_free_product_price && (
+                  <div className="flex flex-col gap-4 text-sm">
+                    <CheckoutPricingBreakdown
+                      checkout={checkout}
+                      locale={locale}
                     />
-                  ) : undefined
-                }
-              />
+                    <CheckoutDiscountInput
+                      checkout={checkout}
+                      update={update}
+                      locale={locale}
+                      collapsible
+                    />
+                  </div>
+                )}
+                {checkout.product.description && (
+                  <CheckoutProductDescription
+                    description={checkout.product.description}
+                    productName={checkout.product.name}
+                    locale={locale}
+                  />
+                )}
+              </>
             )}
           </div>
         </div>
       </div>
+      <div className="dark:md:bg-polar-900 md:bg-white">
+        <div className="mx-auto flex w-full max-w-[480px] flex-col gap-y-8 px-4 py-6 md:mx-0 md:py-12 md:pr-4 md:pl-12">
+          {shouldBlockCheckout && (
+            <PaymentNotReadyBanner
+              organizationStatus={paymentStatus?.organization_status}
+              organizationName={checkout.organization.name}
+            />
+          )}
+          {cryptoPendingCheckout ? (
+            cryptoPaymentView
+          ) : (
+            <CheckoutForm
+              form={form}
+              checkout={checkout}
+              update={update}
+              confirm={confirm}
+              loading={loading}
+              loadingLabel={label}
+              theme={theme}
+              themePreset={themePreset}
+              disabled={disableCheckout}
+              isUpdatePending={isUpdatePending}
+              locale={locale}
+              beforeSubmit={
+                checkout.payment_processor === 'crypto' ? (
+                  <CryptoCurrencySelector
+                    value={selectedCurrency}
+                    onValueChange={setSelectedCurrency}
+                  />
+                ) : undefined
+              }
+            />
+          )}
+        </div>
+      </div>
+    </div>
   )
 }
 

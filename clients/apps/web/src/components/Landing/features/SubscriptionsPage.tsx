@@ -137,8 +137,8 @@ export const SubscriptionsPage = () => {
         <p>
           Every Polar account includes a hosted <strong>Customer Portal</strong>{' '}
           where subscribers can update payment methods, download invoices,
-          change plans, and cancel. You can either link to it
-          directly or embed it inside your product.
+          change plans, and cancel. You can either link to it directly or embed
+          it inside your product.
         </p>
         <p>
           Cancellation comes in two flavors that work the same way from the

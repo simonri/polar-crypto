@@ -32,7 +32,8 @@ export function getMeterUnitFormat(
     const scale = customMultiplier ?? 1
     return {
       scale,
-      label: scale > 1 ? `${scale.toLocaleString()} ${customLabel}` : customLabel,
+      label:
+        scale > 1 ? `${scale.toLocaleString()} ${customLabel}` : customLabel,
       formatValue: (v) =>
         new Intl.NumberFormat('en-US', { maximumFractionDigits: 2 }).format(
           v / scale,

@@ -1,9 +1,6 @@
 import type { schemas } from '@polar-sh/client'
 import { describe, expect, it } from 'vitest'
-import {
-  hasLegacyRecurringPrices,
-  isLegacyRecurringPrice,
-} from './product'
+import { hasLegacyRecurringPrices, isLegacyRecurringPrice } from './product'
 
 const makePrice = (
   overrides: Partial<schemas['ProductPrice']>,
@@ -52,4 +49,3 @@ describe('hasLegacyRecurringPrices', () => {
     expect(hasLegacyRecurringPrices([])).toBe(false)
   })
 })
-

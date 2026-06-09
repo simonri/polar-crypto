@@ -20,4 +20,3 @@ export const getLastVisitedOrg = (
   }
   return organizations.find((org) => org.slug === lastVisitedOrgSlug)
 }
-

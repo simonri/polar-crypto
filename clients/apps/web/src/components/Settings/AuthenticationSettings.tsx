@@ -1,13 +1,7 @@
 'use client'
 
-import {
-  useAuth,
-  useDisconnectOAuthAccount,
-  useGoogleAccount,
-} from '@/hooks'
-import {
-  getGoogleAuthorizeLinkURL,
-} from '@/utils/auth'
+import { useAuth, useDisconnectOAuthAccount, useGoogleAccount } from '@/hooks'
+import { getGoogleAuthorizeLinkURL } from '@/utils/auth'
 import AlternateEmailOutlined from '@mui/icons-material/AlternateEmailOutlined'
 import Google from '@mui/icons-material/Google'
 import { schemas } from '@polar-sh/client'

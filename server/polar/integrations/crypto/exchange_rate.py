@@ -21,7 +21,7 @@ log: Logger = structlog.get_logger()
 CRYPTO_PRECISION = Decimal("0.00000001")  # kept for backward-compat imports
 
 _PRECISION_BY_CURRENCY: dict[str, Decimal] = {
-    "sol": Decimal("0.000000001"),   # 9 decimal places
+    "sol": Decimal("0.000000001"),  # 9 decimal places
     "sol_usdc": Decimal("0.000001"),  # 6 decimal places
 }
 

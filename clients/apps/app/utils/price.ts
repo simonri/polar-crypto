@@ -23,4 +23,3 @@ export const isStaticPrice = (
   | schemas['ProductPriceFree'] =>
   price.amount_type !== undefined &&
   ['fixed', 'custom', 'free'].includes(price.amount_type)
-

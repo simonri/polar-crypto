@@ -177,7 +177,6 @@ export const usePortalAuthenticatedUser = (api: Client) =>
     retry: defaultRetry,
   })
 
-
 export const useCustomerOrders = (
   api: Client,
   parameters?: operations['customer_portal:orders:list']['parameters']['query'],

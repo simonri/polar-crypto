@@ -134,9 +134,7 @@ const ClientPage: React.FC<ClientPageProps> = ({
       ),
       cell: (props) => {
         const customer = props.getValue() as schemas['OrderCustomer']
-        return (
-          <Truncated>{customer.name || customer.email || '—'}</Truncated>
-        )
+        return <Truncated>{customer.name || customer.email || '—'}</Truncated>
       },
     },
     {

@@ -1,9 +1,7 @@
 'use client'
 
 import { InlineModalHeader } from '@/components/Modal/InlineModal'
-import {
-  useCustomerUpdateSubscription,
-} from '@/hooks/queries/customerPortal'
+import { useCustomerUpdateSubscription } from '@/hooks/queries/customerPortal'
 import { hasLegacyRecurringPrices } from '@/utils/product'
 import { formatTrialEnd, useTrialChangeOutcome } from '@/utils/trial-change'
 import { Client, schemas } from '@polar-sh/client'
@@ -81,7 +79,7 @@ const CustomerChangePlanModal = ({
 
     const willTrigger =
       selectedProduct.recurring_interval !==
-        subscription.product.recurring_interval
+      subscription.product.recurring_interval
 
     if (!willTrigger) return [false, null]
 
@@ -131,8 +129,7 @@ const CustomerChangePlanModal = ({
   ])
 
   const willIssueInvoice =
-    trialOutcome?.kind === 'ends' ||
-    willTriggerImmediateCycle
+    trialOutcome?.kind === 'ends' || willTriggerImmediateCycle
   const [approveImmediateInvoice, setApproveImmediateInvoice] = useState(false)
 
   const canChangePlan = useMemo(() => {
@@ -149,12 +146,7 @@ const CustomerChangePlanModal = ({
     if (selectedPlanIsFree) return true
 
     return true
-  }, [
-    selectedProduct,
-    subscription,
-    willIssueInvoice,
-    approveImmediateInvoice,
-  ])
+  }, [selectedProduct, subscription, willIssueInvoice, approveImmediateInvoice])
 
   const updateSubscription = useCustomerUpdateSubscription(api)
   const onConfirm = useCallback(async () => {

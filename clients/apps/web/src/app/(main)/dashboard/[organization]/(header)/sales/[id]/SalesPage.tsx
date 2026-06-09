@@ -235,8 +235,7 @@ const ClientPage: React.FC<ClientPageProps> = ({
               </>
             )}
 
-            {order.billing_address ||
-            order.billing_name ? (
+            {order.billing_address || order.billing_name ? (
               <>
                 <Separator className="dark:bg-polar-700 my-4 h-px bg-gray-300" />
                 {order.billing_name ? (

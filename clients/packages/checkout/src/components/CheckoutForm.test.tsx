@@ -146,5 +146,4 @@ describe('CheckoutForm', () => {
       expect(screen.getByRole('button')).toBeDisabled()
     })
   })
-
 })

@@ -75,10 +75,7 @@ export const OrganizationsSheet = ({
               activeOpacity={0.6}
             >
               <Box flexDirection="row" alignItems="center" gap="spacing-12">
-                <Avatar
-                  size={24}
-                  name={organization?.name}
-                />
+                <Avatar size={24} name={organization?.name} />
                 <Text>{organization?.name}</Text>
               </Box>
               {selectedOrganization?.id === organization?.id ? (

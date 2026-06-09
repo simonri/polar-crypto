@@ -31,8 +31,7 @@ export const ProductPricingSection = ({
   update,
   compact,
 }: ProductPricingSectionProps) => {
-  const { control, setValue, getValues } =
-    useFormContext<ProductFormType>()
+  const { control, setValue, getValues } = useFormContext<ProductFormType>()
 
   const pricesFieldArray = useFieldArray({
     control,
@@ -252,7 +251,6 @@ export const ProductPricingSection = ({
             </div>
           ))}
         </div>
-
       </div>
     </Section>
   )

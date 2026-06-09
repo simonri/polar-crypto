@@ -123,9 +123,7 @@ class CryptoService:
                         rpc_url=settings.CRYPTO_SOL_RPC_URL,
                     )
                 except Exception as e:
-                    log.warning(
-                        "crypto.solana.init_failed", currency=cur, error=str(e)
-                    )
+                    log.warning("crypto.solana.init_failed", currency=cur, error=str(e))
         elif sol_currencies:
             log.warning(
                 "crypto.solana.skipped",

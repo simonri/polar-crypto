@@ -46,7 +46,8 @@ export function PersonalDetailsStep() {
 
   const form = useForm<FormSchema>({
     defaultValues: {
-      accepted_terms_of_service: currentUser?.accepted_terms_of_service ?? false,
+      accepted_terms_of_service:
+        currentUser?.accepted_terms_of_service ?? false,
     },
   })
 

@@ -106,7 +106,6 @@ const CheckoutPricing = ({
             )
           )}
         </h1>
-
       </div>
     </div>
   )

@@ -10,7 +10,10 @@ import { toast } from '@/components/Toast/use-toast'
 import { getQueryClient } from '@/utils/api/query'
 import { schemas } from '@polar-sh/client'
 import { Text } from '@polar-sh/orbit'
-import type { OrganizationReviewCheck, OrganizationReviewCheckStatus } from './index'
+import type {
+  OrganizationReviewCheck,
+  OrganizationReviewCheckStatus,
+} from './index'
 import { Box } from '@polar-sh/orbit/Box'
 import { Button } from '@polar-sh/orbit'
 import CopyToClipboardInput from '@polar-sh/ui/components/atoms/CopyToClipboardInput'

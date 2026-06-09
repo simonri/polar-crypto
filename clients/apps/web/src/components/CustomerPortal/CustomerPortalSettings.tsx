@@ -1,9 +1,7 @@
 'use client'
 
 import revalidate from '@/app/actions'
-import {
-  useCustomerPortalCustomer,
-} from '@/hooks/queries/customerPortal'
+import { useCustomerPortalCustomer } from '@/hooks/queries/customerPortal'
 import { createClientSideAPI } from '@/utils/client'
 import { schemas } from '@polar-sh/client'
 import { Button } from '@polar-sh/orbit'

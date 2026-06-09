@@ -1,10 +1,7 @@
 import { schemas } from '@polar-sh/client'
 import { render, screen, within } from '@testing-library/react'
 import { afterEach, describe, expect, it, vi } from 'vitest'
-import {
-  createBaseCheckout,
-  createCheckout,
-} from '../test-utils/makeCheckout'
+import { createBaseCheckout, createCheckout } from '../test-utils/makeCheckout'
 import CheckoutPricingBreakdown from './CheckoutPricingBreakdown'
 
 function getRowValue(label: string): string {

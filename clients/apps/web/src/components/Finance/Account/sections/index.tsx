@@ -7,7 +7,11 @@ import { ProductUrlSection } from './ProductUrlSection'
 import { SetupReadinessSection } from './SetupReadinessSection'
 import { SocialLinksSection } from './SocialLinksSection'
 
-export type OrganizationReviewCheckStatus = 'passed' | 'failed' | 'warning' | 'pending'
+export type OrganizationReviewCheckStatus =
+  | 'passed'
+  | 'failed'
+  | 'warning'
+  | 'pending'
 
 export interface OrganizationReviewSubCheck {
   key: string

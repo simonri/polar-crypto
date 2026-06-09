@@ -220,8 +220,8 @@ const ClientPage: React.FC<ClientPageProps> = ({
         const customer = subscription.customer
         return (
           <div className="fw-medium overflow-hidden text-ellipsis">
-              {customer.name || customer.email || '—'}
-            </div>
+            {customer.name || customer.email || '—'}
+          </div>
         )
       },
     },

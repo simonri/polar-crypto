@@ -188,7 +188,6 @@ const CheckoutPricingBreakdown = ({
                   checkout.currency,
                 )}
               </DetailRow>
-
             </>
           )}
 

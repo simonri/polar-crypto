@@ -170,9 +170,7 @@ describe('CheckoutFormProvider', () => {
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
       let result: any = null
       await act(async () => {
-        result = await getCtx().confirm(
-          { customer_email: 'ok@example.com' },
-        )
+        result = await getCtx().confirm({ customer_email: 'ok@example.com' })
       })
 
       expect(result).toMatchObject({ id: 'ch_confirmed' })

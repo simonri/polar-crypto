@@ -51,7 +51,6 @@ const CustomerPortalOrder = ({
             status={OrderStatusDisplayTitle[order.status]}
             className={twMerge(OrderStatusDisplayColor[order.status])}
           />
-
         </div>
 
         <div className="flex flex-col gap-8">
@@ -189,9 +188,7 @@ const CustomerPortalOrder = ({
             )}
           </div>
         </div>
-
       </div>
-
     </div>
   )
 }

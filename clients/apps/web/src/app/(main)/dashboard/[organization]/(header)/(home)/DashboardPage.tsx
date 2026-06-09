@@ -2,7 +2,7 @@
 
 import { OverviewSection } from '@/components/DashboardOverview/OverviewSection'
 import { DashboardBody } from '@/components/Layout/DashboardLayout'
-import { AccountWidget} from '@/components/Widgets/AccountWidget'
+import { AccountWidget } from '@/components/Widgets/AccountWidget'
 import { OrdersWidget } from '@/components/Widgets/OrdersWidget'
 import RevenueWidget from '@/components/Widgets/RevenueWidget'
 import { schemas } from '@polar-sh/client'

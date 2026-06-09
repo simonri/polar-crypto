@@ -92,5 +92,4 @@ describe('ProductPriceLabel', () => {
       expect(getText(container)).toBe('Free')
     })
   })
-
 })

@@ -2711,11 +2711,14 @@ class TestConfirm:
 
     async def test_valid_fully_discounted_subscription(
         self,
+        mocker: MockerFixture,
         session: AsyncSession,
         auth_subject: AuthSubject[Anonymous],
         checkout_discount_percentage_100: Checkout,
         discount_percentage_100: Discount,
     ) -> None:
+        enqueue_job_mock = mocker.patch("polar.checkout.service.enqueue_job")
+
         checkout = await checkout_service.confirm(
             session,
             auth_subject,
@@ -2729,7 +2732,11 @@ class TestConfirm:
         )
 
         assert checkout.status == CheckoutStatus.confirmed
-        assert "crypto_invoice_id" in checkout.payment_processor_metadata
+        assert "crypto_invoice_id" not in checkout.payment_processor_metadata
+        assert any(
+            call == mocker.call("checkout.handle_free_success", checkout_id=checkout.id)
+            for call in enqueue_job_mock.call_args_list
+        )
 
         updated_discount = await discount_service.get(
             session,

@@ -108,7 +108,9 @@ class CryptoInvoiceService:
         )
 
         # 3. Build payment URL (BIP21 / EIP681 / Solana Pay)
-        payment_url = _build_payment_url(currency, payment_address, amount_crypto, lookup_field)
+        payment_url = _build_payment_url(
+            currency, payment_address, amount_crypto, lookup_field
+        )
 
         pm = CryptoPaymentMethod(
             invoice_id=invoice.id,

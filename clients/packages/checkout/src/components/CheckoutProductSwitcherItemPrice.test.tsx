@@ -1,9 +1,6 @@
 import { render } from '@testing-library/react'
 import { describe, expect, it } from 'vitest'
-import {
-  createCheckout,
-  createFreePrice,
-} from '../test-utils/makeCheckout'
+import { createCheckout, createFreePrice } from '../test-utils/makeCheckout'
 import { CheckoutProductSwitcherItemPrice } from './CheckoutProductSwitcher'
 
 function getRenderedText(container: HTMLElement): string {

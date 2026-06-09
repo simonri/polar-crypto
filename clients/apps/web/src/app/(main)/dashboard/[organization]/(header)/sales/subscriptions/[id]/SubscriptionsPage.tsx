@@ -194,7 +194,6 @@ const ClientPage: React.FC<ClientPageProps> = ({
             </div>
           </div>
         )}
-
       </ShadowBox>
 
       {(subscription.status === 'active' ||

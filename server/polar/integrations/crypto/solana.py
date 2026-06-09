@@ -92,9 +92,7 @@ class SolanaAdapter:
         self.server = _ServerProxy()
 
         if self.currency == "sol_usdc":
-            usdc_mint = (
-                USDC_MINT_DEVNET if network == "devnet" else USDC_MINT_MAINNET
-            )
+            usdc_mint = USDC_MINT_DEVNET if network == "devnet" else USDC_MINT_MAINNET
             self._usdc_mint_str = usdc_mint
             self._merchant_ata_str = _get_associated_token_address(
                 merchant_pubkey, usdc_mint

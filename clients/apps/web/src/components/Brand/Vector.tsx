@@ -155,7 +155,8 @@ function parseDAttribute(d: string): PathCommand[] {
 }
 
 function parseSVG(svgString: string): { paths: ParsedPath[]; viewBox: string } {
-  if (typeof DOMParser === 'undefined') return { paths: [], viewBox: '0 0 100 100' }
+  if (typeof DOMParser === 'undefined')
+    return { paths: [], viewBox: '0 0 100 100' }
   const parser = new DOMParser()
   const doc = parser.parseFromString(svgString, 'image/svg+xml')
   const svgEl = doc.querySelector('svg')

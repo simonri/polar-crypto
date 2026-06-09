@@ -160,7 +160,6 @@ export const InactiveSubscriptionsOverview = ({
           ) : null
         }
       />
-
     </div>
   )
 }

@@ -45,7 +45,7 @@ export function CryptoCurrencySelector({
 }) {
   return (
     <div className="space-y-2">
-      <p className="text-sm font-medium leading-none">Pay with</p>
+      <p className="text-sm leading-none font-medium">Pay with</p>
       <Select value={value} onValueChange={onValueChange}>
         <SelectTrigger className="w-full">
           <SelectValue placeholder="Select token" />
@@ -131,7 +131,6 @@ export function CryptoCheckoutStatus({
         } else if (data.status === 'expired') {
           onExpired()
         }
-
       }
     } catch {
       // Network error — will retry
@@ -204,7 +203,7 @@ export function CryptoCheckoutStatus({
         <>
           {/* Amount */}
           <div className="space-y-2">
-            <p className="text-sm font-medium leading-none">Send exactly</p>
+            <p className="text-sm leading-none font-medium">Send exactly</p>
             <p className="text-2xl font-semibold tabular-nums">
               {parseFloat(selectedMethod.amount).toString()}{' '}
               <span className="text-base font-normal text-gray-500 dark:text-gray-400">
@@ -215,9 +214,9 @@ export function CryptoCheckoutStatus({
 
           {/* Address */}
           <div className="space-y-2">
-            <p className="text-sm font-medium leading-none">To address</p>
+            <p className="text-sm leading-none font-medium">To address</p>
             <div className="dark:border-polar-700 dark:bg-polar-800 flex items-center gap-2 rounded-xl border border-gray-200 bg-white px-3 py-2 shadow-xs">
-              <code className="flex-1 overflow-hidden text-ellipsis text-xs">
+              <code className="flex-1 overflow-hidden text-xs text-ellipsis">
                 {selectedMethod.payment_address}
               </code>
               <button
@@ -236,7 +235,10 @@ export function CryptoCheckoutStatus({
 
           {/* QR code */}
           <div className="flex flex-col items-center gap-3">
-            <a href={selectedMethod.payment_url} className="rounded-xl bg-white p-3">
+            <a
+              href={selectedMethod.payment_url}
+              className="rounded-xl bg-white p-3"
+            >
               <QRCodeSVG value={selectedMethod.payment_url} size={180} />
             </a>
             <a

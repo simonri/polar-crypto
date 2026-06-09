@@ -71,7 +71,9 @@ const NavigationHistoryProviderInner = ({ children }: PropsWithChildren) => {
 export const NavigationHistoryProvider = ({ children }: PropsWithChildren) => {
   return (
     <Suspense fallback={<>{children}</>}>
-      <NavigationHistoryProviderInner>{children}</NavigationHistoryProviderInner>
+      <NavigationHistoryProviderInner>
+        {children}
+      </NavigationHistoryProviderInner>
     </Suspense>
   )
 }
