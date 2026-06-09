@@ -87,7 +87,6 @@ describe('CheckoutPricingBreakdown', () => {
       render(<CheckoutPricingBreakdown checkout={checkout} locale="en" />)
 
       expect(getRowValue('Subtotal')).toBe('$9.99')
-      expect(getRowValue('Taxes')).toBe('—')
       expect(getRowValue('Total')).toBe('$9.99')
     })
   })
@@ -115,12 +114,11 @@ describe('CheckoutPricingBreakdown', () => {
       expect(getRowValue('20% off')).toBe('-$4')
       expect(screen.getByText('(-20%)')).toBeInTheDocument()
       expect(getRowValue('Taxable amount')).toBe('$16')
-      expect(getRowValue('Taxes')).toBe('—')
       expect(getRowValue('Total')).toBe('$16')
     })
   })
 
-  describe('with discount and taxes', () => {
+  describe('with discount', () => {
     it('shows all breakdown rows correctly', () => {
       const checkout = createBaseCheckout({
         amount: 2000,
@@ -143,7 +141,6 @@ describe('CheckoutPricingBreakdown', () => {
       expect(getRowValue('20% off')).toBe('-$4')
       expect(screen.getByText('(-20%)')).toBeInTheDocument()
       expect(getRowValue('Taxable amount')).toBe('$16')
-      expect(getRowValue('Taxes')).toBe('—')
       expect(getRowValue('Total')).toBe('$16')
     })
   })

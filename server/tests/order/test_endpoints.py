@@ -201,10 +201,7 @@ class TestExportOrders:
         # Should only have header row since user is not a member
         csv_lines = response.text.strip().split("\r\n")
         assert len(csv_lines) == 1
-        assert (
-            csv_lines[0]
-            == "Email,Created At,Product,Amount,Currency,Status"
-        )
+        assert csv_lines[0] == "Email,Created At,Product,Amount,Currency,Status"
 
     @pytest.mark.auth(
         AuthSubjectFixture(scopes={Scope.orders_read}),
@@ -228,10 +225,7 @@ class TestExportOrders:
         assert len(csv_lines) == len(orders) + 1  # +1 for header
 
         # Verify header
-        assert (
-            csv_lines[0]
-            == "Email,Created At,Product,Amount,Currency,Status"
-        )
+        assert csv_lines[0] == "Email,Created At,Product,Amount,Currency,Status"
 
         # Verify data row contains expected fields
         order = orders[0]

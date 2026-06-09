@@ -56,7 +56,6 @@ class UserUpdate(Schema):
     accepted_terms_of_service: bool | None = None
 
 
-
 class UserSetAccount(Schema):
     account_id: UUID4
 

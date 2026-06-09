@@ -4,7 +4,6 @@ import structlog
 
 from polar.exceptions import PolarTaskError
 from polar.logging import Logger
-from polar.models.payout import PayoutStatus
 from polar.worker import AsyncSessionMaker, CronTrigger, TaskPriority, actor
 
 from .repository import PayoutRepository
@@ -85,5 +84,3 @@ async def trigger_payout(
             # Swallow it, since it's likely a task that's being retried
             # while the payout has already been triggered.
             pass
-
-

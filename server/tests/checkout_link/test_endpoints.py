@@ -78,7 +78,7 @@ class TestCreateCheckoutLink:
         response = await client.post(
             "/v1/checkout-links/",
             json={
-                "payment_processor": "stripe",
+                "payment_processor": "crypto",
                 "products": [str(product.id)],
             },
         )
@@ -90,7 +90,7 @@ class TestCreateCheckoutLink:
         response = await client.post(
             "/v1/checkout-links/",
             json={
-                "payment_processor": "stripe",
+                "payment_processor": "crypto",
                 "products": [str(product.id)],
             },
         )
@@ -103,7 +103,7 @@ class TestCreateCheckoutLink:
     ) -> None:
         response = await client.post(
             "/v1/checkout-links/",
-            json={"payment_processor": "stripe", "products": [str(product.id)]},
+            json={"payment_processor": "crypto", "products": [str(product.id)]},
         )
 
         assert response.status_code == 403
@@ -115,7 +115,7 @@ class TestCreateCheckoutLink:
         response = await client.post(
             "/v1/checkout-links/",
             json={
-                "payment_processor": "stripe",
+                "payment_processor": "crypto",
                 "products": [str(product.id)],
             },
         )

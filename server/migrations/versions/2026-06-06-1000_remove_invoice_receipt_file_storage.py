@@ -20,12 +20,8 @@ def upgrade() -> None:
     op.execute("SET LOCAL lock_timeout = '5s'")
 
     # Drop triggers and functions from orders
-    op.execute(
-        "DROP TRIGGER IF EXISTS orders_search_vector_trigger ON orders"
-    )
-    op.execute(
-        "DROP FUNCTION IF EXISTS orders_search_vector_update() CASCADE"
-    )
+    op.execute("DROP TRIGGER IF EXISTS orders_search_vector_trigger ON orders")
+    op.execute("DROP FUNCTION IF EXISTS orders_search_vector_update() CASCADE")
 
     # Drop indexes on orders
     op.execute("DROP INDEX IF EXISTS ix_orders_search_vector")

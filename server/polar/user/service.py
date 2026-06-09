@@ -26,7 +26,6 @@ log = structlog.get_logger()
 class UserError(PolarError): ...
 
 
-
 class InvalidAccount(UserError):
     def __init__(self, account_id: UUID) -> None:
         self.account_id = account_id

@@ -5,7 +5,6 @@ from uuid import UUID
 
 import sqlalchemy as sa
 from sqlalchemy import Select, and_, case, cast, or_, select
-from sqlalchemy.orm import contains_eager
 from sqlalchemy.orm.strategy_options import joinedload, selectinload
 
 from polar.auth.models import (
@@ -17,9 +16,6 @@ from polar.auth.models import (
     is_member,
     is_organization,
     is_user,
-)
-from polar.auth.models import (
-    Customer as AuthCustomer,
 )
 from polar.auth.permission import OrganizationPermission
 from polar.authz.repository import select_user_org_ids
@@ -392,6 +388,7 @@ class SubscriptionProductPriceRepository(
     RepositoryBase[SubscriptionProductPrice],
 ):
     model = SubscriptionProductPrice
+
 
 class SubscriptionUpdateRepository(
     RepositorySoftDeletionIDMixin[SubscriptionUpdate, UUID],

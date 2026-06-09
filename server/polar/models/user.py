@@ -37,7 +37,6 @@ class OAuthPlatform(StrEnum):
     apple = "apple"
 
 
-
 class OAuthAccount(RecordModel):
     __tablename__ = "oauth_accounts"
     __table_args__ = (

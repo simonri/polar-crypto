@@ -11,7 +11,6 @@ import dramatiq
 import structlog
 from dramatiq.common import dq_name
 
-from polar.config import settings
 from polar.logging import CorrelationID, Logger
 from polar.redis import Redis
 

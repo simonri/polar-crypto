@@ -21,7 +21,7 @@ from polar.models.product_price import (
     ProductPriceFixed,
 )
 from polar.postgres import AsyncSession
-from polar.product.guard import is_static_price
+from polar.product.guard import is_fixed_price, is_static_price
 from polar.product.schemas import (
     ExistingProductPrice,
     ProductCreate,
@@ -670,7 +670,7 @@ class TestCreate:
             ]
             assert len(currency_prices) == 2
 
-            fixed_prices = [p for p in currency_prices if is_static_price(p)]
+            fixed_prices = [p for p in currency_prices if is_fixed_price(p)]
             custom_prices = [
                 p
                 for p in currency_prices
@@ -679,6 +679,7 @@ class TestCreate:
 
             assert len(fixed_prices) == 1
             assert len(custom_prices) == 1
+
 
 @pytest.mark.asyncio
 class TestUpdate:
@@ -1098,5 +1099,3 @@ class TestUpdate:
 
         assert product.trial_interval is None
         assert product.trial_interval_count is None
-
-

@@ -2030,7 +2030,6 @@ async def impersonate_user(
     """Impersonate a user by creating a read-only session for them."""
     from datetime import timedelta
 
-    from polar.config import settings
 
     # Fetch the user to impersonate
     stmt = select(User).where(User.id == user_id)

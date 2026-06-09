@@ -1,4 +1,5 @@
 import pytest
+import pytest_asyncio
 
 from polar.billing_entry.service import billing_entry as billing_entry_service
 from polar.event.system import SystemEvent
@@ -7,7 +8,6 @@ from polar.models import (
     Customer,
     Order,
     OrderItem,
-    Organization,
     Product,
     Subscription,
 )
@@ -25,8 +25,12 @@ from tests.fixtures.random_objects import (
     create_active_subscription,
     create_event,
     create_order,
-    create_product,
 )
+
+
+@pytest_asyncio.fixture
+async def order(save_fixture: SaveFixture, customer: Customer) -> Order:
+    return await create_order(save_fixture, customer=customer)
 
 
 async def create_static_price_billing_entry(

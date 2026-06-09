@@ -6,7 +6,7 @@ from fastapi import APIRouter, Depends, Form, HTTPException, Query, Request
 from pydantic import UUID4
 from sqlalchemy import or_, select
 from sqlalchemy.orm import selectinload
-from tagflow import classes, tag, text
+from tagflow import tag, text
 
 from polar.kit.pagination import PaginationParamsQuery
 from polar.models import User, UserOrganization
@@ -369,5 +369,3 @@ async def delete_user(
                         hx_vals='{"confirm": "true"}',
                     ):
                         text("Delete User")
-
-

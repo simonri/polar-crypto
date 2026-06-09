@@ -203,7 +203,6 @@ class SearchService:
         ilike_term: str,
     ) -> Select[Any]:
         rank_expr = func.greatest(
-            func.ts_rank(Order.search_vector, ts_query_simple),
             func.ts_rank(Customer.search_vector, ts_query_simple),
             func.ts_rank(Product.search_vector, ts_query_english),
         )
@@ -236,7 +235,6 @@ class SearchService:
         else:
             stmt = stmt.where(
                 or_(
-                    Order.search_vector.op("@@")(ts_query_simple),
                     Customer.search_vector.op("@@")(ts_query_simple),
                     Product.search_vector.op("@@")(ts_query_english),
                     Customer.email.ilike(ilike_term),

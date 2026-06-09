@@ -18,7 +18,7 @@ from sqlalchemy import (
 )
 
 from polar.kit.time_queries import TimeInterval
-from polar.models import Checkout, Order, Subscription
+from polar.models import Checkout, Subscription
 from polar.models.checkout import CheckoutStatus
 
 from .queries import MetricQuery

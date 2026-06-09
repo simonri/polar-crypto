@@ -170,12 +170,12 @@ class TestCreateFeesReversalBalances:
         # Payment fee
         reversal_outgoing, reversal_incoming = fees_reversal_balances[0]
 
-        assert reversal_outgoing.amount == -650
+        assert reversal_outgoing.amount == -550
         assert reversal_outgoing.account == incoming.account
         assert reversal_outgoing.platform_fee_type == PlatformFeeType.payment
         assert reversal_outgoing.incurred_by_transaction == incoming
 
-        assert reversal_incoming.amount == 650
+        assert reversal_incoming.amount == 550
         assert reversal_incoming.account is None
         assert reversal_incoming.platform_fee_type == PlatformFeeType.payment
         assert reversal_incoming.incurred_by_transaction == outgoing
@@ -209,12 +209,12 @@ class TestCreateFeesReversalBalances:
         # Payment fee
         reversal_outgoing, reversal_incoming = fees_reversal_balances[0]
 
-        assert reversal_outgoing.amount == -502
+        assert reversal_outgoing.amount == -424
         assert reversal_outgoing.account == incoming.account
         assert reversal_outgoing.platform_fee_type == PlatformFeeType.payment
         assert reversal_outgoing.incurred_by_transaction == incoming
 
-        assert reversal_incoming.amount == 502
+        assert reversal_incoming.amount == 424
         assert reversal_incoming.account is None
         assert reversal_incoming.platform_fee_type == PlatformFeeType.payment
         assert reversal_incoming.incurred_by_transaction == outgoing
@@ -222,12 +222,12 @@ class TestCreateFeesReversalBalances:
         # Subscription fee
         reversal_outgoing, reversal_incoming = fees_reversal_balances[1]
 
-        assert reversal_outgoing.amount == -60
+        assert reversal_outgoing.amount == -50
         assert reversal_outgoing.account == incoming.account
         assert reversal_outgoing.platform_fee_type == PlatformFeeType.subscription
         assert reversal_outgoing.incurred_by_transaction == incoming
 
-        assert reversal_incoming.amount == 60
+        assert reversal_incoming.amount == 50
         assert reversal_incoming.account is None
         assert reversal_incoming.platform_fee_type == PlatformFeeType.subscription
         assert reversal_incoming.incurred_by_transaction == outgoing

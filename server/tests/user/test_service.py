@@ -9,14 +9,12 @@ from polar.models import (
     UserOrganization,
 )
 from polar.models.user import OAuthPlatform
-from polar.models.user_organization import OrganizationRole
 from polar.postgres import AsyncSession
 from polar.user.schemas import UserDeletionBlockedReason
 from polar.user.service import user as user_service
 from tests.fixtures.database import SaveFixture
 from tests.fixtures.random_objects import (
     create_oauth_account,
-    create_payout_account,
 )
 
 

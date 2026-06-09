@@ -20,7 +20,6 @@ from tests.fixtures.database import SaveFixture
 from tests.fixtures.random_objects import (
     create_active_subscription,
     create_canceled_subscription,
-    create_customer,
     create_product,
     create_subscription,
 )

@@ -28,7 +28,6 @@ from polar.kit.sorting import Sorting
 from polar.member.repository import MemberRepository
 from polar.member.service import member_service
 from polar.models import (
-    Customer,
     Organization,
     PayoutAccount,
     User,

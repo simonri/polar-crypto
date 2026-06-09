@@ -236,6 +236,7 @@ class OrganizationSubscription(Schema):
     ends_at: datetime | None = None
     pending_change: OrganizationSubscriptionPendingChange | None = None
     discount: OrganizationSubscriptionDiscount | None = None
+
     @classmethod
     def free(cls, *, plan: OrganizationPlan) -> "OrganizationSubscription":
         currency = plan.price.currency if plan.price is not None else "usd"

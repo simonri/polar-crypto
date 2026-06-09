@@ -22,7 +22,6 @@ class Refund(MetadataOutputMixin, IDSchema, TimestampedSchema):
     status: RefundStatus
     reason: RefundReason
     amount: int
-    tax_amount: int
     currency: str
     organization_id: UUID4
     order_id: UUID4

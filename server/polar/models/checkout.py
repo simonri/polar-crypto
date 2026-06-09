@@ -12,7 +12,6 @@ from sqlalchemy import (
     ColumnElement,
     Connection,
     ForeignKey,
-    Integer,
     String,
     Uuid,
     event,

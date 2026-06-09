@@ -39,7 +39,6 @@ from polar.transaction.service.refund import (
 )
 from polar.wallet.service import wallet as wallet_service
 from polar.webhook.service import webhook as webhook_service
-from polar.worker import enqueue_job
 
 from .repository import RefundRepository
 from .schemas import RefundCreate

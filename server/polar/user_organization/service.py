@@ -79,7 +79,6 @@ class OwnerRoleCannotBeRemoved(UserOrganizationError):
         super().__init__(message, 400)
 
 
-
 class AlreadyOwner(UserOrganizationError):
     def __init__(self, user_id: UUID, organization_id: UUID) -> None:
         self.user_id = user_id

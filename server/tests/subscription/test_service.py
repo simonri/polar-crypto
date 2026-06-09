@@ -2,7 +2,7 @@ import uuid
 from collections import namedtuple
 from collections.abc import Generator
 from datetime import UTC, datetime, timedelta
-from unittest.mock import AsyncMock, MagicMock
+from unittest.mock import ANY, AsyncMock, MagicMock
 
 import freezegun
 import pytest
@@ -67,6 +67,7 @@ from polar.subscription.service import (
     InactiveSubscription,
     MissingCheckoutCustomer,
     NotARecurringProduct,
+    SubscriptionUpdateContext,
 )
 from polar.subscription.service import subscription as subscription_service
 from polar.subscription.update import generate_subscription_update
@@ -85,6 +86,25 @@ from tests.fixtures.random_objects import (
 
 Hooks = namedtuple("Hooks", "updated activated canceled uncanceled revoked")
 HookNames = frozenset(Hooks._fields)
+
+
+def assert_webhook_sent_once(
+    mock: AsyncMock,
+    event_type: WebhookEventType,
+    organization: Organization,
+    subscription: Subscription,
+) -> None:
+    mock.assert_any_call(ANY, organization, event_type, subscription)
+
+
+async def assert_order_exists(
+    session: AsyncSession, subscription: Subscription
+) -> None:
+    repo = OrderRepository.from_session(session)
+    orders = await repo.get_all_by_subscription(subscription.id)
+    assert len(orders) > 0, (
+        f"Expected order to exist for subscription {subscription.id}"
+    )
 
 
 def assert_hooks_called_once(subscription_hooks: Hooks, called: set[str]) -> None:

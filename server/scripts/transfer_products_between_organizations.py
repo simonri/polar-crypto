@@ -469,9 +469,7 @@ class ProductTransferService:
             name=original_customer.name,
             billing_name=original_customer.billing_name,
             billing_address=original_customer.billing_address,
-            tax_id=original_customer.tax_id,
             short_id=new_short_id,
-            stripe_customer_id=None,  # Will be created if needed
             external_id=None,  # Can be set later if needed
             metadata=original_customer.metadata,
         )

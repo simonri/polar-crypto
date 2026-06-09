@@ -2,7 +2,7 @@ import contextlib
 import uuid
 from collections.abc import Generator
 from datetime import UTC, datetime
-from typing import Annotated, Any, override
+from typing import Annotated, Any
 
 import structlog
 from fastapi import APIRouter, Depends, HTTPException, Query, Request
@@ -1112,7 +1112,6 @@ async def get(
                         with tag.div(classes="text-center py-4"):
                             with tag.p(classes="text-gray-400"):
                                 text("No internal notes yet")
-
 
 
 @router.get("/{id}/plain_search_url", name="organizations-classic:plain_search_url")

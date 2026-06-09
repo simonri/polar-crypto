@@ -51,7 +51,6 @@ class BalanceTransactionService(BaseTransactionService):
             amount=-amount,  # Subtract the amount
             account_currency=currency,
             account_amount=-amount,
-            tax_amount=0,
             balance_correlation_key=balance_correlation_key,
             pledge=pledge,
             issue_reward=issue_reward,
@@ -67,7 +66,6 @@ class BalanceTransactionService(BaseTransactionService):
             amount=amount,  # Add the amount
             account_currency=currency,
             account_amount=amount,
-            tax_amount=0,
             balance_correlation_key=balance_correlation_key,
             pledge=pledge,
             issue_reward=issue_reward,
@@ -164,7 +162,6 @@ class BalanceTransactionService(BaseTransactionService):
             amount=-amount,  # Subtract the amount
             account_currency=currency,
             account_amount=-amount,
-            tax_amount=0,
             balance_correlation_key=balance_correlation_key,
             platform_fee_type=platform_fee_type,
             pledge_id=outgoing.pledge_id,
@@ -181,7 +178,6 @@ class BalanceTransactionService(BaseTransactionService):
             amount=amount,  # Add the amount
             account_currency=currency,
             account_amount=amount,
-            tax_amount=0,
             balance_correlation_key=balance_correlation_key,
             platform_fee_type=platform_fee_type,
             pledge_id=outgoing.pledge_id,

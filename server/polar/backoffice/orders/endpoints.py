@@ -6,7 +6,7 @@ from fastapi import APIRouter, Depends, HTTPException, Query, Request
 from pydantic import UUID4, BeforeValidator, ValidationError
 from sqlalchemy import or_
 from sqlalchemy.orm import contains_eager, joinedload
-from tagflow import attr, tag, text
+from tagflow import tag, text
 
 from polar.kit.currency import format_currency
 from polar.kit.pagination import PaginationParamsQuery

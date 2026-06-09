@@ -1,5 +1,4 @@
 from typing import Any
-from unittest.mock import MagicMock
 
 import pytest
 from pytest_mock import MockerFixture
@@ -796,53 +795,6 @@ class TestUpdate:
 
 @pytest.mark.asyncio
 class TestDelete:
-    async def test_delete_member_enqueues_seat_revocation_job(
-        self,
-        mocker: MockerFixture,
-        save_fixture: SaveFixture,
-        session: AsyncSession,
-        organization: Organization,
-    ) -> None:
-        """Test that deleting a member enqueues a job to revoke their seats."""
-        enqueue_job_mock: MagicMock = mocker.patch("polar.member.service.enqueue_job")
-
-        customer = await create_customer(
-            save_fixture,
-            organization=organization,
-            email="customer@example.com",
-        )
-
-        # Create owner and a regular member
-        owner = Member(
-            customer_id=customer.id,
-            organization_id=organization.id,
-            email="owner@example.com",
-            name="Owner",
-            role=MemberRole.owner,
-        )
-        await save_fixture(owner)
-
-        member = Member(
-            customer_id=customer.id,
-            organization_id=organization.id,
-            email="member@example.com",
-            name="Member",
-            role=MemberRole.member,
-        )
-        await save_fixture(member)
-
-        deleted_member = await member_service.delete(session, member)
-
-        # Verify member is soft-deleted
-        assert deleted_member.id == member.id
-        assert deleted_member.deleted_at is not None
-
-        # Verify enqueue_job was called with correct parameters
-        enqueue_job_mock.assert_called_once_with(
-            "customer_seat.revoke_seats_for_member",
-            member_id=member.id,
-        )
-
     async def test_cannot_delete_only_owner(
         self,
         save_fixture: SaveFixture,
@@ -875,81 +827,6 @@ class TestDelete:
 
 @pytest.mark.asyncio
 class TestDeleteByCustomer:
-    async def test_enqueues_seat_revocation_for_each_member(
-        self,
-        mocker: MockerFixture,
-        save_fixture: SaveFixture,
-        session: AsyncSession,
-        organization: Organization,
-    ) -> None:
-        enqueue_job_mock: MagicMock = mocker.patch("polar.member.service.enqueue_job")
-
-        customer = await create_customer(
-            save_fixture,
-            organization=organization,
-            email="customer@example.com",
-        )
-        owner = Member(
-            customer_id=customer.id,
-            organization_id=organization.id,
-            email="owner@example.com",
-            name="Owner",
-            role=MemberRole.owner,
-        )
-        await save_fixture(owner)
-        regular = Member(
-            customer_id=customer.id,
-            organization_id=organization.id,
-            email="regular@example.com",
-            name="Regular",
-            role=MemberRole.member,
-        )
-        await save_fixture(regular)
-
-        deleted = await member_service.delete_by_customer(session, customer.id)
-
-        assert len(deleted) == 2
-        assert all(m.deleted_at is not None for m in deleted)
-
-        seat_revocation_calls = [
-            c
-            for c in enqueue_job_mock.call_args_list
-            if c.args[0] == "customer_seat.revoke_seats_for_member"
-        ]
-        assert len(seat_revocation_calls) == 2
-        revoked_member_ids = {c.kwargs["member_id"] for c in seat_revocation_calls}
-        assert revoked_member_ids == {owner.id, regular.id}
-
-    async def test_enqueues_benefit_grant_deletions_for_each_member(
-        self,
-        mocker: MockerFixture,
-        save_fixture: SaveFixture,
-        session: AsyncSession,
-        organization: Organization,
-    ) -> None:
-        enqueue_member_mock: MagicMock = mocker.patch(
-            "polar.benefit.grant.service.BenefitGrantService"
-            ".enqueue_member_grant_deletions"
-        )
-
-        customer = await create_customer(
-            save_fixture,
-            organization=organization,
-            email="customer@example.com",
-        )
-        owner = Member(
-            customer_id=customer.id,
-            organization_id=organization.id,
-            email="owner@example.com",
-            name="Owner",
-            role=MemberRole.owner,
-        )
-        await save_fixture(owner)
-
-        await member_service.delete_by_customer(session, customer.id)
-
-        enqueue_member_mock.assert_called_once_with(session, owner.id)
-
     async def test_skips_owner_guard(
         self,
         save_fixture: SaveFixture,

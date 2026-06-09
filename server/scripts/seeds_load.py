@@ -8,7 +8,6 @@ from uuid import UUID
 
 import dramatiq
 import typer
-from polar.models.organization_review import OrganizationReview
 from sqlalchemy import select
 
 # Import tasks to register all dramatiq actors
@@ -30,8 +29,6 @@ from polar.enums import (
     PayoutAccountType,
     SubscriptionProrationBehavior,
     SubscriptionRecurringInterval,
-    TaxBehavior,
-    TaxBehaviorOption,
 )
 from polar.event.repository import EventRepository
 from polar.event.system import SystemEvent as SystemEventEnum
@@ -812,7 +809,6 @@ async def _seed_polar_self_billing_catalog(
         else:
             price_create = ProductPriceFixedCreate(
                 amount_type=ProductPriceAmountType.fixed,
-                tax_behavior=TaxBehaviorOption.exclusive,
                 price_amount=price_amount,
                 price_currency=PresentmentCurrency.usd,
             )
@@ -1256,7 +1252,7 @@ async def create_seed_data(session: AsyncSession, redis: Redis) -> None:
         organization.bio = org_data["bio"]
         organization.details = org_data.get("details", {})
         organization.details_submitted_at = utc_now()
-        organization.set_status(org_data.get("status", OrganizationStatus.CREATED))
+        organization.set_status(org_data.get("status", OrganizationStatus.ACTIVE))
         organization.feature_settings = org_data.get("feature_settings", {})
         if org_data["slug"] != POLAR_ORG_SLUG:
             organization.feature_settings = {
@@ -1269,22 +1265,6 @@ async def create_seed_data(session: AsyncSession, redis: Redis) -> None:
 
         # Attach a fake payout account so seeded orgs are payout-ready
         await create_fake_payout_account(session, organization, user)
-
-        # Create OrganizationReview with PASS verdict for ACTIVE organizations
-        if organization.status == OrganizationStatus.ACTIVE:
-            organization.initially_reviewed_at = utc_now()
-            organization_review = OrganizationReview(
-                organization_id=organization.id,
-                verdict=OrganizationReview.Verdict.PASS,
-                risk_score=0.0,
-                violated_sections=[],
-                reason="Seed data - automatically approved",
-                timed_out=False,
-                model_used="seed",
-                validated_at=utc_now(),
-                organization_details_snapshot=org_data.get("details", {}),
-            )
-            session.add(organization_review)
 
         if org_data["slug"] == "polar":
             await _seed_polar_self_billing_catalog(
@@ -1304,7 +1284,6 @@ async def create_seed_data(session: AsyncSession, redis: Redis) -> None:
             # Create fixed price for product
             price_create: ProductPriceFixedCreate = ProductPriceFixedCreate(
                 amount_type=ProductPriceAmountType.fixed,
-                tax_behavior=TaxBehaviorOption.exclusive,
                 price_amount=product_data["price"],
                 price_currency=PresentmentCurrency.usd,
             )
@@ -1476,7 +1455,6 @@ async def create_seed_data(session: AsyncSession, redis: Redis) -> None:
                         amount=fixed_price.price_amount,
                         net_amount=fixed_price.price_amount,
                         currency=fixed_price.price_currency,
-                        tax_behavior=TaxBehavior.exclusive,
                         recurring_interval=product.recurring_interval,
                         recurring_interval_count=1,
                         status=status,
@@ -1610,19 +1588,6 @@ async def create_single_org_seed(
     organization.initially_reviewed_at = utc_now()
     session.add(organization)
 
-    organization_review = OrganizationReview(
-        organization_id=organization.id,
-        verdict=OrganizationReview.Verdict.PASS,
-        risk_score=0.0,
-        violated_sections=[],
-        reason="Seed data - automatically approved",
-        timed_out=False,
-        model_used="seed",
-        validated_at=utc_now(),
-        organization_details_snapshot={},
-    )
-    session.add(organization_review)
-
     # Attach a fake payout account so the seeded org is payout-ready
     await create_fake_payout_account(session, organization, user)
 
@@ -1654,7 +1619,6 @@ async def create_single_org_seed(
     for prod_name, prod_desc, price, interval in products_data:
         price_create = ProductPriceFixedCreate(
             amount_type=ProductPriceAmountType.fixed,
-            tax_behavior=TaxBehaviorOption.exclusive,
             price_amount=price,
             price_currency=PresentmentCurrency.usd,
         )

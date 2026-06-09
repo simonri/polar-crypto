@@ -30,6 +30,11 @@ NAVIGATION = [
         "external_events:list",
         active_route_name_prefix="external_events:",
     ),
+    navigation.NavigationItem(
+        "Crypto Wallets",
+        "crypto_wallets:list",
+        active_route_name_prefix="crypto_wallets:",
+    ),
     navigation.NavigationItem("Tasks", "tasks:list", active_route_name_prefix="tasks:"),
     navigation.NavigationItem(
         "Webhooks", "webhooks:list", active_route_name_prefix="webhooks:"

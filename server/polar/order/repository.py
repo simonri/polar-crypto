@@ -2,7 +2,7 @@ from collections.abc import Sequence
 from typing import TYPE_CHECKING, cast
 from uuid import UUID
 
-from sqlalchemy import CursorResult, Select, case, select, update
+from sqlalchemy import CursorResult, Select, case, update
 from sqlalchemy.orm import joinedload, selectinload
 
 from polar.auth.models import (

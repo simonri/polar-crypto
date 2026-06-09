@@ -4,7 +4,7 @@ import contextlib
 from collections.abc import Generator
 
 from fastapi import Request
-from tagflow import classes, tag, text
+from tagflow import tag, text
 
 from polar.models import Organization
 from polar.models.user_organization import OrganizationRole

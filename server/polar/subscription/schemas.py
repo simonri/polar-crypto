@@ -147,6 +147,8 @@ class PendingSubscriptionUpdate(IDSchema, TimestampedSchema):
     product_id: UUID4 | None = Field(
         description="ID of the new product to apply to the subscription. If `null`, the product won't be changed."
     )
+
+
 class Subscription(CustomFieldDataOutputMixin, MetadataOutputMixin, SubscriptionBase):
     customer: SubscriptionCustomer
     user_id: SkipJsonSchema[UUID4] = Field(

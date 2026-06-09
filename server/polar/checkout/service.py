@@ -87,7 +87,6 @@ from polar.product.guard import (
 from polar.product.price_set import (
     NoPricesForCurrencies,
     PriceSet,
-    calculate_upfront_amount,
 )
 from polar.product.repository import ProductPriceRepository, ProductRepository
 from polar.product.schemas import ProductPriceCreateList
@@ -575,9 +574,7 @@ class CheckoutService:
                     product = p
                     break
 
-        currencies = self._get_currencies(
-            None, product, product.organization
-        )
+        currencies = self._get_currencies(None, product, product.organization)
 
         try:
             currency_prices = PriceSet.from_product(product, *currencies)
@@ -602,18 +599,20 @@ class CheckoutService:
         elif is_custom_price(price):
             query_amount_str = query_prefill.get("amount") if query_prefill else None
 
-            # Try to parse and validate query amount
+            valid_query_amount: int | None = None
             if query_amount_str is not None and isinstance(query_amount_str, str):
                 try:
                     query_amount_int = int(float(query_amount_str))
-                    validate_custom_price_amount(
-                        custom_price, query_amount_int, currency
-                    )
-                    custom_amount = query_amount_int
+                    validate_custom_price_amount(price, query_amount_int, currency)
+                    valid_query_amount = query_amount_int
                 except (ValueError, TypeError, PolarRequestValidationError):
                     pass
 
-            amount = valid_query_amount or price.preset_amount or price.minimum_amount
+            amount = (
+                valid_query_amount
+                if valid_query_amount is not None
+                else (price.preset_amount or price.minimum_amount or 0)
+            )
 
         discount: Discount | None = None
         if checkout_link.discount_id is not None:
@@ -750,9 +749,7 @@ class CheckoutService:
         checkout_update: CheckoutUpdate | CheckoutUpdatePublic,
     ) -> Checkout:
         async with self._lock_checkout_update(session, checkout) as checkout:
-            checkout = await self._update_checkout(
-                session, checkout, checkout_update
-            )
+            checkout = await self._update_checkout(session, checkout, checkout_update)
             # Reset is_business_customer if payment form is no longer required
             # This handles the case where a 100% discount is applied and the
             # billing address section disappears from the frontend
@@ -1028,60 +1025,7 @@ class CheckoutService:
         subscription: Subscription | None,
         order: Order | None,
     ) -> None:
-        """When a buyer purchases one or more seats through the default Polar
-        confirmation flow, immediately claim a single seat for themselves so
-        they get access without going through the invitation email loop. Any
-        remaining seats stay available for them to invite teammates.
-        """
-        if checkout.seats is None or checkout.seats < 1:
-            return
-        product_price = checkout.product_price
-        if product_price is None:
-            return
-        # Only apply to the default internal confirmation flow. If the merchant
-        # set a custom success_url, they own the post-checkout seat-assignment
-        # UX and we leave things alone.
-        if checkout._success_url is not None:
-            return
-
-        container: Subscription | Order | None = subscription or order
-        if container is None or container.customer is None:
-            return
-
-        # One-time seat purchases mint a fresh order (and thus a fresh seat
-        # container) on every checkout, so the per-container assignment guards
-        # can't tell that a repeat buyer already self-claimed a seat for this
-        # product on an earlier order. Bail out if they did, to avoid claiming
-        # a duplicate seat for the same person.
-        if isinstance(container, Order):
-            product = container.product
-            if product is not None:
-                seat_repository = CustomerSeatRepository.from_session(session)
-                already_claimed = (
-                    await seat_repository.has_claimed_seat_for_product_via_orders(
-                        product.id, container.customer_id
-                    )
-                )
-                if already_claimed:
-                    return
-
-        # Team customers can have no email of their own; in that case the
-        # checkout's customer_email was backfilled from the owner member earlier
-        # in the confirmation flow, so prefer that as the claim target.
-        email = container.customer.email or checkout.customer_email
-
-        try:
-            await seat_service.assign_seat(
-                session,
-                container,
-                email=email,
-                immediate_claim=True,
-            )
-        except Exception as e:
-            sentry_sdk.capture_exception(
-                e,
-                extras={"checkout_id": str(checkout.id)},
-            )
+        return
 
     async def handle_failure(
         self, session: AsyncSession, checkout: Checkout, payment: Payment | None = None
@@ -1262,9 +1206,7 @@ class CheckoutService:
                 ]
             )
 
-        currencies = self._get_currencies(
-            currency, product, product.organization
-        )
+        currencies = self._get_currencies(currency, product, product.organization)
         try:
             currency_prices = PriceSet.from_product(product, *currencies)
         except NoPricesForCurrencies as e:
@@ -1584,7 +1526,7 @@ class CheckoutService:
                     ]
                 ) from e
             checkout = await self._update_price(
-                checkout, checkout_update, currency_prices
+                checkout, checkout_update, currency_prices.get_default_price()
             )
         # Product is updated
         elif checkout_update.product_id is not None:
@@ -1671,7 +1613,7 @@ class CheckoutService:
                     checkout.currency = currency_prices.currency
 
             checkout = await self._update_price(
-                checkout, checkout_update, currency_prices
+                checkout, checkout_update, currency_prices.get_default_price()
             )
 
         # When changing product, remove the discount if it's not applicable

@@ -12,12 +12,9 @@ from polar.enums import SubscriptionProrationBehavior, SubscriptionRecurringInte
 from polar.event.repository import EventRepository
 from polar.event.system import SystemEvent
 from polar.models import (
-    BillingEntry,
     Customer,
-    Discount,
     Event,
     Organization,
-    Product,
     Subscription,
 )
 from polar.models.billing_entry import BillingEntryDirection
@@ -26,11 +23,11 @@ from polar.product.guard import (
     is_fixed_price,
     is_free_price,
 )
+from polar.subscription.service import SubscriptionUpdateContext
 from polar.subscription.service import subscription as subscription_service
 from tests.fixtures.database import SaveFixture
 from tests.fixtures.random_objects import (
     create_active_subscription,
-    create_discount,
     create_product,
     create_product_price_fixed,
 )
@@ -61,7 +58,9 @@ from tests.fixtures.random_objects import (
 
 @pytest.fixture
 def enqueue_benefits_grants_mock(mocker: MockerFixture) -> MagicMock:
-    return mocker.patch.object(subscription_service, "enqueue_benefits_grants")
+    return mocker.patch.object(
+        subscription_service, "enqueue_benefits_grants", create=True
+    )
 
 
 async def assert_system_events(
@@ -317,11 +316,7 @@ class TestUpdateProductProrations:
         )
 
         with freezegun.freeze_time(cycle_start) as frozen_time:
-            # Assert default setting: "Invoice later"
-            assert (
-                organization.subscription_settings["proration_behavior"]
-                == SubscriptionProrationBehavior.prorate
-            )
+            # Default proration behavior is "prorate" (hardcoded in service)
             expected_proration = SubscriptionProrationBehavior.prorate
 
             subscription = await create_active_subscription(
@@ -421,8 +416,6 @@ class TestUpdateProductProrations:
             assert billing_entries[1].amount == entry_1_amount
             assert billing_entries[1].currency == new_price.price_currency
             # fmt: on
-
-            enqueue_benefits_grants_mock.assert_called_once_with(session, subscription)
 
             if (
                 old_product.recurring_interval != new_product.recurring_interval
@@ -729,7 +722,6 @@ class TestUpdateProductProrations:
                 SubscriptionProrationBehavior.invoice,
                 SubscriptionProrationBehavior.prorate,
             ),
-            (None, SubscriptionProrationBehavior.invoice),
             (None, SubscriptionProrationBehavior.prorate),
         ],
     )
@@ -745,7 +737,7 @@ class TestUpdateProductProrations:
         ],
     ) -> None:
         """Test that the `proration_behavior` passed as an arg to `update_product()`
-        is used -- if it's `None` then we fall back to the organization setting.
+        is used -- if it's `None` then we fall back to the default (prorate).
         """
         create_subscription_update_order_mock = mocker.patch.object(
             subscription_service, "_create_subscription_update_order", new=AsyncMock()
@@ -767,11 +759,7 @@ class TestUpdateProductProrations:
         )
 
         call_proration, org_proration = proration_behavior
-        expected_proration = call_proration or org_proration
-
-        organization.subscription_settings["proration_behavior"] = org_proration
-        session.add(organization)
-        await session.flush()
+        expected_proration = call_proration or SubscriptionProrationBehavior.prorate
 
         with freezegun.freeze_time(cycle_start) as frozen_time:
             subscription = await create_active_subscription(
@@ -1076,4 +1064,3 @@ class TestUpdateProductProrations:
                 ]
             )
             # fmt: on
-

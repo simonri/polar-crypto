@@ -148,9 +148,7 @@ def upgrade() -> None:
     )
 
     # Drop sync trigger/function if they exist (only present on upgraded DBs)
-    op.execute(
-        "DROP TRIGGER IF EXISTS orders_sync_v2_amounts_trigger ON orders"
-    )
+    op.execute("DROP TRIGGER IF EXISTS orders_sync_v2_amounts_trigger ON orders")
     op.execute("DROP FUNCTION IF EXISTS orders_sync_v2_amounts()")
 
     # Drop legacy INT4 columns if they exist

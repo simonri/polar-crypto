@@ -416,7 +416,10 @@ class PayoutService:
             raise PayoutNotCancelable(payout)
 
         payout_transaction = payout.transaction
-        await payout_transaction_service.reverse(session, payout_transaction)
+        await payout_transaction_service.reverse(session, payout_transaction, payout)
+        await platform_fee_transaction_service.create_payout_fees_reversal_balances(
+            session, payout=payout
+        )
 
         repository = PayoutRepository.from_session(session)
         return await repository.update(

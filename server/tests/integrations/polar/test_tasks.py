@@ -1,5 +1,4 @@
 import uuid
-from decimal import Decimal
 from unittest.mock import AsyncMock, MagicMock
 
 import httpx
@@ -16,7 +15,6 @@ from polar.integrations.polar.tasks import (
     delete_customer,
     remove_member,
     track_event_ingestion,
-    track_organization_review_usage,
     update_customer_slug,
     update_member,
 )
@@ -412,34 +410,4 @@ class TestFlushEventIngestion:
 
         client.track_event_ingestion.assert_called_once_with(
             counts=counts, cutoff=cutoff
-        )
-
-
-@pytest.mark.asyncio
-class TestTrackOrganizationReviewUsage:
-    async def test_calls_client_with_decimal_cost(
-        self,
-        mocker: MockerFixture,
-    ) -> None:
-        client = AsyncMock(spec=PolarSelfClient)
-        mocker.patch("polar.integrations.polar.tasks.get_client", return_value=client)
-
-        await track_organization_review_usage(
-            external_customer_id="org-123",
-            review_context="submission",
-            vendor="openai",
-            model="gpt-4o-mini",
-            input_tokens=100,
-            output_tokens=50,
-            cost_usd="0.0123",
-        )
-
-        client.track_organization_review_usage.assert_called_once_with(
-            external_customer_id="org-123",
-            review_context="submission",
-            vendor="openai",
-            model="gpt-4o-mini",
-            input_tokens=100,
-            output_tokens=50,
-            cost_usd=Decimal("0.0123"),
         )

@@ -8,7 +8,6 @@ from sqlalchemy import (
     BigInteger,
     ColumnElement,
     ForeignKey,
-    Integer,
     String,
     Text,
     UniqueConstraint,
@@ -61,10 +60,29 @@ class OrganizationDetails(TypedDict, total=False):
 
 class OrganizationSubscriptionSettings(TypedDict):
     allow_customer_updates: bool
+    allow_multiple_subscriptions: NotRequired[bool]
+    proration_behavior: NotRequired[str]
+    benefit_revocation_grace_period: NotRequired[int]
+    prevent_trial_abuse: NotRequired[bool]
 
 
 _default_subscription_settings: OrganizationSubscriptionSettings = {
     "allow_customer_updates": True,
+    "allow_multiple_subscriptions": False,
+    "proration_behavior": "invoice",
+    "benefit_revocation_grace_period": 0,
+    "prevent_trial_abuse": False,
+}
+
+
+class OrganizationNotificationSettings(TypedDict):
+    new_order: bool
+    new_subscription: bool
+
+
+_default_notification_settings: OrganizationNotificationSettings = {
+    "new_order": True,
+    "new_subscription": True,
 }
 
 
@@ -103,6 +121,7 @@ class CustomerPortalUsageSettings(TypedDict):
 
 class CustomerPortalSubscriptionSettings(TypedDict):
     update_plan: bool
+    update_seats: NotRequired[bool]
 
 
 class CustomerPortalCustomerSettings(TypedDict):
@@ -119,6 +138,7 @@ _default_customer_portal_settings: OrganizationCustomerPortalSettings = {
     "usage": {"show": True},
     "subscription": {
         "update_plan": True,
+        "update_seats": False,
     },
     "customer": {
         "allow_email_change": False,

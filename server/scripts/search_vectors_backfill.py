@@ -43,6 +43,7 @@ customers_update_statement = (
     .where(Customer.id.in_(customers_subquery))
 )
 
+
 @cli.command()
 @typer_async
 async def search_vectors_backfill(

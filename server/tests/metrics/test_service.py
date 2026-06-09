@@ -4564,6 +4564,7 @@ class TestGetMetrics:
         assert feb.active_subscriptions == 1
         assert feb.committed_subscriptions == 1
 
+
 @pytest.mark.skipif(not tinybird_available(), reason="Tinybird not running")
 @pytest.mark.asyncio(loop_scope="module")
 class TestMetricsFiltering:

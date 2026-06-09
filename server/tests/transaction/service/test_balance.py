@@ -112,46 +112,6 @@ class TestCreateBalanceFromCharge:
         assert outgoing.payment_transaction.id == payment_transaction.id
 
 
-@pytest.mark.asyncio
-class TestCreateBalanceFromPaymentIntent:
-    async def test_valid(
-        self,
-        session: AsyncSession,
-        save_fixture: SaveFixture,
-        user: User,
-        stripe_service_mock: MagicMock,
-        account: Account,
-    ) -> None:
-        payment_transaction = await create_payment_transaction(save_fixture)
-
-        stripe_service_mock.get_charge.return_value = SimpleNamespace(
-            id="STRIPE_DESTINATION_CHARGE_ID",
-            balance_transaction=SimpleNamespace(
-                amount=900, currency="eur", exchange_rate=0.9
-            ),
-        )
-        stripe_service_mock.retrieve_intent.return_value = SimpleNamespace(
-            id="STRIPE_PAYMENT_INTENT_ID", latest_charge="STRIPE_CHARGE_ID"
-        )
-
-        (
-            incoming,
-            outgoing,
-        ) = await balance_transaction_service.create_balance_from_payment_intent(
-            session,
-            source_account=None,
-            destination_account=account,
-            payment_intent_id="STRIPE_PAYMENT_INTENT_ID",
-            amount=1000,
-        )
-
-        assert incoming.payment_transaction
-        assert incoming.payment_transaction.id == payment_transaction.id
-
-        assert outgoing.payment_transaction
-        assert outgoing.payment_transaction.id == payment_transaction.id
-
-
 async def create_balance_transactions(
     save_fixture: SaveFixture,
     *,

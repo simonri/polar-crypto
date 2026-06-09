@@ -334,5 +334,3 @@ class OrderFinalize(Schema):
             "when unset."
         ),
     )
-
-

@@ -150,9 +150,9 @@ class Refund(MetadataMixin, RecordModel):
         String,
         nullable=False,
     )
-    processor_id: Mapped[str] = mapped_column(
+    processor_id: Mapped[str | None] = mapped_column(
         String,
-        nullable=False,
+        nullable=True,
         unique=True,
         index=True,
     )

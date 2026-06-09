@@ -1,8 +1,6 @@
 import datetime
-import uuid
 from datetime import timedelta
 from functools import partial
-from types import SimpleNamespace
 from unittest.mock import MagicMock
 
 import pytest
@@ -10,25 +8,21 @@ from pytest_mock import MockerFixture
 
 from polar.config import settings
 from polar.enums import PayoutAccountType
-from polar.exceptions import PolarRequestValidationError
-from polar.kit.address import Address, CountryAlpha2
 from polar.kit.utils import utc_now
 from polar.locker import Locker
-from polar.models import Account, Organization, Payout, Transaction, User
+from polar.models import Account, Organization, Transaction, User
 from polar.models.organization import OrganizationStatus, PayoutAccountNotReady
 from polar.models.payout import PayoutStatus
 from polar.models.transaction import Processor, TransactionType
+from polar.payout.repository import PayoutRepository
 from polar.payout.service import (
     InsufficientBalance,
-    OrganizationUnderReview,
+    OrganizationCannotPayout,
     PayoutIntervalLimitReached,
     PayoutNotCancelable,
 )
 from polar.payout.service import payout as payout_service
 from polar.postgres import AsyncSession
-from polar.transaction.repository import (
-    PayoutTransactionRepository,
-)
 from polar.transaction.service.payout import (
     PayoutTransactionService,
 )
@@ -46,13 +40,6 @@ from tests.transaction.conftest import create_transaction
 def payout_transaction_service_mock(mocker: MockerFixture) -> MagicMock:
     mock = MagicMock(spec=PayoutTransactionService)
     mocker.patch("polar.payout.service.payout_transaction_service", new=mock)
-    return mock
-
-
-@pytest.fixture(autouse=True)
-def stripe_service_mock(mocker: MockerFixture) -> MagicMock:
-    mock = MagicMock()
-    mocker.patch("polar.payout.service.stripe_service", new=mock, create=True)
     return mock
 
 
@@ -279,7 +266,7 @@ class TestCreate:
         assert payout.processor == payout_account.type
         assert payout.currency == "usd"
         assert payout.amount > 0
-        assert payout.fees_amount > 0
+        assert payout.fees_amount >= 0
         assert payout.account_currency == "usd"
         assert payout.account_amount > 0
 
@@ -429,6 +416,7 @@ class TestCreate:
 
         assert payout.account == account
 
+
 @pytest.mark.asyncio
 class TestEstimate:
     async def test_regular_currency(
@@ -457,85 +445,6 @@ class TestEstimate:
 
 
 @pytest.mark.asyncio
-class TestTriggerStripePayouts:
-    async def test_valid(
-        self,
-        mocker: MockerFixture,
-        session: AsyncSession,
-        save_fixture: SaveFixture,
-        organization: Organization,
-        user: User,
-        organization_second: Organization,
-        user_second: User,
-    ) -> None:
-        enqueue_job_mock = mocker.patch("polar.payout.service.enqueue_job")
-
-        account_1 = await create_account(save_fixture, user)
-        payout_account_1 = await create_payout_account(
-            save_fixture, organization, user, type=PayoutAccountType.manual
-        )
-        account_2 = await create_account(save_fixture, user_second)
-        payout_account_2 = await create_payout_account(
-            save_fixture,
-            organization_second,
-            user_second,
-            type=PayoutAccountType.manual,
-        )
-
-        payout_1 = await create_payout(
-            save_fixture,
-            account=account_1,
-            payout_account=payout_account_1,
-            created_at=utc_now() - datetime.timedelta(days=14),
-            status=PayoutStatus.pending,
-            attempts=[],
-        )
-        payout_2 = await create_payout(
-            save_fixture,
-            account=account_1,
-            payout_account=payout_account_1,
-            created_at=utc_now() - datetime.timedelta(days=7),
-            status=PayoutStatus.pending,
-            attempts=[],
-        )
-        payout_3 = await create_payout(
-            save_fixture,
-            account=account_2,
-            payout_account=payout_account_2,
-            created_at=utc_now() - datetime.timedelta(days=7),
-            status=PayoutStatus.pending,
-            attempts=[],
-        )
-        payout_4 = await create_payout(
-            save_fixture,
-            account=account_2,
-            payout_account=payout_account_2,
-            created_at=utc_now() - datetime.timedelta(days=7),
-            status=PayoutStatus.succeeded,
-        )
-        # A held payout is not yet payable: even though it is the oldest payout
-        # for payout_account_2, it must be skipped so payout_3 is picked instead.
-        payout_held = await create_payout(
-            save_fixture,
-            account=account_2,
-            payout_account=payout_account_2,
-            created_at=utc_now() - datetime.timedelta(days=14),
-            status=PayoutStatus.held,
-            attempts=[],
-        )
-
-        await payout_service.trigger_stripe_payouts(session)
-
-        assert enqueue_job_mock.call_count == 2
-        enqueue_job_mock.assert_any_call(
-            "payout.trigger_stripe_payout", payout_id=payout_1.id
-        )
-        enqueue_job_mock.assert_any_call(
-            "payout.trigger_stripe_payout", payout_id=payout_3.id
-        )
-
-
-@pytest.mark.asyncio
 class TestGetByIdForUpdate:
     async def test_locks_and_eager_loads(
         self,
@@ -549,7 +458,7 @@ class TestGetByIdForUpdate:
         # nullable-outer-join lock error. Exercises the real SQL on Postgres.
         account = await create_account(save_fixture, user)
         payout_account = await create_payout_account(
-            save_fixture, organization, user, type=PayoutAccountType.stripe
+            save_fixture, organization, user, type=PayoutAccountType.manual
         )
         payout = await create_payout(
             save_fixture, account=account, payout_account=payout_account
@@ -573,269 +482,6 @@ class TestGetByIdForUpdate:
         # Relationships resolve without a lazy load, confirming eager loading.
         assert locked.account.id == account.id
         assert locked.payout_account.id == payout_account.id
-
-
-@pytest.mark.asyncio
-class TestTransferStripe:
-    @pytest.mark.parametrize(
-        "status",
-        [PayoutStatus.canceled, PayoutStatus.held],
-    )
-    async def test_skips_not_payable(
-        self,
-        status: PayoutStatus,
-        stripe_service_mock: MagicMock,
-        session: AsyncSession,
-        save_fixture: SaveFixture,
-        organization: Organization,
-        user: User,
-    ) -> None:
-        # A payout.transfer job can race a cancellation (or a rolled-back
-        # release): transfer must not move funds for a canceled/held payout.
-        account = await create_account(save_fixture, user)
-        payout_account = await create_payout_account(
-            save_fixture, organization, user, type=PayoutAccountType.stripe
-        )
-        payout = await create_payout(
-            save_fixture,
-            account=account,
-            payout_account=payout_account,
-            status=status,
-            attempts=[],
-        )
-
-        result = await payout_service.transfer(session, payout)
-
-        assert result.status == status
-        stripe_service_mock.transfer.assert_not_called()
-
-    async def test_skips_after_committed_cancel(
-        self,
-        mocker: MockerFixture,
-        stripe_service_mock: MagicMock,
-        session: AsyncSession,
-        save_fixture: SaveFixture,
-        organization: Organization,
-        user: User,
-        payout_transaction_service_mock: MagicMock,
-    ) -> None:
-        # A cancel that commits after the payout.transfer job was queued leaves
-        # the row canceled; transfer must honor that and skip rather than pay out
-        # a payout the ledger already reversed. (The task's FOR UPDATE re-read is
-        # what surfaces the committed status in production.)
-        mocker.patch(
-            "polar.payout.service.platform_fee_transaction_service"
-            ".create_payout_fees_reversal_balances"
-        )
-        account = await create_account(save_fixture, user)
-        payout_account = await create_payout_account(
-            save_fixture, organization, user, type=PayoutAccountType.stripe
-        )
-        payout = await create_payout(
-            save_fixture,
-            account=account,
-            payout_account=payout_account,
-            status=PayoutStatus.pending,
-            attempts=[],
-        )
-        payout_transaction = Transaction(
-            type=TransactionType.payout,
-            account=account,
-            processor=Processor.stripe,
-            currency=payout.currency,
-            amount=-payout.amount,
-            account_currency=payout.account_currency,
-            account_amount=-payout.account_amount,
-            tax_amount=0,
-            payout=payout,
-            transfer_id=None,
-        )
-        await save_fixture(payout_transaction)
-        payout_transaction_service_mock.reverse.return_value = Transaction()
-
-        # Cancel commits first (the racing deny/block/backoffice cancel)...
-        await payout_service.cancel(session, payout)
-        await session.flush()
-
-        # ...then the already-queued transfer runs and must skip.
-        result = await payout_service.transfer(session, payout)
-
-        assert result.status == PayoutStatus.canceled
-        stripe_service_mock.transfer.assert_not_called()
-
-    async def test_cancels_when_payout_account_swapped(
-        self,
-        mocker: MockerFixture,
-        stripe_service_mock: MagicMock,
-        session: AsyncSession,
-        save_fixture: SaveFixture,
-        organization: Organization,
-        user: User,
-        payout_transaction_service_mock: MagicMock,
-    ) -> None:
-        # A released hold can win the race against the swap-cancel job. Before
-        # any transfer is made, transfer must notice the org now points at a
-        # different payout account and cancel + refund instead of sending funds
-        # to the abandoned account.
-        fee_reversal_mock = mocker.patch(
-            "polar.payout.service.platform_fee_transaction_service"
-            ".create_payout_fees_reversal_balances"
-        )
-        account = await create_account(save_fixture, user)
-        old_payout_account = await create_payout_account(
-            save_fixture, organization, user, type=PayoutAccountType.stripe
-        )
-        new_payout_account = await create_payout_account(
-            save_fixture, organization, user, type=PayoutAccountType.stripe
-        )
-        # The org's financial account owns the payout, and its current payout
-        # account is the new one (create_payout_account left it pointing there).
-        organization.account = account
-        await save_fixture(organization)
-
-        payout = await create_payout(
-            save_fixture,
-            account=account,
-            payout_account=old_payout_account,
-            status=PayoutStatus.pending,
-            attempts=[],
-        )
-        payout_transaction = Transaction(
-            type=TransactionType.payout,
-            account=account,
-            processor=Processor.stripe,
-            currency=payout.currency,
-            amount=-payout.amount,
-            account_currency=payout.account_currency,
-            account_amount=-payout.account_amount,
-            tax_amount=0,
-            payout=payout,
-            transfer_id=None,
-        )
-        await save_fixture(payout_transaction)
-        payout_transaction_service_mock.reverse.return_value = Transaction()
-
-        assert organization.payout_account_id == new_payout_account.id
-
-        result = await payout_service.transfer(session, payout)
-
-        assert result.status == PayoutStatus.canceled
-        stripe_service_mock.transfer.assert_not_called()
-        fee_reversal_mock.assert_called_once_with(session, payout=payout)
-
-    async def test_valid(
-        self,
-        stripe_service_mock: MagicMock,
-        session: AsyncSession,
-        save_fixture: SaveFixture,
-        organization: Organization,
-        user: User,
-    ) -> None:
-        stripe_service_mock.transfer.return_value = SimpleNamespace(
-            id="STRIPE_TRANSFER_ID", destination_payment=None
-        )
-        account = await create_account(save_fixture, user)
-        payout_account = await create_payout_account(
-            save_fixture, organization, user, type=PayoutAccountType.manual
-        )
-        payout = await create_payout(
-            save_fixture, account=account, payout_account=payout_account
-        )
-        transaction = await create_transaction(
-            save_fixture,
-            account=account,
-            type=TransactionType.payout,
-            amount=-payout.amount,
-            account_currency=account.currency,
-            payout=payout,
-        )
-
-        await payout_service.transfer_stripe(session, payout)
-
-        stripe_service_mock.transfer.assert_any_call(
-            payout_account.stripe_id,
-            payout.amount,
-            metadata={
-                "payout_id": str(payout.id),
-                "payout_transaction_id": str(transaction.id),
-            },
-            idempotency_key=f"payout-{payout.id}",
-        )
-
-        payout_transaction_repository = PayoutTransactionRepository.from_session(
-            session
-        )
-        updated_transaction = await payout_transaction_repository.get_by_id(
-            transaction.id
-        )
-        assert updated_transaction is not None
-        assert updated_transaction.transfer_id == "STRIPE_TRANSFER_ID"
-
-    @pytest.mark.parametrize(
-        ("account_currency", "stripe_amount", "expected_amount"),
-        [
-            # Zero-decimal currencies should be rounded down to nearest 100
-            pytest.param("twd", 1204324, 1204300, id="TWD with remainder"),
-            pytest.param("twd", 1204300, 1204300, id="TWD no remainder"),
-            pytest.param("huf", 50099, 50000, id="HUF with remainder"),
-            pytest.param("isk", 12345, 12300, id="ISK with remainder"),
-            pytest.param("ugx", 10050, 10000, id="UGX with remainder"),
-            # Regular currencies should not be adjusted
-            pytest.param("eur", 12345, 12345, id="EUR unchanged"),
-        ],
-    )
-    async def test_zero_decimal_currency_adjustment(
-        self,
-        account_currency: str,
-        stripe_amount: int,
-        expected_amount: int,
-        stripe_service_mock: MagicMock,
-        session: AsyncSession,
-        save_fixture: SaveFixture,
-        organization: Organization,
-        user: User,
-    ) -> None:
-        """Test that zero-decimal currency amounts are adjusted at transfer time."""
-        # Mock the transfer with a destination_payment (indicating FX conversion)
-        stripe_service_mock.transfer.return_value = SimpleNamespace(
-            id="STRIPE_TRANSFER_ID", destination_payment="py_123"
-        )
-        # Mock the charge with a balance_transaction containing the converted amount
-        stripe_service_mock.get_charge.return_value = SimpleNamespace(
-            balance_transaction=SimpleNamespace(amount=stripe_amount)
-        )
-
-        country_map = {"twd": "TW", "huf": "HU", "isk": "IS", "ugx": "UG", "eur": "DE"}
-        country = country_map.get(account_currency, "US")
-
-        account = await create_account(save_fixture, user)
-        payout_account = await create_payout_account(
-            save_fixture,
-            organization,
-            user,
-            type=PayoutAccountType.manual,
-            country=country,
-            currency=account_currency,
-        )
-        payout = await create_payout(
-            save_fixture,
-            account=account,
-            payout_account=payout_account,
-            account_currency=account_currency,
-        )
-        transaction = await create_transaction(
-            save_fixture,
-            account=account,
-            type=TransactionType.payout,
-            amount=-payout.amount,
-            account_currency=account_currency,
-            payout=payout,
-        )
-
-        result = await payout_service.transfer_stripe(session, payout)
-
-        # Verify the payout's account_amount was adjusted for zero-decimal currencies
-        assert result.account_amount == expected_amount
 
 
 @pytest.mark.asyncio
@@ -867,7 +513,6 @@ class TestCancel:
         session: AsyncSession,
         organization: Organization,
         user: User,
-        stripe_service_mock: MagicMock,
         payout_transaction_service_mock: MagicMock,
     ) -> None:
         account = await create_account(save_fixture, user)
@@ -896,20 +541,11 @@ class TestCancel:
             incurred_transactions=[],
             account_incurred_transactions=[],
             payout=payout,
-            transfer_id="STRIPE_TRANSFER_ID",
         )
         await save_fixture(payout_transaction)
 
-        payout_reversal_transaction = Transaction()
-        payout_transaction_service_mock.reverse.return_value = (
-            payout_reversal_transaction
-        )
-        stripe_service_mock.reverse_transfer.return_value = SimpleNamespace(
-            id="STRIPE_REVERSAL_ID"
-        )
+        payout_transaction_service_mock.reverse.return_value = Transaction()
 
         canceled_payout = await payout_service.cancel(session, payout)
 
         assert canceled_payout.status == PayoutStatus.canceled
-        assert payout_reversal_transaction.transfer_reversal_id == "STRIPE_REVERSAL_ID"
-

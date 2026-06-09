@@ -7,7 +7,7 @@ from datetime import UTC, datetime
 from uuid import UUID
 
 from fastapi import Request
-from tagflow import classes, tag, text
+from tagflow import tag, text
 
 from polar.models import Organization, User
 from polar.models.organization import OrganizationStatus

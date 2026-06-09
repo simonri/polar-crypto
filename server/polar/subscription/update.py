@@ -62,17 +62,7 @@ def _generate_product_credit_proration_billing_entries(
         initial_cycle_start, initial_cycle_end, applies_at
     )
 
-    for initial_price in subscription.prices:
-        # Free prices don't get prorated
-        if is_fixed_price(initial_price):
-            base_amount = initial_price.price_amount
-        else:
-            continue
-        discount_amount = 0
-        if subscription.discount:
-            discount_amount = subscription.discount.get_discount_amount(
-                base_amount, subscription.currency
-            )
+    priced_entries = _collect_proratable_amounts(list(subscription.prices))
 
     discount_amounts = [0] * len(priced_entries)
     if subscription.discount:
@@ -124,19 +114,7 @@ def _generate_product_debit_proration_billing_entries(
     )
 
     new_prices = PriceSet.from_product(new_product, subscription.currency)
-    for new_price in new_prices:
-        # Free prices don't get prorated
-        if is_fixed_price(new_price):
-            base_amount = new_price.price_amount
-        else:
-            continue
-        discount_amount = 0
-        if subscription.discount and subscription.discount.is_applicable(
-            new_price.product, subscription.currency
-        ):
-            discount_amount = subscription.discount.get_discount_amount(
-                base_amount, subscription.currency
-            )
+    priced_entries = _collect_proratable_amounts(list(new_prices))
 
     discount_amounts = [0] * len(priced_entries)
     # All prices belong to `new_product`, so applicability is evaluated once and

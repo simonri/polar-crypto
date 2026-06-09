@@ -39,8 +39,12 @@ from polar.event.system import (
     SystemEvent,
     build_system_event,
 )
-from polar.eventstream.service import publish as eventstream_publish
 from polar.exceptions import PolarError, PolarRequestValidationError, ValidationError
+from polar.kit.currency import (
+    format_currency,
+    get_maximum_currency_amount,
+    get_minimum_currency_amount,
+)
 from polar.kit.db.postgres import AsyncReadSession, AsyncSession
 from polar.kit.metadata import MetadataQuery, apply_metadata_clause
 from polar.kit.pagination import PaginationParams
@@ -69,11 +73,11 @@ from polar.models.subscription import SubscriptionStatus
 from polar.models.transaction import TransactionType
 from polar.models.webhook_endpoint import WebhookEventType
 from polar.organization.repository import OrganizationRepository
-from polar.organization.service import organization as organization_service
 from polar.payment.repository import PaymentRepository
 from polar.product.guard import (
     is_custom_price,
     is_fixed_price,
+    is_free_price,
     is_static_price,
 )
 from polar.product.price_set import (
@@ -81,6 +85,7 @@ from polar.product.price_set import (
     PriceSet,
 )
 from polar.product.repository import ProductRepository
+from polar.subscription.service import SubscriptionUpdateContext
 from polar.subscription.service import subscription as subscription_service
 from polar.transaction.service.balance import PaymentTransactionForChargeDoesNotExist
 from polar.transaction.service.balance import (
@@ -586,7 +591,6 @@ class OrderService:
                     OrderItem(
                         label=label if label is not None else price.product.name,
                         amount=amount,
-                        tax_amount=0,
                         net_amount=amount,
                         proration=False,
                         product_price=price,
@@ -656,9 +660,7 @@ class OrderService:
                 checkout.prices[checkout.product_id], checkout.currency
             )
             items = list(
-                self._build_static_order_items(
-                    currency_prices, amount=checkout.amount
-                )
+                self._build_static_order_items(currency_prices, amount=checkout.amount)
             )
 
         discount_amount = checkout.discount_amount
@@ -835,7 +837,11 @@ class OrderService:
 
         self._validate_purchase_amount(payload, currency)
         items = list(
-            self._build_static_order_items(currency_prices, amount=None)
+            self._build_draft_order_items(
+                currency_prices,
+                amount=payload.amount,
+                label=payload.description,
+            )
         )
 
         # Validate custom field values against the product's attached fields,

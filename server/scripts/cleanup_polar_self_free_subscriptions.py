@@ -51,7 +51,7 @@ async def _list_zero_order_ids(
         Order.organization_id == organization_id,
         Order.subscription_id.in_(subscription_ids),
         Order.deleted_at.is_(None),
-        (Order.net_amount + Order.tax_amount) == 0,
+        Order.net_amount == 0,
     )
     result = await session.execute(statement)
     return [row[0] for row in result.all()]
@@ -95,7 +95,7 @@ async def _delete_zero_orders(
     statement = delete(Order).where(
         Order.organization_id == organization_id,
         Order.subscription_id.in_(subscription_ids),
-        (Order.net_amount + Order.tax_amount) == 0,
+        Order.net_amount == 0,
     )
     result = await session.execute(statement)
     return max(getattr(result, "rowcount", 0) or 0, 0)

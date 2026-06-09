@@ -7,7 +7,7 @@ from pytest_mock import MockerFixture
 
 from polar.models import Product, User
 from polar.models.account import Account
-from polar.models.organization import Organization, OrganizationStatus
+from polar.models.organization import Organization
 from polar.models.subscription import SubscriptionStatus
 from polar.models.user_organization import OrganizationRole, UserOrganization
 from polar.payout_account.service import PayoutAccountServiceError
@@ -230,82 +230,6 @@ class TestUpdateOrganization:
         assert any("previous_annual_revenue" in str(error) for error in error_detail)
 
     @pytest.mark.auth
-    async def test_enable_seat_based_pricing_with_member_model(
-        self,
-        client: AsyncClient,
-        save_fixture: SaveFixture,
-        organization: Organization,
-        user_organization: UserOrganization,
-    ) -> None:
-        organization.feature_settings = {
-            "member_model_enabled": True,
-            "seat_based_pricing_enabled": False,
-        }
-        await save_fixture(organization)
-
-        response = await client.patch(
-            f"/v1/organizations/{organization.id}",
-            json={
-                "feature_settings": {
-                    "seat_based_pricing_enabled": True,
-                },
-            },
-        )
-
-        assert response.status_code == 200
-        assert response.json()["feature_settings"]["seat_based_pricing_enabled"] is True
-
-    @pytest.mark.auth
-    async def test_enable_seat_based_pricing_without_member_model(
-        self,
-        client: AsyncClient,
-        save_fixture: SaveFixture,
-        organization: Organization,
-        user_organization: UserOrganization,
-    ) -> None:
-        organization.feature_settings = {
-            "member_model_enabled": False,
-            "seat_based_pricing_enabled": False,
-        }
-        await save_fixture(organization)
-
-        response = await client.patch(
-            f"/v1/organizations/{organization.id}",
-            json={
-                "feature_settings": {
-                    "seat_based_pricing_enabled": True,
-                },
-            },
-        )
-
-        assert response.status_code == 422
-
-    @pytest.mark.auth
-    async def test_disable_seat_based_pricing_when_enabled(
-        self,
-        client: AsyncClient,
-        save_fixture: SaveFixture,
-        organization: Organization,
-        user_organization: UserOrganization,
-    ) -> None:
-        organization.feature_settings = {
-            "member_model_enabled": True,
-            "seat_based_pricing_enabled": True,
-        }
-        await save_fixture(organization)
-
-        response = await client.patch(
-            f"/v1/organizations/{organization.id}",
-            json={
-                "feature_settings": {
-                    "seat_based_pricing_enabled": False,
-                },
-            },
-        )
-
-        assert response.status_code == 422
-
-    @pytest.mark.auth
     async def test_update_customer_portal_settings_without_customer_key(
         self,
         client: AsyncClient,
@@ -323,7 +247,6 @@ class TestUpdateOrganization:
                 "customer_portal_settings": {
                     "usage": {"show": True},
                     "subscription": {
-                        "update_seats": False,
                         "update_plan": True,
                     },
                 },
@@ -332,7 +255,6 @@ class TestUpdateOrganization:
 
         assert response.status_code == 200
         settings = response.json()["customer_portal_settings"]
-        assert settings["subscription"]["update_seats"] is False
         assert settings["subscription"]["update_plan"] is True
 
     @pytest.mark.auth
@@ -352,7 +274,6 @@ class TestUpdateOrganization:
                 "customer_portal_settings": {
                     "usage": {"show": True},
                     "subscription": {
-                        "update_seats": False,
                         "update_plan": True,
                     },
                     "customer": {},
@@ -362,8 +283,8 @@ class TestUpdateOrganization:
 
         assert response.status_code == 200
         assert (
-            response.json()["customer_portal_settings"]["subscription"]["update_seats"]
-            is False
+            response.json()["customer_portal_settings"]["subscription"]["update_plan"]
+            is True
         )
 
     @pytest.mark.auth
@@ -379,7 +300,6 @@ class TestUpdateOrganization:
                 "customer_portal_settings": {
                     "usage": {"show": True},
                     "subscription": {
-                        "update_seats": True,
                         "update_plan": True,
                     },
                     "customer": {"allow_email_change": True},
@@ -390,106 +310,6 @@ class TestUpdateOrganization:
         assert response.status_code == 200
         settings = response.json()["customer_portal_settings"]
         assert settings["customer"]["allow_email_change"] is True
-
-    @pytest.mark.auth
-    async def test_submit_for_review_requires_relevant_fields(
-        self,
-        client: AsyncClient,
-        organization: Organization,
-        user_organization: UserOrganization,
-    ) -> None:
-        update_response = await client.patch(
-            f"/v1/organizations/{organization.id}",
-            json={
-                "details": {
-                    "product_description": "Too short",
-                    "selling_categories": ["Software / SaaS"],
-                    "pricing_models": ["Subscription"],
-                    "switching": False,
-                }
-            },
-        )
-        assert update_response.status_code == 200
-
-        response = await client.post(
-            f"/v1/organizations/{organization.id}/submit-review"
-        )
-
-        assert response.status_code == 422
-        error_locations = {tuple(error["loc"]) for error in response.json()["detail"]}
-        assert ("body", "website") in error_locations
-        assert ("body", "email") in error_locations
-        assert ("body", "socials") in error_locations
-        assert ("body", "details", "product_description") in error_locations
-
-    @pytest.mark.auth
-    async def test_submit_for_review_requires_details(
-        self,
-        client: AsyncClient,
-        organization: Organization,
-        user_organization: UserOrganization,
-    ) -> None:
-        update_response = await client.patch(
-            f"/v1/organizations/{organization.id}",
-            json={
-                "website": "https://example.com",
-                "email": "support@example.com",
-                "socials": [{"platform": "x", "url": "https://x.com/polar"}],
-            },
-        )
-        assert update_response.status_code == 200
-
-        response = await client.post(
-            f"/v1/organizations/{organization.id}/submit-review"
-        )
-
-        assert response.status_code == 422
-        error_locations = {tuple(error["loc"]) for error in response.json()["detail"]}
-        assert ("body", "details", "product_description") in error_locations
-
-    @pytest.mark.auth
-    async def test_submit_for_review_valid(
-        self,
-        client: AsyncClient,
-        mocker: MockerFixture,
-        save_fixture: SaveFixture,
-        organization: Organization,
-        user_organization: UserOrganization,
-    ) -> None:
-        enqueue_job_mock = mocker.patch("polar.organization.service.enqueue_job")
-
-        organization.status = OrganizationStatus.CREATED
-        await save_fixture(organization)
-
-        update_response = await client.patch(
-            f"/v1/organizations/{organization.id}",
-            json={
-                "website": "https://example.com",
-                "email": "support@example.com",
-                "socials": [{"platform": "x", "url": "https://x.com/polar"}],
-                "details": {
-                    "product_description": "Subscription SaaS for software teams and agencies.",
-                    "selling_categories": ["Software / SaaS"],
-                    "pricing_models": ["Subscription"],
-                    "switching": False,
-                },
-            },
-        )
-        assert update_response.status_code == 200
-
-        response = await client.post(
-            f"/v1/organizations/{organization.id}/submit-review"
-        )
-
-        assert response.status_code == 200
-        assert response.json()["details_submitted_at"] is not None
-        enqueue_job_mock.assert_called_once()
-
-    @pytest.mark.auth
-    async def test_submit_for_review_not_existing(self, client: AsyncClient) -> None:
-        response = await client.post(f"/v1/organizations/{uuid.uuid4()}/submit-review")
-
-        assert response.status_code == 404
 
 
 @pytest.mark.asyncio
@@ -1077,73 +897,6 @@ class TestDeleteOrganization:
         assert response.status_code == 403
         json = response.json()
         assert json["detail"] == "You don't have permission to manage the organization"
-
-
-@pytest.mark.asyncio
-class TestGetReview:
-    async def test_anonymous(
-        self, client: AsyncClient, organization: Organization
-    ) -> None:
-        response = await client.get(f"/v1/organizations/{organization.id}/review")
-
-        assert response.status_code == 401
-
-    @pytest.mark.auth
-    async def test_not_member(
-        self, client: AsyncClient, organization: Organization
-    ) -> None:
-        response = await client.get(f"/v1/organizations/{organization.id}/review")
-
-        assert response.status_code == 404
-
-    @pytest.mark.auth(
-        AuthSubjectFixture(subject="user"),
-        AuthSubjectFixture(subject="organization"),
-    )
-    async def test_valid(
-        self,
-        client: AsyncClient,
-        organization: Organization,
-        user_organization: UserOrganization,
-    ) -> None:
-        """Returns the checklist shape: a flat list of leaf checks."""
-        response = await client.get(f"/v1/organizations/{organization.id}/review")
-
-        assert response.status_code == 200
-        json = response.json()
-
-        assert [step["key"] for step in json["preliminary_steps"]] == [
-            "product_description",
-            "product_configuration",
-            "setup_readiness",
-            "identity.stripe_identity_verification",
-            "payout_account",
-            "identity.social_links",
-            "product_url",
-            "identity.email",
-        ]
-
-    @pytest.mark.auth
-    async def test_empty_org_blocks_submission(
-        self,
-        client: AsyncClient,
-        organization: Organization,
-        user_organization: UserOrganization,
-    ) -> None:
-        """A freshly created org with no details has every check pending."""
-        response = await client.get(f"/v1/organizations/{organization.id}/review")
-
-        assert response.status_code == 200
-        json = response.json()
-        assert json["can_submit"] is False
-        assert json["submitted_at"] is None
-        assert json["verdict"] is None
-        assert json["appeal"] is None
-        assert all(step["status"] == "pending" for step in json["preliminary_steps"])
-        # Aggregate checks carry reasons on sub_checks, not the parent.
-        for step in json["preliminary_steps"]:
-            targets = step["sub_checks"] or [step]
-            assert all("not_started" in node["reasons"] for node in targets)
 
 
 @pytest.mark.asyncio

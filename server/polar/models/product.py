@@ -28,7 +28,7 @@ from polar.kit.metadata import MetadataMixin
 from polar.kit.schemas import SetSchemaReference
 from polar.kit.trial import TrialConfigurationMixin
 from polar.kit.visibility import Visibility, VisibilityMixin
-from polar.models.product_price import ProductPriceAmountType, ProductPriceType
+from polar.models.product_price import ProductPriceType
 
 from .product_price import ProductPrice
 

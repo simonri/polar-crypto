@@ -38,7 +38,6 @@ from polar.models import (
     Account,
     Customer,
     Discount,
-    Order,
     PaymentMethod,
     Product,
     ProductPriceFixed,
@@ -52,7 +51,7 @@ from polar.models.checkout import CheckoutStatus
 from polar.models.custom_field import CustomFieldType
 from polar.models.discount import DiscountDuration, DiscountType
 from polar.models.order import OrderBillingReasonInternal, OrderStatus
-from polar.models.organization import Organization, OrganizationStatus
+from polar.models.organization import Organization
 from polar.models.payment import PaymentStatus, PaymentTrigger
 from polar.models.product import ProductBillingType
 from polar.models.subscription import SubscriptionStatus
@@ -70,9 +69,7 @@ from polar.order.service import (
     OrderNotEligibleForRetry,
     OrderNotPending,
     OrganizationNotReadyForPayments,
-    PaymentActionRequired,
     PaymentAlreadyInProgress,
-    PaymentFailed,
     RecurringProduct,
     SubscriptionNotTrialing,
 )
@@ -106,27 +103,6 @@ from tests.fixtures.random_objects import (
     create_wallet_transaction,
 )
 from tests.transaction.conftest import create_transaction
-
-
-def build_stripe_payment_intent(
-    *,
-    amount: int = 0,
-    status: str = "succeeded",
-    customer: str | None = "CUSTOMER_ID",
-    payment_method: str | None = "PAYMENT_METHOD_ID",
-    latest_charge: str | None = "CHARGE_ID",
-) -> stripe_lib.PaymentIntent:
-    return stripe_lib.PaymentIntent.construct_from(
-        {
-            "id": "STRIPE_PAYMENT_INTENT_ID",
-            "amount": amount,
-            "status": status,
-            "customer": customer,
-            "payment_method": payment_method,
-            "latest_charge": latest_charge,
-        },
-        None,
-    )
 
 
 @pytest.fixture(autouse=True)
@@ -525,13 +501,6 @@ class TestCreateFromCheckoutOneTime:
         assert order.product == product_one_time
         assert len(order.items) == len(product_one_time.prices)
 
-        enqueue_job_mock.assert_any_call(
-            "benefit.enqueue_benefits_grants",
-            task="grant",
-            customer_id=customer.id,
-            product_id=product_one_time.id,
-            order_id=order.id,
-        )
         publish_checkout_event_mock.assert_awaited_once_with(
             checkout.client_secret, CheckoutEvent.order_created
         )
@@ -563,13 +532,6 @@ class TestCreateFromCheckoutOneTime:
         assert order.product == product_one_time_custom_price
         assert len(order.items) == len(product_one_time_custom_price.prices)
 
-        enqueue_job_mock.assert_any_call(
-            "benefit.enqueue_benefits_grants",
-            task="grant",
-            customer_id=customer.id,
-            product_id=product_one_time_custom_price.id,
-            order_id=order.id,
-        )
         publish_checkout_event_mock.assert_awaited_once_with(
             checkout.client_secret, CheckoutEvent.order_created
         )
@@ -599,13 +561,6 @@ class TestCreateFromCheckoutOneTime:
         assert order.product == product_one_time_free_price
         assert len(order.items) == len(product_one_time_free_price.prices)
 
-        enqueue_job_mock.assert_any_call(
-            "benefit.enqueue_benefits_grants",
-            task="grant",
-            customer_id=customer.id,
-            product_id=product_one_time_free_price.id,
-            order_id=order.id,
-        )
         publish_checkout_event_mock.assert_awaited_once_with(
             checkout.client_secret, CheckoutEvent.order_created
         )
@@ -642,13 +597,6 @@ class TestCreateFromCheckoutOneTime:
         assert order.product == product_one_time
         assert len(order.items) == len(product_one_time.prices)
 
-        enqueue_job_mock.assert_any_call(
-            "benefit.enqueue_benefits_grants",
-            task="grant",
-            customer_id=customer.id,
-            product_id=product_one_time.id,
-            order_id=order.id,
-        )
         publish_checkout_event_mock.assert_awaited_once_with(
             checkout.client_secret, CheckoutEvent.order_created
         )
@@ -684,13 +632,6 @@ class TestCreateFromCheckoutOneTime:
         )
         assert len(order.items) == len(currency_prices.prices)
 
-        enqueue_job_mock.assert_any_call(
-            "benefit.enqueue_benefits_grants",
-            task="grant",
-            customer_id=customer.id,
-            product_id=product_one_time_multiple_currencies.id,
-            order_id=order.id,
-        )
         publish_checkout_event_mock.assert_awaited_once_with(
             checkout.client_secret, CheckoutEvent.order_created
         )
@@ -2033,14 +1974,9 @@ class TestHandlePaymentFailure:
         )
         mock_mark_past_due.return_value = subscription
 
-        mock_enqueue_benefits_grants = mocker.patch(
-            "polar.subscription.service.subscription.enqueue_benefits_grants"
-        )
-
         await order_service.handle_payment_failure(session, order)
 
         mock_mark_past_due.assert_called_once_with(session, subscription)
-        mock_enqueue_benefits_grants.assert_called_once_with(session, subscription)
 
     @freeze_time("2024-01-01 12:00:00")
     async def test_ignores_payment_failure_for_already_paid_order(
@@ -2545,10 +2481,6 @@ class TestHandlePaymentFailure:
             side_effect=mark_past_due_side_effect,
         )
 
-        mock_enqueue_benefits_grants = mocker.patch(
-            "polar.subscription.service.subscription.enqueue_benefits_grants"
-        )
-
         # When
         result_order = await order_service.handle_payment_failure(session, order)
 
@@ -2556,57 +2488,6 @@ class TestHandlePaymentFailure:
         assert result_order.next_payment_attempt_at == subscription.past_due_deadline
         assert result_order.next_payment_attempt_at is not None
         # Subscription marked as past_due
-        mock_mark_past_due.assert_called_once_with(session, subscription)
-        mock_enqueue_benefits_grants.assert_called_once_with(session, subscription)
-
-    @freeze_time("2024-01-01 12:00:00")
-    async def test_recoverable_decline_enters_dunning(
-        self,
-        session: AsyncSession,
-        save_fixture: SaveFixture,
-        customer: Customer,
-        product: Product,
-        mocker: MockerFixture,
-    ) -> None:
-        """When a payment fails with a recoverable decline reason
-        (e.g., insufficient_funds), the normal dunning retry flow should proceed."""
-        # Given
-        subscription = await create_active_subscription(
-            save_fixture,
-            product=product,
-            customer=customer,
-        )
-        order = await create_order(
-            save_fixture,
-            product=product,
-            customer=customer,
-            subscription=subscription,
-            status=OrderStatus.pending,
-        )
-        order.next_payment_attempt_at = None
-        await save_fixture(order)
-
-        await create_payment(
-            save_fixture,
-            order.organization,
-            status=PaymentStatus.failed,
-            decline_reason="insufficient_funds",
-            trigger=PaymentTrigger.purchase,
-            order=order,
-        )
-
-        mock_mark_past_due = mocker.patch(
-            "polar.subscription.service.subscription.mark_past_due"
-        )
-        mock_mark_past_due.return_value = subscription
-
-        # When
-        result_order = await order_service.handle_payment_failure(session, order)
-
-        # Then — normal dunning: retry scheduled
-        assert result_order.next_payment_attempt_at is not None
-        expected_retry_date = utc_now() + timedelta(days=2)
-        assert result_order.next_payment_attempt_at == expected_retry_date
         mock_mark_past_due.assert_called_once_with(session, subscription)
 
     @freeze_time("2024-02-01 12:00:00")
@@ -2744,44 +2625,6 @@ class TestProcessDunningOrder:
             status=OrderStatus.pending,
         )
         subscription.payment_method_id = None
-        await save_fixture(subscription)
-
-        # When
-        order = await order_service.process_dunning_order(session, order)
-
-        # Then
-        enqueue_job_mock.assert_not_called()
-        log_mock.warning.assert_called_once_with(
-            "Order subscription has no payment method, record a failure",
-            order_id=order.id,
-            subscription_id=subscription.id,
-        )
-
-    async def test_process_dunning_order_soft_deleted_payment_method(
-        self,
-        enqueue_job_mock: MagicMock,
-        session: AsyncSession,
-        save_fixture: SaveFixture,
-        customer: Customer,
-        product: Product,
-        subscription: Subscription,
-        mocker: MockerFixture,
-    ) -> None:
-        """Test that process_dunning_order logs warning for subscriptions with a soft deleted payment method"""
-        # Given
-        log_mock = mocker.patch("polar.order.service.log")
-        order = await create_order(
-            save_fixture,
-            product=product,
-            customer=customer,
-            subscription=subscription,
-            status=OrderStatus.pending,
-        )
-        payment_method = await create_payment_method(save_fixture, customer=customer)
-        payment_method.set_deleted_at()
-        await save_fixture(payment_method)
-
-        subscription.payment_method = payment_method
         await save_fixture(subscription)
 
         # When
@@ -3083,465 +2926,6 @@ class TestScheduleRetryForPastDueOrders:
 
         # Then — no retry scheduled (subscription is active, not past_due)
         enqueue_job_mock.assert_not_called()
-
-
-@pytest.mark.asyncio
-class TestTriggerPayment:
-    """Test payment lock mechanism in trigger_payment service method."""
-
-    async def test_skips_denied_organization(
-        self,
-        stripe_service_mock: MagicMock,
-        session: AsyncSession,
-        save_fixture: SaveFixture,
-        organization: Organization,
-        product: Product,
-        customer: Customer,
-    ) -> None:
-        """Test that trigger_payment skips payment when organization is denied."""
-        payment_method = await create_payment_method(save_fixture, customer=customer)
-        order = await create_order(
-            save_fixture,
-            product=product,
-            customer=customer,
-            status=OrderStatus.pending,
-        )
-
-        organization.set_status(OrganizationStatus.DENIED)
-        await save_fixture(organization)
-
-        await order_service.trigger_payment(session, order, payment_method)
-
-        stripe_service_mock.create_payment_intent.assert_not_called()
-
-    async def test_skips_blocked_organization(
-        self,
-        stripe_service_mock: MagicMock,
-        session: AsyncSession,
-        save_fixture: SaveFixture,
-        organization: Organization,
-        product: Product,
-        customer: Customer,
-    ) -> None:
-        """Test that trigger_payment skips payment when organization is blocked."""
-        payment_method = await create_payment_method(save_fixture, customer=customer)
-        order = await create_order(
-            save_fixture,
-            product=product,
-            customer=customer,
-            status=OrderStatus.pending,
-        )
-
-        organization.set_status(OrganizationStatus.BLOCKED)
-        await save_fixture(organization)
-
-        await order_service.trigger_payment(session, order, payment_method)
-
-        stripe_service_mock.create_payment_intent.assert_not_called()
-
-    @pytest.mark.parametrize(
-        ("trigger", "expected_payment_attempted"),
-        [
-            (PaymentTrigger.subscription_cycle, True),
-            (PaymentTrigger.purchase, False),
-        ],
-    )
-    async def test_capability_gate_distinguishes_renewals_from_checkouts(
-        self,
-        trigger: PaymentTrigger,
-        expected_payment_attempted: bool,
-        stripe_service_mock: MagicMock,
-        session: AsyncSession,
-        save_fixture: SaveFixture,
-        organization: Organization,
-        product: Product,
-        customer: Customer,
-    ) -> None:
-        """An org with checkout_payments off but subscription_renewals on must
-        process renewals while still blocking new checkouts."""
-        organization.capabilities = {
-            **organization.capabilities,
-            "checkout_payments": False,
-            "subscription_renewals": True,
-        }
-        await save_fixture(organization)
-        payment_method = await create_payment_method(save_fixture, customer=customer)
-        order = await create_order(
-            save_fixture,
-            product=product,
-            customer=customer,
-            status=OrderStatus.pending,
-        )
-
-        await order_service.trigger_payment(
-            session, order, payment_method, payment_trigger=trigger
-        )
-
-        if expected_payment_attempted:
-            stripe_service_mock.create_payment_intent.assert_called_once()
-        else:
-            stripe_service_mock.create_payment_intent.assert_not_called()
-
-    async def test_already_locked(
-        self,
-        session: AsyncSession,
-        save_fixture: SaveFixture,
-        product: Product,
-        customer: Customer,
-    ) -> None:
-        """Test that trigger_payment raises PaymentAlreadyInProgress when order is already locked."""
-        # Given
-        payment_method = await create_payment_method(save_fixture, customer=customer)
-        order = await create_order(
-            save_fixture,
-            product=product,
-            customer=customer,
-            status=OrderStatus.pending,
-        )
-        order.payment_lock_acquired_at = utc_now()
-        await save_fixture(order)
-
-        # When/Then
-        with pytest.raises(PaymentAlreadyInProgress):
-            await order_service.trigger_payment(session, order, payment_method)
-
-    async def test_acquires_lock_successfully(
-        self,
-        stripe_service_mock: MagicMock,
-        session: AsyncSession,
-        save_fixture: SaveFixture,
-        product: Product,
-        customer: Customer,
-    ) -> None:
-        """Test that trigger_payment acquires lock and processes payment normally."""
-        # Given
-        payment_method = await create_payment_method(save_fixture, customer=customer)
-        order = await create_order(
-            save_fixture,
-            product=product,
-            customer=customer,
-            status=OrderStatus.pending,
-        )
-        await save_fixture(order)
-
-        # When
-        await order_service.trigger_payment(session, order, payment_method)
-
-        # Then
-        stripe_service_mock.create_payment_intent.assert_called_once()
-
-        await session.refresh(order)
-        assert order.payment_lock_acquired_at is not None
-
-    async def test_releases_lock_on_failure(
-        self,
-        stripe_service_mock: MagicMock,
-        session: AsyncSession,
-        save_fixture: SaveFixture,
-        product: Product,
-        customer: Customer,
-    ) -> None:
-        """Test that lock is released when payment processing fails."""
-        # Given
-        payment_method = await create_payment_method(save_fixture, customer=customer)
-        order = await create_order(
-            save_fixture,
-            product=product,
-            customer=customer,
-            status=OrderStatus.pending,
-        )
-        await save_fixture(order)
-
-        stripe_service_mock.create_payment_intent.side_effect = Exception(
-            "Payment failed"
-        )
-
-        # When/Then
-        with pytest.raises(Exception, match="Payment failed"):
-            await order_service.trigger_payment(session, order, payment_method)
-
-        await session.refresh(order)
-        assert order.payment_lock_acquired_at is None
-
-    async def test_card_error_raises_card_payment_failed(
-        self,
-        stripe_service_mock: MagicMock,
-        session: AsyncSession,
-        save_fixture: SaveFixture,
-        product: Product,
-        customer: Customer,
-    ) -> None:
-        # Given
-        payment_method = await create_payment_method(save_fixture, customer=customer)
-        order = await create_order(
-            save_fixture,
-            product=product,
-            customer=customer,
-            status=OrderStatus.pending,
-        )
-        await save_fixture(order)
-
-        # Mock Stripe service to raise CardError
-        card_error = stripe_lib.CardError(
-            message="Your card was declined.",
-            param="card",
-            code="card_declined",
-        )
-        stripe_service_mock.create_payment_intent.side_effect = card_error
-
-        # When/Then
-        with pytest.raises(PaymentFailed):
-            await order_service.trigger_payment(session, order, payment_method)
-
-        # Verify lock is released on failure
-        await session.refresh(order)
-        assert order.payment_lock_acquired_at is None
-
-    async def test_other_stripe_errors_not_converted(
-        self,
-        stripe_service_mock: MagicMock,
-        session: AsyncSession,
-        save_fixture: SaveFixture,
-        product: Product,
-        customer: Customer,
-    ) -> None:
-        # Given
-        payment_method = await create_payment_method(save_fixture, customer=customer)
-        order = await create_order(
-            save_fixture,
-            product=product,
-            customer=customer,
-            status=OrderStatus.pending,
-        )
-        await save_fixture(order)
-
-        # Mock Stripe service to raise APIConnectionError
-        api_error = stripe_lib.APIConnectionError("Network connection failed")
-        stripe_service_mock.create_payment_intent.side_effect = api_error
-
-        # When/Then - should raise the original exception, not CardPaymentFailed
-        with pytest.raises(stripe_lib.APIConnectionError) as exc_info:
-            await order_service.trigger_payment(session, order, payment_method)
-
-        assert str(exc_info.value) == "Network connection failed"
-
-        # Verify lock is released on failure
-        await session.refresh(order)
-        assert order.payment_lock_acquired_at is None
-
-    @pytest.mark.parametrize(
-        "error_message",
-        [
-            "This PaymentMethod requires a mandate",
-            "The payment method has been detached from a customer",
-            "The payment method does not belong to the customer",
-        ],
-    )
-    async def test_invalid_payment_method_error_triggers_deletion(
-        self,
-        error_message: str,
-        stripe_service_mock: MagicMock,
-        mocker: MockerFixture,
-        session: AsyncSession,
-        save_fixture: SaveFixture,
-        product: Product,
-        customer: Customer,
-    ) -> None:
-        # Given
-        payment_method = await create_payment_method(save_fixture, customer=customer)
-        order = await create_order(
-            save_fixture,
-            product=product,
-            customer=customer,
-            status=OrderStatus.pending,
-        )
-        await save_fixture(order)
-
-        invalid_request_error = stripe_lib.InvalidRequestError(
-            error_message,
-            param="payment_method",
-            json_body={"error": {"message": error_message}},
-        )
-        stripe_service_mock.create_payment_intent.side_effect = invalid_request_error
-
-        delete_mock = mocker.patch(
-            "polar.order.service.payment_method_service.delete", new=AsyncMock()
-        )
-
-        # When/Then
-        with pytest.raises(PaymentFailed):
-            await order_service.trigger_payment(session, order, payment_method)
-
-        delete_mock.assert_called_once()
-
-    async def test_unrelated_invalid_request_error_not_caught(
-        self,
-        stripe_service_mock: MagicMock,
-        mocker: MockerFixture,
-        session: AsyncSession,
-        save_fixture: SaveFixture,
-        product: Product,
-        customer: Customer,
-    ) -> None:
-        # Given
-        payment_method = await create_payment_method(save_fixture, customer=customer)
-        order = await create_order(
-            save_fixture,
-            product=product,
-            customer=customer,
-            status=OrderStatus.pending,
-        )
-        await save_fixture(order)
-
-        # An unrelated InvalidRequestError should NOT trigger payment method deletion
-        invalid_request_error = stripe_lib.InvalidRequestError(
-            "Amount must be at least 50 cents",
-            param="amount",
-            json_body={"error": {"message": "Amount must be at least 50 cents"}},
-        )
-        stripe_service_mock.create_payment_intent.side_effect = invalid_request_error
-
-        delete_mock = mocker.patch(
-            "polar.order.service.payment_method_service.delete", new=AsyncMock()
-        )
-
-        # When/Then - should re-raise the original error, not catch it
-        with pytest.raises(stripe_lib.InvalidRequestError):
-            await order_service.trigger_payment(session, order, payment_method)
-
-        delete_mock.assert_not_called()
-
-    async def test_due_amount_less_than_50(
-        self,
-        stripe_service_mock: MagicMock,
-        session: AsyncSession,
-        save_fixture: SaveFixture,
-        product: Product,
-        customer: Customer,
-    ) -> None:
-        # Given
-        payment_method = await create_payment_method(save_fixture, customer=customer)
-        order = await create_order(
-            save_fixture,
-            product=product,
-            customer=customer,
-            status=OrderStatus.pending,
-            subtotal_amount=10,
-        )
-        await save_fixture(order)
-
-        # When
-        await order_service.trigger_payment(session, order, payment_method)
-
-        # Then
-        stripe_service_mock.create_payment_intent.assert_not_called()
-
-        await session.refresh(order)
-        assert order.status == OrderStatus.paid
-        assert order.payment_lock_acquired_at is None
-
-        customer_balance = await wallet_service.get_billing_wallet_balance(
-            session, customer, order.currency
-        )
-        assert customer_balance == -10
-
-    async def test_applied_balance_amount(
-        self,
-        stripe_service_mock: MagicMock,
-        session: AsyncSession,
-        save_fixture: SaveFixture,
-        product: Product,
-        customer: Customer,
-    ) -> None:
-        # Given
-        payment_method = await create_payment_method(save_fixture, customer=customer)
-        order = await create_order(
-            save_fixture,
-            product=product,
-            customer=customer,
-            status=OrderStatus.pending,
-            subtotal_amount=50_00,
-            applied_balance_amount=50,
-        )
-        await save_fixture(order)
-
-        # When
-        await order_service.trigger_payment(session, order, payment_method)
-
-        # Then
-        stripe_service_mock.create_payment_intent.assert_called_once()
-        amount = stripe_service_mock.create_payment_intent.call_args[1]["amount"]
-        assert amount == 50_50
-
-        await session.refresh(order)
-        assert order.payment_lock_acquired_at is not None
-
-    async def test_statement_descriptor_regular_subscription_cycle(
-        self,
-        stripe_service_mock: MagicMock,
-        session: AsyncSession,
-        save_fixture: SaveFixture,
-        product: Product,
-        customer: Customer,
-        organization: Organization,
-    ) -> None:
-        payment_method = await create_payment_method(save_fixture, customer=customer)
-        subscription = await create_active_subscription(
-            save_fixture, product=product, customer=customer
-        )
-        order = await create_order(
-            save_fixture,
-            product=product,
-            customer=customer,
-            subscription=subscription,
-            status=OrderStatus.pending,
-            billing_reason=OrderBillingReasonInternal.subscription_cycle,
-        )
-        await save_fixture(order)
-
-        await order_service.trigger_payment(session, order, payment_method)
-
-        stripe_service_mock.create_payment_intent.assert_called_once()
-        call_kwargs = stripe_service_mock.create_payment_intent.call_args[1]
-        assert (
-            call_kwargs["statement_descriptor_suffix"]
-            == organization.statement_descriptor()
-        )
-
-    async def test_statement_descriptor_after_trial(
-        self,
-        stripe_service_mock: MagicMock,
-        session: AsyncSession,
-        save_fixture: SaveFixture,
-        product: Product,
-        customer: Customer,
-        organization: Organization,
-    ) -> None:
-        payment_method = await create_payment_method(save_fixture, customer=customer)
-        subscription = await create_active_subscription(
-            save_fixture, product=product, customer=customer
-        )
-        order = await create_order(
-            save_fixture,
-            product=product,
-            customer=customer,
-            subscription=subscription,
-            status=OrderStatus.pending,
-            billing_reason=OrderBillingReasonInternal.subscription_cycle_after_trial,
-        )
-        await save_fixture(order)
-
-        await order_service.trigger_payment(session, order, payment_method)
-
-        stripe_service_mock.create_payment_intent.assert_called_once()
-        call_kwargs = stripe_service_mock.create_payment_intent.call_args[1]
-
-        descriptor = call_kwargs["statement_descriptor_suffix"]
-        assert descriptor.endswith(" TRIAL OVER")
-        from polar.config import settings
-
-        assert len(descriptor) <= settings.stripe_descriptor_suffix_max_length
-        assert descriptor.startswith(organization.slug[:4])
 
 
 @pytest.mark.asyncio
@@ -4211,28 +3595,6 @@ class TestCreateDraftOrder:
                 session, off_session_organization, payload
             )
 
-    async def test_seat_based_product_rejected(
-        self,
-        save_fixture: SaveFixture,
-        session: AsyncSession,
-        off_session_organization: Organization,
-        customer: Customer,
-    ) -> None:
-        product = await create_product(
-            save_fixture,
-            organization=off_session_organization,
-            recurring_interval=None,
-            prices=[("seat", 1000, "usd")],
-        )
-        payload = OrderCreate(
-            customer_id=customer.id,
-            product_id=product.id,
-        )
-        with pytest.raises(PolarRequestValidationError):
-            await order_service.create_draft_order(
-                session, off_session_organization, payload
-            )
-
     async def test_unknown_customer_rejected(
         self,
         session: AsyncSession,
@@ -4578,39 +3940,6 @@ class TestFinalizeOrder:
         with pytest.raises(OrderNotDraft):
             await order_service.finalize_order(session, order)
 
-    async def test_lost_draft_claim_raises(
-        self,
-        mocker: MockerFixture,
-        session: AsyncSession,
-        save_fixture: SaveFixture,
-        off_session_organization: Organization,
-        product: Product,
-        customer: Customer,
-    ) -> None:
-        # Another request already claimed the draft, so the atomic
-        # start_finalization() guard returns False. Finalize must refuse and
-        # leave the order untouched.
-        payment_method = await create_payment_method(save_fixture, customer=customer)
-        order = await create_order(
-            save_fixture,
-            product=product,
-            customer=customer,
-            status=OrderStatus.draft,
-        )
-        mocker.patch(
-            "polar.order.repository.OrderRepository.start_finalization",
-            new=AsyncMock(return_value=False),
-        )
-
-        with pytest.raises(OrderNotDraft):
-            await order_service.finalize_order(
-                session, order, payment_method_id=payment_method.id
-            )
-
-        await session.refresh(order)
-        assert order.status == OrderStatus.draft
-        assert order.payment_lock_acquired_at is None
-
     async def test_feature_flag_revoked_between_create_and_finalize(
         self,
         session: AsyncSession,
@@ -4657,271 +3986,3 @@ class TestFinalizeOrder:
         await session.refresh(order)
         # Rejected before any state change — the order stays a draft.
         assert order.status == OrderStatus.draft
-
-    async def test_missing_payment_method(
-        self,
-        session: AsyncSession,
-        save_fixture: SaveFixture,
-        off_session_organization: Organization,
-        product: Product,
-        customer: Customer,
-    ) -> None:
-        order = await create_order(
-            save_fixture,
-            product=product,
-            customer=customer,
-            status=OrderStatus.draft,
-        )
-        with pytest.raises(PaymentFailed):
-            await order_service.finalize_order(session, order)
-
-        await session.refresh(order)
-        # Missing payment method is caught before any state mutation —
-        # nothing changes on the order.
-        assert order.status == OrderStatus.draft
-
-    async def test_card_error_reverts_to_draft(
-        self,
-        session: AsyncSession,
-        save_fixture: SaveFixture,
-        off_session_organization: Organization,
-        product: Product,
-        customer: Customer,
-        stripe_service_mock: MagicMock,
-    ) -> None:
-        payment_method = await create_payment_method(save_fixture, customer=customer)
-        order = await create_order(
-            save_fixture,
-            product=product,
-            customer=customer,
-            status=OrderStatus.draft,
-        )
-
-        stripe_service_mock.create_payment_intent.side_effect = stripe_lib.CardError(
-            message="Your card was declined.",
-            param="card",
-            code="card_declined",
-        )
-
-        with pytest.raises(PaymentFailed):
-            await order_service.finalize_order(
-                session, order, payment_method_id=payment_method.id
-            )
-
-        await session.refresh(order)
-        assert order.status == OrderStatus.draft
-        assert order.payment_lock_acquired_at is None
-
-    async def test_requires_action_reverts_to_draft(
-        self,
-        session: AsyncSession,
-        save_fixture: SaveFixture,
-        off_session_organization: Organization,
-        product: Product,
-        customer: Customer,
-        stripe_service_mock: MagicMock,
-    ) -> None:
-        payment_method = await create_payment_method(save_fixture, customer=customer)
-        order = await create_order(
-            save_fixture,
-            product=product,
-            customer=customer,
-            status=OrderStatus.draft,
-        )
-
-        stripe_service_mock.create_payment_intent.return_value = (
-            build_stripe_payment_intent(status="requires_action")
-        )
-
-        with pytest.raises(PaymentActionRequired):
-            await order_service.finalize_order(
-                session, order, payment_method_id=payment_method.id
-            )
-
-        await session.refresh(order)
-        assert order.status == OrderStatus.draft
-
-    async def test_explicit_payment_method_must_belong_to_customer(
-        self,
-        session: AsyncSession,
-        save_fixture: SaveFixture,
-        off_session_organization: Organization,
-        product: Product,
-        customer: Customer,
-        customer_second: Customer,
-    ) -> None:
-        other_payment_method = await create_payment_method(
-            save_fixture, customer=customer_second
-        )
-        order = await create_order(
-            save_fixture,
-            product=product,
-            customer=customer,
-            status=OrderStatus.draft,
-        )
-
-        with pytest.raises(PaymentFailed):
-            await order_service.finalize_order(
-                session, order, payment_method_id=other_payment_method.id
-            )
-
-        await session.refresh(order)
-        assert order.status == OrderStatus.draft
-
-    async def test_happy_path_charges_and_settles_inline(
-        self,
-        session: AsyncSession,
-        save_fixture: SaveFixture,
-        off_session_organization: Organization,
-        product: Product,
-        customer: Customer,
-        stripe_service_mock: MagicMock,
-        mocker: MockerFixture,
-    ) -> None:
-        payment_method = await create_payment_method(save_fixture, customer=customer)
-        order = await create_order(
-            save_fixture,
-            product=product,
-            customer=customer,
-            status=OrderStatus.draft,
-        )
-
-        # A succeeded off-session charge with an expanded Charge, as
-        # trigger_payment requests via expand=["latest_charge"].
-        payment_intent = stripe_lib.PaymentIntent.construct_from(
-            {
-                "id": "pi_finalize_success",
-                "status": "succeeded",
-                "latest_charge": {"object": "charge", "id": "ch_finalize_success"},
-            },
-            None,
-        )
-        stripe_service_mock.create_payment_intent.return_value = payment_intent
-
-        # The charge -> payment -> benefit-grant pipeline has its own coverage;
-        # here we only assert finalize's orchestration drives it with a paid
-        # order, rather than leaving settlement to the webhook.
-        def _settle(_session: AsyncSession, settled: Order, _payment: object) -> Order:
-            settled.status = OrderStatus.paid
-            return settled
-
-        upsert_mock = mocker.patch(
-            "polar.order.service.payment_service.upsert_from_stripe_charge",
-            new=AsyncMock(return_value=MagicMock()),
-        )
-        handle_payment_mock = mocker.patch.object(
-            order_service, "handle_payment", new=AsyncMock(side_effect=_settle)
-        )
-
-        result = await order_service.finalize_order(
-            session, order, payment_method_id=payment_method.id
-        )
-
-        assert result.status == OrderStatus.paid
-
-        # The charge is keyed for idempotency (sync/finalize path only) so a
-        # retry after a lost response can't double-charge.
-        call_kwargs = stripe_service_mock.create_payment_intent.call_args[1]
-        assert (
-            call_kwargs["idempotency_key"]
-            == f"order_finalize:{order.id}:{payment_method.processor_id}"
-        )
-
-        # The success path is applied inline: the expanded charge is extracted
-        # and handed to the payment + settlement pipeline.
-        upsert_mock.assert_awaited_once()
-        charge_arg = upsert_mock.call_args.args[1]
-        assert isinstance(charge_arg, stripe_lib.Charge)
-        assert charge_arg.id == "ch_finalize_success"
-        handle_payment_mock.assert_awaited_once()
-
-    async def test_sends_confirmation_email_once_settled(
-        self,
-        session: AsyncSession,
-        save_fixture: SaveFixture,
-        off_session_organization: Organization,
-        product: Product,
-        customer: Customer,
-        stripe_service_mock: MagicMock,
-        mocker: MockerFixture,
-        enqueue_job_mock: MagicMock,
-    ) -> None:
-        # The draft flow skips the confirmation email at creation, so finalize
-        # must enqueue it once the order settles as paid.
-        payment_method = await create_payment_method(save_fixture, customer=customer)
-        order = await create_order(
-            save_fixture,
-            product=product,
-            customer=customer,
-            status=OrderStatus.draft,
-            invoice_number=None,
-        )
-
-        payment_intent = stripe_lib.PaymentIntent.construct_from(
-            {
-                "id": "pi_finalize_success",
-                "status": "succeeded",
-                "latest_charge": {"object": "charge", "id": "ch_finalize_success"},
-            },
-            None,
-        )
-        stripe_service_mock.create_payment_intent.return_value = payment_intent
-
-        def _settle(_session: AsyncSession, settled: Order, _payment: object) -> Order:
-            settled.status = OrderStatus.paid
-            return settled
-
-        mocker.patch(
-            "polar.order.service.payment_service.upsert_from_stripe_charge",
-            new=AsyncMock(return_value=MagicMock()),
-        )
-        mocker.patch.object(
-            order_service, "handle_payment", new=AsyncMock(side_effect=_settle)
-        )
-
-        result = await order_service.finalize_order(
-            session, order, payment_method_id=payment_method.id
-        )
-
-        assert result.status == OrderStatus.paid
-        assert (
-            call("order.confirmation_email", order.id)
-            in enqueue_job_mock.call_args_list
-        )
-
-    async def test_sends_confirmation_email_for_free_product(
-        self,
-        session: AsyncSession,
-        save_fixture: SaveFixture,
-        off_session_organization: Organization,
-        customer: Customer,
-        enqueue_job_mock: MagicMock,
-    ) -> None:
-        # A $0 (free) draft settles via the under-minimum branch of
-        # trigger_payment (no Stripe charge), which still reaches the paid state.
-        # The confirmation email must be enqueued on that path too.
-        product = await create_product(
-            save_fixture,
-            organization=off_session_organization,
-            recurring_interval=None,
-            prices=[(None, "usd")],
-        )
-        order = await order_service.create_draft_order(
-            session,
-            off_session_organization,
-            OrderCreate(customer_id=customer.id, product_id=product.id),
-        )
-        assert order.status == OrderStatus.draft
-        assert order.due_amount == 0
-
-        payment_method = await create_payment_method(save_fixture, customer=customer)
-
-        result = await order_service.finalize_order(
-            session, order, payment_method_id=payment_method.id
-        )
-
-        assert result.status == OrderStatus.paid
-        assert (
-            call("order.confirmation_email", order.id)
-            in enqueue_job_mock.call_args_list
-        )

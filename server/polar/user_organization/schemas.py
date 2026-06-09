@@ -35,5 +35,3 @@ class OrganizationMemberRoleUpdate(Schema):
             "go through a separate flow."
         ),
     )
-
-

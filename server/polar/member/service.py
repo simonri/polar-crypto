@@ -21,7 +21,6 @@ from polar.models.webhook_endpoint import WebhookEventType
 from polar.organization.repository import OrganizationRepository
 from polar.postgres import AsyncReadSession, AsyncSession
 from polar.webhook.service import webhook as webhook_service
-from polar.worker import enqueue_job
 
 from .repository import MemberRepository
 from .sorting import MemberSortProperty

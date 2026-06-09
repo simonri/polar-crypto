@@ -232,10 +232,6 @@ class Subscription(CustomFieldDataMixin, MetadataMixin, RecordModel):
     def discount(cls) -> Mapped["Discount | None"]:
         return relationship("Discount", lazy="joined")
 
-    organization: AssociationProxy["Organization"] = association_proxy(
-        "product", "organization"
-    )
-
     checkout_id: Mapped[UUID | None] = mapped_column(
         Uuid, ForeignKey("checkouts.id", ondelete="set null"), nullable=True, index=True
     )

@@ -318,5 +318,3 @@ class Order(CustomFieldDataMixin, MetadataMixin, RecordModel):
         if self.product is not None:
             return self.product.name
         return self.items[0].label
-
-

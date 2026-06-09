@@ -16,6 +16,9 @@ from polar.authz.service import (
     get_accessible_org_ids,
 )
 from polar.config import settings
+from polar.customer_portal.repository.payment_method import (
+    CustomerPaymentMethodRepository,
+)
 from polar.customer_session.service import customer_session as customer_session_service
 from polar.exceptions import PolarRequestValidationError, ValidationError
 from polar.kit.address import Address
@@ -35,12 +38,16 @@ from polar.member_session.service import member_session as member_session_servic
 from polar.models import Customer, Order, Organization, Subscription, User
 from polar.models.customer import CustomerType
 from polar.models.member import MemberRole
+from polar.models.payment_method import PaymentMethod
 from polar.models.webhook_endpoint import CustomerWebhookEventType, WebhookEventType
 from polar.order.repository import OrderRepository
 from polar.organization.resolver import get_payload_organization
 from polar.postgres import AsyncReadSession, AsyncSession
 from polar.redis import Redis
 from polar.subscription.repository import SubscriptionRepository
+from polar.user_organization.service import (
+    user_organization as user_organization_service,
+)
 from polar.webhook.service import webhook as webhook_service
 from polar.worker import enqueue_job
 
@@ -500,7 +507,9 @@ class CustomerService:
         update_dict["email_verified"] = False
 
         if customer.name:
-            update_dict["name"] = anonymize_for_deletion(customer.name)
+            update_dict["name"] = anonymize_for_deletion(
+                customer.name, customer.created_at
+            )
 
         # Anonymize billing_name (always, if present)
         if customer._billing_name:
@@ -649,9 +658,11 @@ class CustomerService:
         *,
         pagination: PaginationParams,
     ) -> tuple[Sequence[PaymentMethod], int]:
-        repository = PaymentMethodRepository.from_session(session)
-        statement = repository.get_by_customer_statement(customer.id).order_by(
-            PaymentMethod.created_at.desc()
+        repository = CustomerPaymentMethodRepository.from_session(session)
+        statement = (
+            repository.get_base_statement()
+            .where(PaymentMethod.customer_id == customer.id)
+            .order_by(PaymentMethod.created_at.desc())
         )
         return await repository.paginate(
             statement, limit=pagination.limit, page=pagination.page

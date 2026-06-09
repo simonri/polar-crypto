@@ -3,6 +3,7 @@ from pathlib import Path
 from fastapi import Depends, FastAPI, Request
 from tagflow import tag, text
 
+from .crypto_wallets.endpoints import router as crypto_wallets_router
 from .customers.endpoints import router as customers_router
 from .dependencies import get_admin
 from .email_logs.endpoints import router as email_logs_router
@@ -39,6 +40,7 @@ app.mount(
     VersionedStaticFiles(directory=Path(__file__).parent / "static"),
     name="static",
 )
+app.include_router(crypto_wallets_router, prefix="/crypto-wallets")
 app.include_router(users_router, prefix="/users")
 app.include_router(organizations_v2_router)  # Primary organizations interface
 app.include_router(organizations_router, prefix="/organizations-classic")

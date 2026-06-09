@@ -289,5 +289,3 @@ async def finalize(
         authorized.order,
         payment_method_id=finalize_payload.payment_method_id,
     )
-
-

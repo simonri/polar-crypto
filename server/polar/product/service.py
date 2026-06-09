@@ -33,7 +33,7 @@ from polar.models import (
     User,
 )
 from polar.models.product_custom_field import ProductCustomField
-from polar.models.product_price import ProductPriceSource
+from polar.models.product_price import ProductPriceAmountType, ProductPriceSource
 from polar.models.webhook_endpoint import WebhookEventType
 from polar.organization.repository import OrganizationRepository
 from polar.organization.resolver import get_payload_organization
@@ -429,24 +429,27 @@ class ProductService:
             )
 
         # Track price structure per currency for cross-currency validation
-        price_structure_per_currency: dict[str, int] = {}
+        price_structure_per_currency: dict[str, frozenset[ProductPriceAmountType]] = {}
 
         for currency, currency_prices in prices_per_currency.items():
-            # Check that only one static price exists per currency
-            static_prices = [p for p, _ in currency_prices if is_static_price(p)]
-            if len(static_prices) > 1:
+            # Check that there is at most one price per amount_type per currency
+            amount_types = [p.amount_type for p, _ in currency_prices]
+            seen: set[ProductPriceAmountType] = set()
+            duplicates = [t for t in amount_types if t in seen or seen.add(t)]  # type: ignore[func-returns-value]
+            if duplicates:
                 # Bypass that rule for legacy recurring products
-                if not all(is_legacy_price(p) for p in static_prices):
+                all_prices = [p for p, _ in currency_prices]
+                if not all(is_legacy_price(p) for p in all_prices):
                     errors.append(
                         {
                             "type": "value_error",
                             "loc": error_prefix,
-                            "msg": "Only one static price is allowed.",
+                            "msg": "Only one price per type is allowed per currency.",
                             "input": prices_schema,
                         }
                     )
 
-            price_structure_per_currency[currency] = len(static_prices)
+            price_structure_per_currency[currency] = frozenset(amount_types)
 
         # Check that all currencies have the same price structure
         unique_structures = set(price_structure_per_currency.values())

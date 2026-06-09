@@ -223,6 +223,14 @@ class CryptoService:
             # Fallback: fetch directly from CoinGecko
             return await _fetch_coingecko_rate(crypto, fiat)
 
+    async def get_wallet_balance(self, currency: str) -> dict[str, Decimal]:
+        """Fetch master wallet balance from the daemon."""
+        coin = self._coin(currency)
+        try:
+            return await coin.balance()
+        except Exception as e:
+            raise CryptoServiceError(f"Failed to get {currency} balance: {e}") from e
+
     def subscribe_to_payments(
         self,
         currency: str,

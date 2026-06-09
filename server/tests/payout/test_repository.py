@@ -31,14 +31,14 @@ class TestGetHeldCountsByAccounts:
     ) -> None:
         account_1 = await create_account(save_fixture, user)
         payout_account_1 = await create_payout_account(
-            save_fixture, organization, user, type=PayoutAccountType.stripe
+            save_fixture, organization, user, type=PayoutAccountType.manual
         )
         account_2 = await create_account(save_fixture, user_second)
         payout_account_2 = await create_payout_account(
             save_fixture,
             organization_second,
             user_second,
-            type=PayoutAccountType.stripe,
+            type=PayoutAccountType.manual,
         )
 
         # account_1: two held + one pending (pending is excluded).
@@ -88,7 +88,7 @@ class TestGetHeldCountsByAccounts:
     ) -> None:
         account = await create_account(save_fixture, user)
         payout_account = await create_payout_account(
-            save_fixture, organization, user, type=PayoutAccountType.stripe
+            save_fixture, organization, user, type=PayoutAccountType.manual
         )
         await create_payout(
             save_fixture,

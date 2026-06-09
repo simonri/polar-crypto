@@ -371,10 +371,7 @@ async def repair(
                 grants_linked = await _backfill_benefit_grants(session, organization)
                 await session.commit()
 
-            if (
-                owner_members_created == 0
-                and grants_linked == 0
-            ):
+            if owner_members_created == 0 and grants_linked == 0:
                 skipped_count += 1
             else:
                 repaired_count += 1

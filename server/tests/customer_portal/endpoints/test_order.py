@@ -438,5 +438,3 @@ class TestConfirmRetryPayment:
             json={"confirmation_token_id": "ctoken_test"},
         )
         assert response.status_code >= 409
-
-

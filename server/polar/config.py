@@ -277,6 +277,7 @@ class Settings(BaseSettings):
     POLAR_ACCESS_TOKEN: str = ""
     POLAR_WEBHOOK_SECRET: str = ""
     POLAR_ORGANIZATION_ID: str = ""
+    POLAR_FREE_PRODUCT_ID: str = ""
     POLAR_API_URL: str = "https://api.polar.sh"
 
     @property

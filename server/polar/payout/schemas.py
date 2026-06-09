@@ -49,5 +49,3 @@ class Payout(IDSchema, TimestampedSchema):
     fees_transactions: list[TransactionEmbedded]
 
     attempts: list[PayoutAttempt]
-
-

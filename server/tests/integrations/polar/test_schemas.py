@@ -40,6 +40,7 @@ def _fixed_price(*, amount: int = 2000, currency: str = "usd") -> dict[str, Any]
         "product_id": "prod_1",
         "price_amount": amount,
         "amount_type": "fixed",
+        "tax_behavior": None,
     }
 
 
@@ -177,10 +178,12 @@ class TestOrganizationSubscriptionFromSdk:
                 "deleted_at": None,
                 "avatar_url": "",
                 "external_id": "ext_1",
+                "tax_id": None,
             },
             "product": _PRODUCT_BASE,
             "discount": None,
             "prices": [],
+            "meters": [],
             "pending_update": None,
             **overrides,
         }
@@ -212,19 +215,3 @@ class TestOrganizationSubscriptionFromSdk:
 
         assert sub.pending_change is not None
         assert sub.pending_change.product_id == "prod_2"
-
-    def test_pending_seat_change_only_is_ignored(self) -> None:
-        sub = OrganizationSubscription.from_sdk(
-            self._subscription(
-                pending_update={
-                    "id": "pu_1",
-                    "created_at": "2026-01-15T00:00:00Z",
-                    "modified_at": None,
-                    "applies_at": "2026-02-01T00:00:00Z",
-                    "product_id": None,
-                    "seats": 5,
-                }
-            )
-        )
-
-        assert sub.pending_change is None

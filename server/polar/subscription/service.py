@@ -1,5 +1,5 @@
 import uuid
-from collections.abc import AsyncGenerator, Sequence
+from collections.abc import Sequence
 from datetime import UTC, datetime
 from typing import Any, Literal, cast, overload
 from urllib.parse import urlencode
@@ -67,7 +67,6 @@ from polar.models import (
     User,
 )
 from polar.models.billing_entry import BillingEntryDirection, BillingEntryType
-from polar.models.customer import CustomerType
 from polar.models.order import OrderBillingReasonInternal
 from polar.models.product_price import ProductPrice
 from polar.models.subscription import CustomerCancellationReason, SubscriptionStatus
@@ -1397,11 +1396,13 @@ class SubscriptionService:
             customer_id, options=subscription_repository.get_eager_options()
         )
         for subscription in subscriptions:
-            await self._perform_cancellation(
-                session,
-                subscription,
-                immediately=True,
-            )
+            async with SubscriptionUpdateContext(session, subscription, self) as ctx:
+                await self._perform_cancellation(
+                    session,
+                    ctx,
+                    subscription,
+                    immediately=True,
+                )
 
     async def _perform_cancellation(
         self,

@@ -30,6 +30,7 @@ from polar.models import (
     CustomField,
     Discount,
     DiscountProduct,
+    Dispute,
     Event,
     EventType,
     IssueReward,
@@ -41,6 +42,7 @@ from polar.models import (
     OrderItem,
     Organization,
     Payment,
+    PaymentMethod,
     Payout,
     PayoutAccount,
     PayoutAttempt,
@@ -378,9 +380,7 @@ async def create_custom_field(
 
 
 type PriceFixtureType = (
-    tuple[int, str]
-    | tuple[int, int | None, int | None, str]
-    | tuple[None, str]
+    tuple[int, str] | tuple[int, int | None, int | None, str] | tuple[None, str]
 )
 
 

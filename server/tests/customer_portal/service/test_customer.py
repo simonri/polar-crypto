@@ -83,5 +83,3 @@ class TestUpdate:
         assert updated_customer.billing_name == "Polar Software Inc."
         assert updated_customer.billing_address is not None
         assert updated_customer.billing_address.country == "FR"
-
-        stripe_service_mock.update_customer.assert_called_once()

@@ -34,6 +34,7 @@ from polar.kit.schemas import (
 from polar.models.organization import (
     OrganizationCustomerEmailSettings,
     OrganizationCustomerPortalSettings,
+    OrganizationNotificationSettings,
     OrganizationStatus,
     OrganizationSubscriptionSettings,
 )
@@ -91,6 +92,44 @@ class OrganizationSlugCheck(Schema):
 class OrganizationSlugAvailability(Schema):
     available: bool = Field(
         description="Whether the slug is available for a new organization."
+    )
+
+
+class OrganizationSubscriptionSettingsSchema(Schema):
+    allow_multiple_subscriptions: bool = Field(default=False)
+    proration_behavior: Literal["invoice"] = Field(default="invoice")
+    benefit_revocation_grace_period: int = Field(default=0)
+    prevent_trial_abuse: bool = Field(default=False)
+    allow_customer_updates: bool = Field(default=True)
+
+
+class OrganizationNotificationSettingsSchema(Schema):
+    new_order: bool = Field(default=True)
+    new_subscription: bool = Field(default=True)
+
+
+class CustomerPortalUsageSettingsSchema(Schema):
+    show: bool = Field(default=True)
+
+
+class CustomerPortalSubscriptionSettingsSchema(Schema):
+    update_plan: bool = Field(default=True)
+    update_seats: bool = Field(default=False)
+
+
+class CustomerPortalCustomerSettingsSchema(Schema):
+    allow_email_change: bool = Field(default=False)
+
+
+class OrganizationCustomerPortalSettingsSchema(Schema):
+    usage: CustomerPortalUsageSettingsSchema = Field(
+        default_factory=CustomerPortalUsageSettingsSchema
+    )
+    subscription: CustomerPortalSubscriptionSettingsSchema = Field(
+        default_factory=CustomerPortalSubscriptionSettingsSchema
+    )
+    customer: CustomerPortalCustomerSettingsSchema = Field(
+        default_factory=CustomerPortalCustomerSettingsSchema
     )
 
 
@@ -359,6 +398,16 @@ class Organization(OrganizationBase):
         description="When the business details were submitted for review.",
     )
 
+    avatar_url: str | None = Field(
+        default=None, description="Organization avatar URL."
+    )
+    proration_behavior: Literal["invoice"] = Field(
+        default="invoice", description="Subscription proration behavior."
+    )
+    default_tax_behavior: Literal["location"] = Field(
+        default="location", description="Default tax behavior."
+    )
+
     default_presentment_currency: str = Field(
         description=(
             "Default presentment currency. "
@@ -369,13 +418,17 @@ class Organization(OrganizationBase):
     feature_settings: OrganizationFeatureSettings | None = Field(
         description="Organization feature settings",
     )
-    subscription_settings: OrganizationSubscriptionSettings = Field(
+    subscription_settings: OrganizationSubscriptionSettingsSchema = Field(
         description="Settings related to subscriptions management",
+    )
+    notification_settings: OrganizationNotificationSettingsSchema = Field(
+        default_factory=OrganizationNotificationSettingsSchema,
+        description="Settings related to notifications",
     )
     customer_email_settings: OrganizationCustomerEmailSettings = Field(
         description="Settings related to customer emails",
     )
-    customer_portal_settings: OrganizationCustomerPortalSettings = Field(
+    customer_portal_settings: OrganizationCustomerPortalSettingsSchema = Field(
         description="Settings related to the customer portal",
     )
     country: CountryAlpha2 | None = Field(

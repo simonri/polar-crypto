@@ -163,9 +163,7 @@ async def create(
     session: AsyncSession = Depends(get_db_session),
 ) -> Checkout:
     """Create a checkout session."""
-    return await checkout_service.create(
-        session, checkout_create, auth_subject
-    )
+    return await checkout_service.create(session, checkout_create, auth_subject)
 
 
 @inner_router.patch(
@@ -194,9 +192,7 @@ async def update(
         session, auth_subject, checkout, OrganizationPermission.sales_manage
     )
 
-    return await checkout_service.update(
-        session, checkout, checkout_update
-    )
+    return await checkout_service.update(session, checkout, checkout_update)
 
 
 @inner_router.get(
@@ -232,9 +228,7 @@ async def client_update(
     """Update a checkout session by client secret."""
     checkout = await checkout_service.get_by_client_secret(session, client_secret)
 
-    return await checkout_service.update(
-        session, checkout, checkout_update
-    )
+    return await checkout_service.update(session, checkout, checkout_update)
 
 
 @inner_router.post(

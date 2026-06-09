@@ -213,9 +213,7 @@ class ProductPriceFreeCreate(ProductPriceCreateBase):
 
 
 ProductPriceCreate = Annotated[
-    ProductPriceFixedCreate
-    | ProductPriceCustomCreate
-    | ProductPriceFreeCreate,
+    ProductPriceFixedCreate | ProductPriceCustomCreate | ProductPriceFreeCreate,
     Discriminator("amount_type"),
 ]
 
@@ -384,6 +382,11 @@ class ProductPriceBase(TimestampedSchema):
         description="Whether the price is archived and no longer available."
     )
     product_id: UUID4 = Field(description="The ID of the product owning the price.")
+
+    tax_behavior: Literal[None] = Field(
+        default=None,
+        description="Tax behavior for this price. Always None in this implementation.",
+    )
 
     type: SkipJsonSchema[ProductPriceType] = Field(
         validation_alias=AliasChoices("legacy_type", "type"),
@@ -566,6 +569,8 @@ ProductPriceList = Annotated[
         description="List of prices for this product.",
     ),
 ]
+
+
 class Product(MetadataOutputMixin, ProductBase):
     """
     A product.

@@ -3,7 +3,7 @@ from collections.abc import AsyncGenerator, Sequence
 from typing import Any
 from uuid import UUID
 
-from sqlalchemy import ColumnElement, Select, String, cast, func, or_, select, update
+from sqlalchemy import ColumnElement, Select, String, cast, func, or_, select
 from sqlalchemy import inspect as orm_inspect
 from sqlalchemy.orm import InstanceState
 
@@ -287,4 +287,3 @@ class CustomerRepository(
             .exists()
         )
         return subscription_exists if active else ~subscription_exists
-

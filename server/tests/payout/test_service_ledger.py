@@ -12,6 +12,7 @@ from functools import partial
 
 import pytest
 
+from polar.enums import PayoutAccountType
 from polar.kit.utils import utc_now
 from polar.locker import Locker
 from polar.models import Account, Organization, User
@@ -48,7 +49,9 @@ class TestHeldPayoutLedger:
         organization.set_status(OrganizationStatus.REVIEW)
         await save_fixture(organization)
 
-        await create_payout_account(save_fixture, organization, user)
+        await create_payout_account(
+            save_fixture, organization, user, type=PayoutAccountType.crypto
+        )
 
         payment_transaction = await create_payment_transaction(save_fixture)
         await create_balance_transaction(

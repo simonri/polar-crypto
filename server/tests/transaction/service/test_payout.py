@@ -113,7 +113,7 @@ class TestCreate:
         transaction = await payout_transaction_service.create(session, payout, fees)
 
         assert transaction.account == account
-        assert transaction.processor == Processor.crypto
+        assert transaction.processor == Processor.manual
         assert transaction.payout == payout
         assert transaction.currency == "usd"
         assert transaction.amount < 0

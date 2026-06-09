@@ -1,7 +1,6 @@
 import pytest
 from pydantic import ValidationError
 
-from polar.kit.currency import PresentmentCurrency
 from polar.organization.schemas import OrganizationCreate, OrganizationUpdate
 
 

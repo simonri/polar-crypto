@@ -69,13 +69,11 @@ async def update_authenticated(
     )
 
 
-
 @router.get("/me/scopes", response_model=UserScopes)
 async def scopes(
     auth_subject: AuthSubject[User] = Depends(Authenticator(allowed_subjects={User})),
 ) -> UserScopes:
     return UserScopes(scopes=list(auth_subject.scopes))
-
 
 
 @router.delete(
