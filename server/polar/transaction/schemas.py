@@ -19,7 +19,7 @@ class TransactionPledge(IDSchema, TimestampedSchema):
 class TransactionOrganization(IDSchema, TimestampedSchema):
     name: str
     slug: str
-    avatar_url: str | None
+    avatar_url: str | None = None
 
 
 class TransactionIssueReward(IDSchema, TimestampedSchema):

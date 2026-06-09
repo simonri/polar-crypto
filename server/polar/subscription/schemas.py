@@ -1,6 +1,6 @@
 import inspect
 from datetime import datetime
-from typing import Annotated, Literal
+from typing import Annotated, Any, Literal
 
 from fastapi import Path
 from pydantic import UUID4, AliasChoices, AliasPath, Field, FutureDatetime
@@ -184,6 +184,10 @@ class Subscription(CustomFieldDataOutputMixin, MetadataOutputMixin, Subscription
 
     prices: list[ProductPrice] = Field(
         description="List of enabled prices for the subscription."
+    )
+    meters: list[Any] = Field(
+        default_factory=list,
+        description="List of meter credits attached to the subscription.",
     )
     pending_update: PendingSubscriptionUpdate | None = Field(
         description=(

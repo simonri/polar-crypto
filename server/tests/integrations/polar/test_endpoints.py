@@ -126,6 +126,7 @@ _SUBSCRIPTION: dict[str, Any] = {
     },
     "discount": None,
     "prices": [],
+    "meters": [],
     "pending_update": None,
 }
 
