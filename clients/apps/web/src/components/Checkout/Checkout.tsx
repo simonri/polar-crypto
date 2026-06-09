@@ -255,7 +255,8 @@ const Checkout = ({
         )}
         {!cryptoPendingCheckout &&
           hasProductCheckout(checkout) &&
-          checkout.product_price.amount_type === 'custom' && (
+          checkout.product_price.amount_type === 'custom' &&
+          !checkout.amount && (
             <CheckoutPWYWForm
               checkout={checkout}
               update={update}
@@ -342,16 +343,17 @@ const Checkout = ({
                       <CheckoutHeroPrice checkout={checkout} locale={locale} />
                     </span>
                   </div>
-                  {checkout.product_price.amount_type === 'custom' && (
-                    <CheckoutPWYWForm
-                      checkout={checkout}
-                      update={update}
-                      productPrice={
-                        checkout.product_price as schemas['ProductPriceCustom']
-                      }
-                      locale={locale}
-                    />
-                  )}
+                  {checkout.product_price.amount_type === 'custom' &&
+                    !checkout.amount && (
+                      <CheckoutPWYWForm
+                        checkout={checkout}
+                        update={update}
+                        productPrice={
+                          checkout.product_price as schemas['ProductPriceCustom']
+                        }
+                        locale={locale}
+                      />
+                    )}
                   {!checkout.is_free_product_price && (
                     <div className="flex flex-col gap-4 text-sm">
                       <CheckoutPricingBreakdown
