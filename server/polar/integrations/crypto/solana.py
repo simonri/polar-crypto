@@ -210,13 +210,27 @@ class SolanaAdapter:
 
     async def balance(self) -> dict[str, Decimal]:
         if self.currency == "sol_usdc":
-            result = await self._rpc(
-                "getTokenAccountBalance",
-                [self._merchant_ata_str, {"commitment": "confirmed"}],
-            )
-            value = (result or {}).get("value") or {}
-            raw = int(value.get("amount", "0"))
-            amount = Decimal(raw) / Decimal(10**6)
+            try:
+                result = await self._rpc(
+                    "getTokenAccountBalance",
+                    [self._merchant_ata_str, {"commitment": "confirmed"}],
+                )
+                value = (result or {}).get("value") or {}
+                raw = int(value.get("amount", "0"))
+                amount = Decimal(raw) / Decimal(10**6)
+            except CryptoServiceError as e:
+                # ATA not yet initialised — Solana returns "could not find account".
+                # Treat as zero balance rather than offline so the backoffice shows
+                # the wallet as Online with 0 USDC until first funding.
+                if "could not find account" in str(e).lower():
+                    log.info(
+                        "solana.balance.ata_not_initialized",
+                        ata=self._merchant_ata_str,
+                        note="Initialize by sending any USDC to the merchant wallet",
+                    )
+                    amount = Decimal(0)
+                else:
+                    raise
         else:
             result = await self._rpc(
                 "getBalance",

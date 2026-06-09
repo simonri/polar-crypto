@@ -17,26 +17,6 @@ import { UseFormReturn } from 'react-hook-form'
 import { hasProductCheckout, isLegacyRecurringProductPrice } from '../guards'
 import CustomFieldInput from './CustomFieldInput'
 
-const XIcon = ({ className }: { className?: string }) => {
-  return (
-    <svg
-      xmlns="http://www.w3.org/2000/svg"
-      width="24"
-      height="24"
-      viewBox="0 0 24 24"
-      fill="none"
-      stroke="currentColor"
-      strokeWidth="2"
-      strokeLinecap="round"
-      strokeLinejoin="round"
-      className={className}
-    >
-      <path d="M18 6 6 18" />
-      <path d="m6 6 12 12" />
-    </svg>
-  )
-}
-
 interface BaseCheckoutFormProps {
   form: UseFormReturn<schemas['CheckoutUpdatePublic']>
   checkout: schemas['CheckoutPublic']
@@ -62,7 +42,6 @@ const BaseCheckoutForm = ({
   isUpdatePending,
   children,
   locale: localeProp,
-  isWalletPayment,
   beforeSubmit,
 }: React.PropsWithChildren<BaseCheckoutFormProps>) => {
   const interval = hasProductCheckout(checkout)

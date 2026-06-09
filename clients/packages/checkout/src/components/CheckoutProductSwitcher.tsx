@@ -17,7 +17,6 @@ import type { ProductCheckoutPublic } from '../guards'
 import { isLegacyRecurringProductPrice } from '../guards'
 import { hasLegacyRecurringPrices } from '../utils/product'
 import { capitalize, decapitalize } from '../utils/string'
-import AmountLabel from './AmountLabel'
 import ProductPriceLabel from './ProductPriceLabel'
 
 export interface CheckoutProductSwitcherItemPriceProps {
@@ -29,10 +28,8 @@ export interface CheckoutProductSwitcherItemPriceProps {
 }
 
 export const CheckoutProductSwitcherItemPrice = ({
-  isSelected,
   product,
   price,
-  checkout,
   locale,
 }: CheckoutProductSwitcherItemPriceProps) => {
   return (
@@ -42,35 +39,6 @@ export const CheckoutProductSwitcherItemPrice = ({
       locale={locale}
       mode="standard"
     />
-  )
-}
-
-const FromPrice = ({
-  amount,
-  currency,
-  interval,
-  intervalCount,
-  locale,
-}: {
-  amount: number
-  currency: string
-  interval?: schemas['SubscriptionRecurringInterval'] | null
-  intervalCount?: number | null
-  locale?: AcceptedLocale
-}) => {
-  const t = useTranslations(locale ?? DEFAULT_LOCALE)
-  return (
-    <span className="flex items-baseline">
-      {t('checkout.productSwitcher.fromPrefix')}&nbsp;
-      <AmountLabel
-        amount={amount}
-        currency={currency}
-        interval={interval}
-        intervalCount={intervalCount}
-        mode="standard"
-        locale={locale}
-      />
-    </span>
   )
 }
 

@@ -144,7 +144,7 @@ export const CheckoutFormProvider = ({
         setLoading(false)
       }
     },
-    [_confirm, setError, t],
+    [_confirm, t],
   )
 
   return (
