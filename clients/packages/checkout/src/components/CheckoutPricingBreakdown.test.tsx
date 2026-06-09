@@ -91,35 +91,8 @@ describe('CheckoutPricingBreakdown', () => {
     })
   })
 
-  describe('with discount, no tax', () => {
-    it('shows subtotal, discount, taxable amount, and total', () => {
-      const checkout = createBaseCheckout({
-        amount: 2000,
-        discount_amount: 400,
-        net_amount: 1600,
-        total_amount: 1600,
-        discount: {
-          id: 'disc_1',
-          name: '20% off',
-          type: 'percentage',
-          duration: 'once',
-          code: null,
-          basis_points: 2000,
-        } satisfies schemas['CheckoutPublic']['discount'],
-      })
-
-      render(<CheckoutPricingBreakdown checkout={checkout} locale="en" />)
-
-      expect(getRowValue('Subtotal')).toBe('$20')
-      expect(getRowValue('20% off')).toBe('-$4')
-      expect(screen.getByText('(-20%)')).toBeInTheDocument()
-      expect(getRowValue('Taxable amount')).toBe('$16')
-      expect(getRowValue('Total')).toBe('$16')
-    })
-  })
-
   describe('with discount', () => {
-    it('shows all breakdown rows correctly', () => {
+    it('shows subtotal, discount line, and total', () => {
       const checkout = createBaseCheckout({
         amount: 2000,
         discount_amount: 400,
@@ -140,7 +113,7 @@ describe('CheckoutPricingBreakdown', () => {
       expect(getRowValue('Subtotal')).toBe('$20')
       expect(getRowValue('20% off')).toBe('-$4')
       expect(screen.getByText('(-20%)')).toBeInTheDocument()
-      expect(getRowValue('Taxable amount')).toBe('$16')
+      expect(screen.queryByText('Taxable amount')).not.toBeInTheDocument()
       expect(getRowValue('Total')).toBe('$16')
     })
   })
