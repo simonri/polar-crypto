@@ -398,9 +398,7 @@ class Organization(OrganizationBase):
         description="When the business details were submitted for review.",
     )
 
-    avatar_url: str | None = Field(
-        default=None, description="Organization avatar URL."
-    )
+    avatar_url: str | None = Field(default=None, description="Organization avatar URL.")
     proration_behavior: Literal["invoice"] = Field(
         default="invoice", description="Subscription proration behavior."
     )

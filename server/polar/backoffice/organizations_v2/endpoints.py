@@ -2030,7 +2030,6 @@ async def impersonate_user(
     """Impersonate a user by creating a read-only session for them."""
     from datetime import timedelta
 
-
     # Fetch the user to impersonate
     stmt = select(User).where(User.id == user_id)
     result = await session.execute(stmt)

@@ -145,13 +145,7 @@ jobs:
               | grep -o '"accessToken":"[^"]*"' | cut -d'"' -f4)
             curl -sf "https://app.infisical.com/api/v3/secrets/raw?environment=prod&workspaceId=${INFISICAL_PROJECT_ID}&secretPath=/" \
               -H "Authorization: Bearer $INFISICAL_TOKEN" \
-              | python3 -c "
-import sys, json
-data = json.load(sys.stdin)
-for s in data.get('secrets', []):
-    k, v = s['secretKey'], s['secretValue']
-    print(f'{k}={v}')
-" > .env
+              | jq -r '.secrets[] | "\(.secretKey)=\(.secretValue)"' > .env
             [ -s .env ] || { echo 'ERROR: .env is empty — secrets not loaded from Infisical'; exit 1; }
 
             $DC pull api worker
