@@ -99,6 +99,8 @@ class CryptoService:
         self._initialized = True
 
     def supported_currencies(self) -> list[str]:
+        if not self._initialized:
+            self.initialize()
         return list(self._coins.keys())
 
     def _coin(self, currency: str) -> Any:
