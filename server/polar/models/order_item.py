@@ -61,6 +61,7 @@ class OrderItem(RecordModel):
         cls,
         price: ProductPrice,
         amount: int | None = None,
+        label: str | None = None,
     ) -> Self:
         if isinstance(price, ProductPriceFixed | LegacyRecurringProductPriceFixed):
             amount = price.price_amount
