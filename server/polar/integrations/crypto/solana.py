@@ -47,7 +47,7 @@ def _get_associated_token_address(owner_b58: str, mint_b58: str) -> str:
     Derive the Associated Token Account address for (owner, mint).
     Uses SLIP-0010 / Solana's findProgramAddress via solders.
     """
-    from solders.pubkey import Pubkey  # type: ignore[import]
+    from solders.pubkey import Pubkey
 
     owner = Pubkey.from_string(owner_b58)
     mint = Pubkey.from_string(mint_b58)
@@ -139,7 +139,7 @@ class SolanaAdapter:
         kept — the private key is discarded immediately since we only need to
         watch for incoming transactions, not sign anything.
         """
-        from solders.keypair import Keypair  # type: ignore[import]
+        from solders.keypair import Keypair
 
         reference = str(Keypair().pubkey())
 
@@ -201,7 +201,7 @@ class SolanaAdapter:
 
     async def validate_address(self, address: str) -> bool:
         try:
-            from solders.pubkey import Pubkey  # type: ignore[import]
+            from solders.pubkey import Pubkey
 
             Pubkey.from_string(address)
             return True

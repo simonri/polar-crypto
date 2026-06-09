@@ -39,7 +39,8 @@
     "MINTLIFY_ASSISTANT_API_KEY",
     "ATTIO_API_KEY",
     "ATTIO_STARTUP_LIST_ID",
-    "CI"
+    "CI",
+    "PYDANTIC_AI_GATEWAY_API_KEY"
   ],
   "tasks": {
     "test": {
