@@ -54,7 +54,7 @@ export const MeterUpdateModal = ({
         return
       }
       toast({
-        title: `Meter ${meter.name} updated`,
+        title: `Meter ${String(meter.name)} updated`,
         description: `Meter successfully updated.`,
       })
 

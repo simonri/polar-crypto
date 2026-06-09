@@ -83,7 +83,7 @@ const CreateBenefitModalContent = ({
       onSelectBenefit(benefit)
       toast({
         title: 'Benefit Created',
-        description: `Benefit ${benefit.description} was created successfully`,
+        description: `Benefit ${String(benefit.description)} was created successfully`,
       })
       hideModal()
     },

@@ -4,10 +4,12 @@ from fastapi import APIRouter, Depends, Request
 from sqlalchemy import func, select
 from tagflow import classes, tag, text
 
+from polar.integrations.crypto.exchange_rate import ExchangeRateService
 from polar.integrations.crypto.service import CryptoServiceError, crypto_service
 from polar.models import CryptoInvoice, CryptoPaymentMethod
 from polar.models.crypto_invoice import CryptoInvoiceStatus
 from polar.postgres import AsyncSession, get_db_read_session
+from polar.redis import Redis, get_redis
 
 from ..layout import layout
 
@@ -18,8 +20,10 @@ router = APIRouter()
 async def list_crypto_wallets(
     request: Request,
     session: AsyncSession = Depends(get_db_read_session),
+    redis: Redis = Depends(get_redis),
 ) -> None:
     currencies = crypto_service.supported_currencies()
+    exchange_rate_service = ExchangeRateService(redis)
 
     balances: dict[str, dict[str, Decimal] | None] = {}
     rates: dict[str, Decimal | None] = {}
@@ -29,7 +33,7 @@ async def list_crypto_wallets(
         except (CryptoServiceError, Exception):
             balances[currency] = None
         try:
-            rates[currency] = await crypto_service.get_exchange_rate(currency)
+            rates[currency] = await exchange_rate_service.get_rate(currency)
         except Exception:
             rates[currency] = None
 

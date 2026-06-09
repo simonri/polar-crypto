@@ -39,7 +39,7 @@ export const CheckoutConfirmation = ({
   const router = useRouter()
   const client = useMemo(() => createClient(getServerURL()), [])
   const [checkout, setCheckout] = useState(_checkout)
-  const { status, organization } = checkout
+  const { status } = checkout
 
   const updateCheckout = useCallback(async () => {
     try {

@@ -187,7 +187,7 @@ export const LicenseKeysPage = ({
             }
             toast({
               title: 'License Key Status Updated',
-              description: `License key ending in ${selectedLicenseKey.display_key} updated to ${status}`,
+              description: `License key ending in ${String(selectedLicenseKey.display_key)} updated to ${status}`,
             })
           })
       }

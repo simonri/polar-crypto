@@ -118,15 +118,7 @@ export const CreateProductPage = ({
         setIsSubmitting(false)
       }
     },
-    [
-      sourceProduct,
-      createProduct,
-      router,
-      returnTo,
-      organization,
-      toast,
-      setError,
-    ],
+    [createProduct, router, returnTo, organization, toast, setError],
   )
 
   return (

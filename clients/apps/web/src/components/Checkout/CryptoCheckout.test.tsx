@@ -5,11 +5,11 @@ import { CryptoCheckoutStatus } from './CryptoCheckout'
 vi.mock('@/utils/api', () => ({ getServerURL: () => 'https://api.polar.sh' }))
 vi.mock('qrcode.react', () => ({ QRCodeSVG: () => null }))
 vi.mock('@polar-sh/orbit', () => ({
-  Select: (props: any) => props.children,
-  SelectTrigger: (props: any) => props.children,
+  Select: (props: { children?: React.ReactNode }) => props.children,
+  SelectTrigger: (props: { children?: React.ReactNode }) => props.children,
   SelectValue: () => null,
-  SelectContent: (props: any) => props.children,
-  SelectItem: (props: any) => props.children,
+  SelectContent: (props: { children?: React.ReactNode }) => props.children,
+  SelectItem: (props: { children?: React.ReactNode }) => props.children,
 }))
 
 const BASE_PROPS = {

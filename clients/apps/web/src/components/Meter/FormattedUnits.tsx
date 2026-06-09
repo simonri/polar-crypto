@@ -7,6 +7,7 @@ const FormattedUnits = ({ value }: FormattedUnitsProps) => {
     maximumFractionDigits: 0,
   }).format(value)
 
+  // eslint-disable-next-line react/jsx-no-useless-fragment
   return <>{formatted}</>
 }
 

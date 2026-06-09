@@ -30,9 +30,7 @@ const OrderStatusDisplayColor: Record<schemas['Order']['status'], string> = {
 }
 
 const CustomerPortalOrder = ({
-  api,
   order,
-  themingPreset,
 }: {
   api: Client
   order: schemas['CustomerOrder']

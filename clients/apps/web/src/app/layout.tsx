@@ -76,6 +76,7 @@ export default async function RootLayout({
             React 19 warning and are not re-executed on client navigations anyway. */}
         <script
           suppressHydrationWarning
+          // eslint-disable-next-line react/no-danger
           dangerouslySetInnerHTML={{
             __html: `try{var d=document.documentElement,s=localStorage.getItem('theme'),t=s==='dark'||s==='light'?s:window.matchMedia('(prefers-color-scheme: dark)').matches?'dark':'light';d.classList.remove('light','dark');d.classList.add(t);d.style.colorScheme=t}catch(e){}`,
           }}

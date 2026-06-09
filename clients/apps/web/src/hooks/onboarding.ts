@@ -1,7 +1,6 @@
 'use client'
 
 import { useExperiment } from '@/experiments/client'
-import { CONFIG } from '@/utils/config'
 import { schemas } from '@polar-sh/client'
 import { useCallback, useMemo } from 'react'
 
@@ -116,33 +115,24 @@ export const useOnboardingTracking = (): UseOnboardingTrackingReturn => {
     [experimentVariant],
   )
 
-  const trackStepStarted = useCallback(
-    (step: OnboardingStep, _organizationId?: string): void => {
-      const session = getOnboardingSession()
-      if (!session || session.current_step === step) return
-      setOnboardingSession({ ...session, current_step: step })
-    },
-    [],
-  )
+  const trackStepStarted = useCallback((step: OnboardingStep): void => {
+    const session = getOnboardingSession()
+    if (!session || session.current_step === step) return
+    setOnboardingSession({ ...session, current_step: step })
+  }, [])
 
-  const trackStepCompleted = useCallback(
-    (_step: OnboardingStep, _organizationId?: string): void => {
-      const session = getOnboardingSession()
-      if (!session) return
-      setOnboardingSession({
-        ...session,
-        steps_completed: session.steps_completed + 1,
-      })
-    },
-    [],
-  )
+  const trackStepCompleted = useCallback((): void => {
+    const session = getOnboardingSession()
+    if (!session) return
+    setOnboardingSession({
+      ...session,
+      steps_completed: session.steps_completed + 1,
+    })
+  }, [])
 
-  const trackStepSkipped = useCallback(
-    (_step: OnboardingStep, _organizationId?: string): void => {},
-    [],
-  )
+  const trackStepSkipped = useCallback((): void => {}, [])
 
-  const trackCompleted = useCallback((_organizationId: string): void => {
+  const trackCompleted = useCallback((): void => {
     clearOnboardingSession()
   }, [])
 

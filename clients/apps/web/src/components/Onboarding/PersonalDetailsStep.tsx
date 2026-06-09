@@ -7,7 +7,7 @@ import { Box } from '@polar-sh/orbit/Box'
 import { Button } from '@polar-sh/orbit'
 import { Form } from '@polar-sh/ui/components/ui/form'
 import { useRouter } from 'next/navigation'
-import { useRef, useState } from 'react'
+import { useState } from 'react'
 import { useForm, useWatch } from 'react-hook-form'
 import { useOnboardingData } from './OnboardingContext'
 import { OnboardingShell } from './OnboardingShell'
@@ -37,7 +37,7 @@ export function PersonalDetailsStep() {
   const { currentUser, reloadUser } = useAuth()
   const { setApiLoading, showApiResponse } = useOnboardingData()
   const { trackStepViewed, trackStepCompleted } = useOnboardingV2Tracking()
-  const showTerms = useRef(!currentUser?.accepted_terms_of_service)
+  const [showTerms] = useState(!currentUser?.accepted_terms_of_service)
   const updateUser = useUpdateUser()
   const [submitting, setSubmitting] = useState(false)
   const [submitError, setSubmitError] = useState(false)
@@ -97,7 +97,7 @@ export function PersonalDetailsStep() {
           flexDirection="column"
           rowGap="xl"
         >
-          {showTerms.current && (
+          {showTerms && (
             <TermsCheckbox
               control={control}
               name="accepted_terms_of_service"

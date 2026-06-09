@@ -66,7 +66,7 @@ const CreateMeterModalContent = ({
       }
 
       toast({
-        title: `Meter ${meter.name} created`,
+        title: `Meter ${String(meter.name)} created`,
         description: `Meter successfully created.`,
       })
 

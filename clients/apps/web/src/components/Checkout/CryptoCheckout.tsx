@@ -138,6 +138,7 @@ export function CryptoCheckoutStatus({
   }, [clientSecret, onConfirmed, onExpired])
 
   useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect
     fetchStatus()
     const interval = setInterval(fetchStatus, 5000)
     return () => clearInterval(interval)

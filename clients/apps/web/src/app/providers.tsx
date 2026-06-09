@@ -61,7 +61,7 @@ export function PolarThemeProvider({
   forceTheme?: 'light' | 'dark'
 }) {
   return (
-    <Suspense fallback={<>{children}</>}>
+    <Suspense fallback={children}>
       <ThemeProviderInner forceTheme={forceTheme}>
         {children}
       </ThemeProviderInner>

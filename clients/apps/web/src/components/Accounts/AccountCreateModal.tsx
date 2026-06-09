@@ -14,7 +14,7 @@ import {
   FormMessage,
 } from '@polar-sh/ui/components/ui/form'
 import { useCallback, useState } from 'react'
-import { useForm, useFormContext } from 'react-hook-form'
+import { useForm } from 'react-hook-form'
 
 const COUNTRIES = [
   'US',

@@ -39,7 +39,6 @@ const ProductPriceListItem = ({
 
 const CustomerChangePlanModal = ({
   api,
-  organization,
   products: _products,
   subscription,
   hide,

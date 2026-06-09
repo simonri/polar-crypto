@@ -2,7 +2,6 @@
 
 import { isLegacyRecurringPrice } from '@/utils/product'
 import { schemas } from '@polar-sh/client'
-import { Button } from '@polar-sh/orbit'
 import { useCallback, useMemo, useState } from 'react'
 import { useFieldArray, useFormContext } from 'react-hook-form'
 import { Section } from '../../Layout/Section'
@@ -28,7 +27,6 @@ export interface ProductPricingSectionProps {
 export const ProductPricingSection = ({
   organization,
   className,
-  update,
   compact,
 }: ProductPricingSectionProps) => {
   const { control, setValue, getValues } = useFormContext<ProductFormType>()
@@ -237,7 +235,7 @@ export const ProductPricingSection = ({
 
         <div className="flex flex-col gap-y-6 py-6">
           <h3>Price Type</h3>
-          {pricesForSelectedCurrency.map(({ price, index }) => (
+          {pricesForSelectedCurrency.map(({ index }) => (
             <div key={`${selectedCurrency}-${index}`}>
               <ProductPriceItem
                 organization={organization}

@@ -11,9 +11,7 @@ import OrganizationPaymentSettings from '@/components/Settings/OrganizationPayme
 import OrganizationProfileSettings from '@/components/Settings/OrganizationProfileSettings'
 import { Section, SectionDescription } from '@/components/Settings/Section'
 import { useHasPermission } from '@/hooks/permissions'
-import { useUserOrganizationNotificationSettings } from '@/hooks/queries/user_organizations'
 import { schemas } from '@polar-sh/client'
-import Link from 'next/link'
 
 export default function ClientPage({
   organization: org,
@@ -21,8 +19,6 @@ export default function ClientPage({
   organization: schemas['Organization']
 }) {
   const canManageOrganization = useHasPermission(org.id, 'organization:manage')
-  const { data: userNotificationSettings } =
-    useUserOrganizationNotificationSettings(org.id)
 
   return (
     <DashboardBody

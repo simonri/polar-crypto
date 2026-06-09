@@ -163,6 +163,7 @@ const ManagePayoutAccountModal: React.FC<ManagePayoutAccountModalProps> = ({
                     )}
                   </div>
                   <div className="flex flex-row flex-wrap justify-end gap-2">
+                    {/* eslint-disable-next-line no-constant-binary-expression */}
                     {false && (
                       <Button
                         variant="secondary"

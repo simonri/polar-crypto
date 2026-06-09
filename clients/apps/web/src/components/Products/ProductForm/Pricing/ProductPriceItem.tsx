@@ -37,7 +37,6 @@ interface ProductPriceItemProps {
 }
 
 export const ProductPriceItem: React.FC<ProductPriceItemProps> = ({
-  organization,
   index,
   currency,
   onRemove,

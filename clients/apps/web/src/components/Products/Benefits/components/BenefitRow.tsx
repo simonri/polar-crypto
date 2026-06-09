@@ -85,7 +85,7 @@ export const BenefitRow = ({
       }
       toast({
         title: 'Benefit Deleted',
-        description: `Benefit ${benefit.description} was deleted successfully`,
+        description: `Benefit ${String(benefit.description)} was deleted successfully`,
       })
     })
   }, [deleteBenefit, benefit])

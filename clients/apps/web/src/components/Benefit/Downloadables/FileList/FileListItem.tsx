@@ -204,13 +204,13 @@ export const FileListItem = ({
       if (result.error) {
         toast({
           title: 'File Update Failed',
-          description: `Error updating file ${file.name}: ${extractApiErrorMessage(result.error)}`,
+          description: `Error updating file ${String(file.name)}: ${extractApiErrorMessage(result.error)}`,
         })
         return
       }
       toast({
         title: 'File Updated',
-        description: `File ${file.name} updated successfully`,
+        description: `File ${String(file.name)} updated successfully`,
       })
     })
   }
@@ -237,13 +237,13 @@ export const FileListItem = ({
       if (response.error) {
         toast({
           title: 'File Deletion Failed',
-          description: `Error deleting file ${file.name}: ${extractApiErrorMessage(response.error)}`,
+          description: `Error deleting file ${String(file.name)}: ${extractApiErrorMessage(response.error)}`,
         })
         return
       }
       toast({
         title: 'File Deleted',
-        description: `File ${file.name} deleted successfully`,
+        description: `File ${String(file.name)} deleted successfully`,
       })
     })
   }

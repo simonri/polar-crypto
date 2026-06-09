@@ -83,13 +83,13 @@ const ClientPage: React.FC<ClientPageProps> = ({
       if (error) {
         toast({
           title: 'Benefit Deletion Failed',
-          description: `Error deleting benefit ${benefit.description}: ${extractApiErrorMessage(error)}`,
+          description: `Error deleting benefit ${String(String(benefit.description))}: ${extractApiErrorMessage(error)}`,
         })
         return
       }
       toast({
         title: 'Benefit Deleted',
-        description: `Benefit ${benefit.description} successfully deleted`,
+        description: `Benefit ${String(benefit.description)} successfully deleted`,
       })
       pushRouteWithoutCache(`/dashboard/${organization.slug}/products/benefits`)
     })
@@ -100,12 +100,12 @@ const ClientPage: React.FC<ClientPageProps> = ({
       await navigator.clipboard.writeText(benefit.id)
       toast({
         title: 'Benefit ID Copied',
-        description: `Benefit ${benefit.description} ID successfully copied`,
+        description: `Benefit ${String(benefit.description)} ID successfully copied`,
       })
     } catch {
       toast({
         title: 'Benefit ID Copy Failed',
-        description: `Error copying ID of benefit ${benefit.description}`,
+        description: `Error copying ID of benefit ${String(benefit.description)}`,
       })
     }
   }
@@ -120,8 +120,8 @@ const ClientPage: React.FC<ClientPageProps> = ({
             </span>
             <div className="flex flex-col">
               <p className="text-lg">
-                {(benefit.description?.length ?? 0) > 0
-                  ? benefit.description
+                {(String(benefit.description)?.length ?? 0) > 0
+                  ? String(benefit.description)
                   : '—'}
               </p>
               <div className="dark:text-polar-500 flex flex-row items-center gap-2 font-mono text-sm text-gray-500">

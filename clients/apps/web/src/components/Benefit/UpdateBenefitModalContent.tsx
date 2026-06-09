@@ -54,14 +54,14 @@ const UpdateBenefitModalContent = ({
         }
         toast({
           title: 'Benefit Update Failed',
-          description: `Error updating benefit ${benefit.description}: ${extractApiErrorMessage(error)}`,
+          description: `Error updating benefit ${String(benefit.description)}: ${extractApiErrorMessage(error)}`,
         })
         return
       }
 
       toast({
         title: 'Benefit Updated',
-        description: `Benefit ${benefit.description} updated successfully`,
+        description: `Benefit ${String(benefit.description)} updated successfully`,
       })
       router.refresh()
       hideModal()

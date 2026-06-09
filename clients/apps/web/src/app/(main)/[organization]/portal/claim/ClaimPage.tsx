@@ -3,9 +3,8 @@
 import { schemas } from '@polar-sh/client'
 import ShadowBox from '@polar-sh/ui/components/atoms/ShadowBox'
 
-export default function ClientPage({
-  organization: _organization,
-}: {
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
+export default function ClientPage(_props: {
   organization: schemas['CustomerOrganization']
   invitationToken?: string
 }) {

@@ -52,7 +52,7 @@ const ClientPage: React.FC<ClientPageProps> = ({ organization, meter }) => {
 
     toast({
       title: `Meter ${isArchiving ? 'archived' : 'unarchived'}`,
-      description: `${meter.name} has been ${
+      description: `${String(meter.name)} has been ${
         isArchiving ? 'archived' : 'unarchived'
       } successfully.`,
     })

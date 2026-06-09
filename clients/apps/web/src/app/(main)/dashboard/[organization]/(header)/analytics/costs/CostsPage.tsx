@@ -492,18 +492,16 @@ export default function ClientPage({
                             : undefined
                         }
                         label={
-                          <>
-                            <div className="min-w-0 flex-1">
-                              <p className="truncate text-sm font-medium dark:text-white">
-                                {r.label}
+                          <div className="min-w-0 flex-1">
+                            <p className="truncate text-sm font-medium dark:text-white">
+                              {r.label}
+                            </p>
+                            {r.email && r.email !== r.label && (
+                              <p className="dark:text-polar-400 truncate text-xs text-gray-400">
+                                {r.email}
                               </p>
-                              {r.email && r.email !== r.label && (
-                                <p className="dark:text-polar-400 truncate text-xs text-gray-400">
-                                  {r.email}
-                                </p>
-                              )}
-                            </div>
-                          </>
+                            )}
+                          </div>
                         }
                         stats={
                           <>
@@ -749,18 +747,16 @@ export default function ClientPage({
                           : undefined
                       }
                       label={
-                        <>
-                          <div className="min-w-0 flex-1">
-                            <p className="truncate text-sm font-medium dark:text-white">
-                              {r.label}
+                        <div className="min-w-0 flex-1">
+                          <p className="truncate text-sm font-medium dark:text-white">
+                            {r.label}
+                          </p>
+                          {r.email && r.email !== r.label && (
+                            <p className="dark:text-polar-400 truncate text-xs text-gray-400">
+                              {r.email}
                             </p>
-                            {r.email && r.email !== r.label && (
-                              <p className="dark:text-polar-400 truncate text-xs text-gray-400">
-                                {r.email}
-                              </p>
-                            )}
-                          </div>
-                        </>
+                          )}
+                        </div>
                       }
                       stats={
                         <>

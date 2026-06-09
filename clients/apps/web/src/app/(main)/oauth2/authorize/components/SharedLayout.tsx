@@ -1,4 +1,5 @@
 import LogoType from '@/components/Brand/logos/LogoType'
+import { StaticImage } from '@/components/Image/StaticImage'
 import AddOutlined from '@mui/icons-material/AddOutlined'
 import { schemas } from '@polar-sh/client'
 
@@ -19,10 +20,12 @@ export default function SharedLayout({
           {client?.logo_uri && (
             <>
               <AddOutlined className="h-5" />
-              <img
+              <StaticImage
                 src={client.logo_uri}
                 className="h-10"
                 alt={client.client_name ?? client.client_id}
+                width={40}
+                height={40}
               />
             </>
           )}

@@ -19,7 +19,6 @@ import { SubscriptionStatusLabel } from '../Subscriptions/utils'
 
 const CustomerPortalSubscription = ({
   api,
-  customerSessionToken,
   subscription,
   products,
 }: {

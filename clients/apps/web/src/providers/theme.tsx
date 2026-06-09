@@ -41,8 +41,6 @@ export function ThemeProvider({
   children,
   forcedTheme,
   defaultTheme = 'system',
-  attribute: _attribute,
-  enableSystem: _enableSystem,
 }: {
   children: React.ReactNode
   forcedTheme?: string
@@ -54,6 +52,7 @@ export function ThemeProvider({
   const [storedTheme, setStoredTheme] = useState(defaultTheme)
 
   useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect
     setResolvedTheme(readDocTheme())
     const observer = new MutationObserver(() =>
       setResolvedTheme(readDocTheme()),
@@ -75,7 +74,9 @@ export function ThemeProvider({
     setStoredTheme(t)
     try {
       localStorage.setItem('theme', t)
-    } catch {}
+    } catch {
+      // localStorage may not be available in all environments
+    }
     applyTheme(t)
   }, [])
 
