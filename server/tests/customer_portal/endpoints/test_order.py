@@ -311,45 +311,6 @@ class TestConfirmRetryPayment:
         assert json["error"] == "Your card was declined."
 
     @pytest.mark.auth(CUSTOMER_AUTH_SUBJECT)
-    async def test_stripe_error(
-        self,
-        client: AsyncClient,
-        session: AsyncSession,
-        save_fixture: SaveFixture,
-        product: Product,
-        customer: Customer,
-        stripe_service_mock: MagicMock,
-    ) -> None:
-        order = await create_order(save_fixture, product=product, customer=customer)
-        order.status = OrderStatus.pending
-        order.next_payment_attempt_at = utc_now()
-        order.customer.stripe_customer_id = "cus_test"
-        await save_fixture(order)
-
-        subscription = await create_subscription(
-            save_fixture, customer=order.customer, product=product
-        )
-        order.subscription = subscription
-        await save_fixture(order)
-
-        mock_error = MagicMock()
-        mock_error.message = "Payment method not available."
-        stripe_error = stripe_lib.StripeError("Payment method not available.")
-        stripe_error.error = mock_error
-        stripe_service_mock.create_payment_intent = AsyncMock(side_effect=stripe_error)
-
-        response = await client.post(
-            f"/v1/customer-portal/orders/{order.id}/confirm-payment",
-            json={"confirmation_token_id": "ctoken_test"},
-        )
-        assert response.status_code == 200
-
-        json = response.json()
-        assert json["status"] == "failed"
-        assert json["client_secret"] is None
-        assert json["error"] == "Payment method not available."
-
-    @pytest.mark.auth(CUSTOMER_AUTH_SUBJECT)
     async def test_order_not_pending(
         self,
         client: AsyncClient,

@@ -33,6 +33,7 @@ from polar.transaction.service.platform_fee import PlatformFeeTransactionService
 from polar.transaction.service.processor_fee import ProcessorFeeTransactionService
 from tests.fixtures.database import SaveFixture
 from tests.fixtures.random_objects import create_dispute, create_order, create_payment
+from tests.transaction.conftest import create_transaction
 
 
 def build_stripe_balance_transaction(**kwargs):
@@ -59,9 +60,6 @@ def build_stripe_dispute(**kwargs):
     from unittest.mock import MagicMock
 
     return MagicMock(**kwargs)
-
-
-from tests.transaction.conftest import create_transaction
 
 
 @pytest.fixture(autouse=True)

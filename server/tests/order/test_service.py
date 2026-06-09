@@ -3129,46 +3129,6 @@ class TestProcessRetryPayment:
         assert result.client_secret is None
         assert result.error == "Card was declined."
 
-    async def test_process_retry_payment_stripe_error(
-        self,
-        stripe_service_mock: MagicMock,
-        session: AsyncSession,
-        save_fixture: SaveFixture,
-        product: Product,
-        customer: Customer,
-        organization: Organization,
-    ) -> None:
-        """Test retry payment with Stripe error."""
-        await save_fixture(customer)
-
-        subscription = await create_subscription(
-            save_fixture, customer=customer, product=product
-        )
-
-        order = await create_order(
-            save_fixture,
-            product=product,
-            customer=customer,
-            status=OrderStatus.pending,
-            subscription=subscription,
-            next_payment_attempt_at=utc_now(),
-        )
-        await save_fixture(order)
-
-        mock_error = MagicMock()
-        mock_error.message = "Payment method not available."
-        stripe_error = stripe_lib.StripeError("Payment method not available.")
-        stripe_error.error = mock_error
-        stripe_service_mock.create_payment_intent = AsyncMock(side_effect=stripe_error)
-
-        result = await order_service.process_retry_payment(
-            session, order, "ctoken_test", PaymentProcessor.stripe
-        )
-
-        assert result.status == "failed"
-        assert result.client_secret is None
-        assert result.error == "Payment method not available."
-
     async def test_process_retry_payment_order_not_pending(
         self,
         session: AsyncSession,

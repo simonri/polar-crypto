@@ -39,7 +39,6 @@ from polar.organization.repository import OrganizationRepository
 from polar.organization.resolver import get_payload_organization
 from polar.product.guard import (
     is_legacy_price,
-    is_static_price,
 )
 from polar.product.repository import ProductRepository
 from polar.webhook.service import webhook as webhook_service

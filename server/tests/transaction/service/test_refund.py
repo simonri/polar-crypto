@@ -37,6 +37,7 @@ from polar.transaction.service.refund import (
 )
 from tests.fixtures.database import SaveFixture
 from tests.fixtures.random_objects import create_order, create_payment, create_refund
+from tests.transaction.conftest import create_transaction
 
 
 def build_stripe_balance_transaction(**kwargs):
@@ -60,9 +61,6 @@ def build_stripe_charge(**kwargs):
     for k, v in kwargs.items():
         setattr(m, k, v)
     return m
-
-
-from tests.transaction.conftest import create_transaction
 
 
 @pytest.fixture(autouse=True)

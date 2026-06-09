@@ -34,7 +34,6 @@ from polar.kit.schemas import (
 from polar.models.organization import (
     OrganizationCustomerEmailSettings,
     OrganizationCustomerPortalSettings,
-    OrganizationNotificationSettings,
     OrganizationStatus,
     OrganizationSubscriptionSettings,
 )

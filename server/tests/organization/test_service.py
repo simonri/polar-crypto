@@ -762,7 +762,7 @@ class TestSetOrganizationOffboarding:
     ) -> None:
         organization.status = status
 
-        with pytest.raises(Exception):
+        with pytest.raises(Exception):  # noqa: PT011
             await organization_service.set_organization_offboarding(
                 session, organization
             )

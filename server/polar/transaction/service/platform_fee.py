@@ -7,7 +7,7 @@ from polar.account.repository import AccountRepository
 from polar.account_credit.service import account_credit_service
 from polar.enums import PayoutAccountType
 from polar.logging import Logger
-from polar.models import Account, PayoutAccount, Transaction
+from polar.models import Account, Payout, PayoutAccount, Transaction
 from polar.models.transaction import PlatformFeeType, TransactionType
 from polar.postgres import AsyncSession
 from polar.transaction.fees.stripe import (

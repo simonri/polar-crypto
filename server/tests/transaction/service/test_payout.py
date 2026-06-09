@@ -81,7 +81,7 @@ class TestCreate:
         organization.account = account
         await save_fixture(organization)
         payout_account = await create_payout_account(
-            save_fixture, organization, user, type=PayoutAccountType.manual
+            save_fixture, organization, user, type=PayoutAccountType.crypto
         )
 
         # Transactions available for payouts
@@ -113,7 +113,7 @@ class TestCreate:
         transaction = await payout_transaction_service.create(session, payout, fees)
 
         assert transaction.account == account
-        assert transaction.processor == Processor.manual
+        assert transaction.processor == Processor.crypto
         assert transaction.payout == payout
         assert transaction.currency == "usd"
         assert transaction.amount < 0

@@ -62,7 +62,7 @@ from .product_price import (
     ProductPriceFree,
 )
 from .refund import Refund
-from .slack_app import SlackApp
+from .slack_app import SlackApp  # noqa: F401
 from .subscription import Subscription
 from .subscription_product_price import SubscriptionProductPrice
 from .subscription_update import SubscriptionUpdate
