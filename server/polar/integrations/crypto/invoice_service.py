@@ -161,6 +161,17 @@ class CryptoInvoiceService:
         return result.scalar_one_or_none()
 
 
+def _format_crypto_amount(amount: Decimal) -> str:
+    """
+    Render amount as a plain decimal string with no trailing zeros and no
+    scientific notation — required by BIP21, Litecoin URI, and Solana Pay specs.
+    """
+    s = f"{amount:f}"  # fixed-point, never scientific notation
+    if "." in s:
+        s = s.rstrip("0").rstrip(".")
+    return s or "0"
+
+
 def _build_payment_url(
     currency: str,
     address: str,
@@ -168,14 +179,15 @@ def _build_payment_url(
     lookup_field: str | None = None,
 ) -> str:
     cur = currency.lower()
+    amt = _format_crypto_amount(amount)
     if cur == "btc":
-        return f"bitcoin:{address}?amount={amount}"
+        return f"bitcoin:{address}?amount={amt}"
     if cur == "ltc":
-        return f"litecoin:{address}?amount={amount}"
+        return f"litecoin:{address}?amount={amt}"
     if cur in ("eth", "matic", "bnb"):
         return f"ethereum:{address}?value={int(amount * Decimal('1e18'))}"
     if cur == "trx":
-        return f"tron:{address}?amount={amount}"
+        return f"tron:{address}?amount={amt}"
     if cur in ("sol", "sol_usdc"):
         from polar.config import settings
         from polar.integrations.crypto.solana import USDC_MINT_DEVNET, USDC_MINT_MAINNET
@@ -187,9 +199,9 @@ def _build_payment_url(
                 if settings.CRYPTO_SOL_NETWORK == "devnet"
                 else USDC_MINT_MAINNET
             )
-            return f"solana:{address}?amount={amount}&spl-token={usdc_mint}{ref}"
-        return f"solana:{address}?amount={amount}{ref}"
-    return f"{cur}:{address}?amount={amount}"
+            return f"solana:{address}?amount={amt}&spl-token={usdc_mint}{ref}"
+        return f"solana:{address}?amount={amt}{ref}"
+    return f"{cur}:{address}?amount={amt}"
 
 
 # Module-level singleton; caller injects exchange_rate_service per-request

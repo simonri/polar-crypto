@@ -227,7 +227,12 @@ export function CryptoCheckoutStatus({
               href={selectedMethod.payment_url}
               className="rounded-xl bg-white p-3"
             >
-              <QRCodeSVG value={selectedMethod.payment_url} size={180} />
+              <QRCodeSVG
+                value={selectedMethod.payment_url}
+                size={180}
+                level="Q"
+                marginSize={2}
+              />
             </a>
             <a
               href={selectedMethod.payment_url}
