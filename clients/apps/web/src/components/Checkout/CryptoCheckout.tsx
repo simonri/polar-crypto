@@ -9,6 +9,7 @@ import {
   SelectValue,
 } from '@polar-sh/orbit'
 import { Copy, Timer } from 'lucide-react'
+import { StaticImage } from '@/components/Image/StaticImage'
 import { QRCodeSVG } from 'qrcode.react'
 import { useCallback, useEffect, useState } from 'react'
 
@@ -67,87 +68,28 @@ export function CryptoCurrencySelector({
 
 const SUPPORTED_TOKENS = ['BTC', 'LTC', 'SOL', 'SOL_USDC']
 
-const BitcoinIcon = () => (
-  <svg
-    viewBox="0 0 32 32"
-    className="h-5 w-5 shrink-0"
-    xmlns="http://www.w3.org/2000/svg"
-  >
-    <circle cx="16" cy="16" r="16" fill="#F7931A" />
-    <path
-      d="M22.5 14.5c.3-2-1.2-3.1-3.3-3.8l.7-2.7-1.7-.4-.7 2.6c-.45-.1-.9-.2-1.35-.3l.7-2.6-1.7-.4-.7 2.7c-.37-.08-.73-.17-1.08-.25l0 0-2.35-.59-.44 1.84s1.22.28 1.19.3c.66.16.78.6.76.95l-.76 3.36c.05.01.11.03.18.06l-.18-.05-1.07 4.74c-.08.2-.28.5-.74.39.02.02-1.19-.3-1.19-.3l-.81 1.97 2.22.55c.41.1.82.21 1.22.31l-.72 2.88 1.7.42.72-2.89c.46.13.92.24 1.37.35l-.71 2.87 1.7.43.72-2.88c2.96.56 5.18.33 6.12-2.34.74-2.12-.04-3.34-1.57-4.14 1.12-.26 1.96-.99 2.19-2.52zm-3.93 5.51c-.53 2.12-4.1.97-5.26.68l.94-3.74c1.16.29 4.88.87 4.32 3.06zm.53-5.55c-.48 1.93-3.46.95-4.43.71l.85-3.4c.97.24 4.1.7 3.58 2.69z"
-      fill="white"
-    />
-  </svg>
-)
-
-const LitecoinIcon = () => (
-  <svg
-    viewBox="0 0 32 32"
-    className="h-5 w-5 shrink-0"
-    xmlns="http://www.w3.org/2000/svg"
-  >
-    <circle cx="16" cy="16" r="16" fill="#BFBBBB" />
-    <path
-      d="M10.5 23l1.6-5.9-1.6.5.6-2.1 1.6-.5 2.3-8.5h4.7l-1.7 6.2 1.6-.5-.6 2.1-1.6.5-.9 3.2h7.9l-.7 3H10.5z"
-      fill="white"
-    />
-  </svg>
-)
-
-const SolanaIcon = () => (
-  <svg
-    viewBox="0 0 32 32"
-    className="h-5 w-5 shrink-0"
-    xmlns="http://www.w3.org/2000/svg"
-  >
-    <circle cx="16" cy="16" r="16" fill="#9945FF" />
-    <text
-      x="16"
-      y="21"
-      textAnchor="middle"
-      fontSize="16"
-      fill="white"
-      fontFamily="sans-serif"
-    >
-      ◎
-    </text>
-  </svg>
-)
-
-const USDCIcon = () => (
-  <svg
-    viewBox="0 0 32 32"
-    className="h-5 w-5 shrink-0"
-    xmlns="http://www.w3.org/2000/svg"
-  >
-    <circle cx="16" cy="16" r="16" fill="#2775CA" />
-    <text
-      x="16"
-      y="21"
-      textAnchor="middle"
-      fontSize="14"
-      fill="white"
-      fontFamily="sans-serif"
-      fontWeight="bold"
-    >
-      $
-    </text>
-  </svg>
+const CryptoTokenIcon = ({ token }: { token: string }) => (
+  <StaticImage
+    src={`/assets/crypto/${token.toLowerCase() === 'sol_usdc' ? 'usdc' : token.toLowerCase()}.svg`}
+    alt={token}
+    width={20}
+    height={20}
+    className="shrink-0"
+  />
 )
 
 const CRYPTO_ICONS: Record<string, React.ReactNode> = {
-  BTC: <BitcoinIcon />,
-  LTC: <LitecoinIcon />,
-  SOL: <SolanaIcon />,
-  SOL_USDC: <USDCIcon />,
+  BTC: <CryptoTokenIcon token="BTC" />,
+  LTC: <CryptoTokenIcon token="LTC" />,
+  SOL: <CryptoTokenIcon token="SOL" />,
+  SOL_USDC: <CryptoTokenIcon token="SOL_USDC" />,
 }
 
 const CRYPTO_LABELS: Record<string, string> = {
   BTC: 'Bitcoin (BTC)',
   LTC: 'Litecoin (LTC)',
   SOL: 'Solana (SOL)',
-  SOL_USDC: 'USD Coin on Solana',
+  SOL_USDC: 'USDC on Solana',
 }
 
 export function CryptoCheckoutStatus({
