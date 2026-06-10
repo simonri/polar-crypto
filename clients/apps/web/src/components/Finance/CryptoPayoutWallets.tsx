@@ -16,6 +16,8 @@ const SUPPORTED_CURRENCIES = [
   { value: 'btc', label: 'Bitcoin (BTC)' },
   { value: 'eth', label: 'Ethereum (ETH)' },
   { value: 'ltc', label: 'Litecoin (LTC)' },
+  { value: 'sol', label: 'Solana (SOL)' },
+  { value: 'sol_usdc', label: 'USDC on Solana' },
 ]
 
 interface CryptoPayoutWalletsProps {

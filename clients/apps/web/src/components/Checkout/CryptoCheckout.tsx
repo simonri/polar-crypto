@@ -65,7 +65,7 @@ export function CryptoCurrencySelector({
   )
 }
 
-const SUPPORTED_TOKENS = ['BTC', 'LTC']
+const SUPPORTED_TOKENS = ['BTC', 'LTC', 'SOL', 'SOL_USDC']
 
 const BitcoinIcon = () => (
   <svg
@@ -95,14 +95,59 @@ const LitecoinIcon = () => (
   </svg>
 )
 
+const SolanaIcon = () => (
+  <svg
+    viewBox="0 0 32 32"
+    className="h-5 w-5 shrink-0"
+    xmlns="http://www.w3.org/2000/svg"
+  >
+    <circle cx="16" cy="16" r="16" fill="#9945FF" />
+    <text
+      x="16"
+      y="21"
+      textAnchor="middle"
+      fontSize="16"
+      fill="white"
+      fontFamily="sans-serif"
+    >
+      ◎
+    </text>
+  </svg>
+)
+
+const USDCIcon = () => (
+  <svg
+    viewBox="0 0 32 32"
+    className="h-5 w-5 shrink-0"
+    xmlns="http://www.w3.org/2000/svg"
+  >
+    <circle cx="16" cy="16" r="16" fill="#2775CA" />
+    <text
+      x="16"
+      y="21"
+      textAnchor="middle"
+      fontSize="14"
+      fill="white"
+      fontFamily="sans-serif"
+      fontWeight="bold"
+    >
+      $
+    </text>
+  </svg>
+)
+
 const CRYPTO_ICONS: Record<string, React.ReactNode> = {
   BTC: <BitcoinIcon />,
   LTC: <LitecoinIcon />,
+  SOL: <SolanaIcon />,
+  SOL_USDC: <USDCIcon />,
 }
 
 const CRYPTO_LABELS: Record<string, string> = {
   BTC: 'Bitcoin (BTC)',
   LTC: 'Litecoin (LTC)',
+  SOL: 'Solana (SOL)',
+  SOL_USDC: 'USD Coin on Solana',
 }
 
 export function CryptoCheckoutStatus({
