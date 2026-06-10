@@ -46,9 +46,15 @@ export const CheckoutFormProvider = ({
   const [loadingLabel, setLoadingLabel] = useState<string | undefined>()
   const [isUpdatePending, setIsUpdatePending] = useState(false)
 
+  const savedEmail =
+    typeof window !== 'undefined'
+      ? (window.localStorage.getItem('polar_checkout_email') ?? undefined)
+      : undefined
+
   const form = useForm<schemas['CheckoutUpdatePublic']>({
     defaultValues: {
       ...checkout,
+      customer_email: checkout.customer_email ?? savedEmail,
       customer_billing_address: checkout.customer_billing_address as
         | schemas['AddressInput'] // We need to typecast here for some reason (it tries to match all_countries to supported_countries)
         | null,
@@ -139,12 +145,20 @@ export const CheckoutFormProvider = ({
       setLoadingLabel(t('checkout.loading.processingOrder'))
       try {
         const checkoutConfirmed = await _confirm(data)
+        const email = form.getValues('customer_email')
+        if (email) {
+          try {
+            window.localStorage.setItem('polar_checkout_email', email)
+          } catch {
+            // localStorage unavailable (private browsing, storage full, etc.)
+          }
+        }
         return checkoutConfirmed
       } finally {
         setLoading(false)
       }
     },
-    [_confirm, t],
+    [_confirm, form, t],
   )
 
   return (
