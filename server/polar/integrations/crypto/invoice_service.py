@@ -43,7 +43,7 @@ class CryptoInvoiceService:
         fiat_currency: str,
         buyer_email: str | None,
         accepted_currencies: list[str],
-        expiry_minutes: int = 15,
+        expiry_minutes: int = 60,
         exchange_rate_service: ExchangeRateService,
     ) -> CryptoInvoice:
         """
@@ -108,7 +108,7 @@ class CryptoInvoiceService:
         )
 
         # 3. Build payment URL (BIP21 / EIP681 / Solana Pay)
-        payment_url = _build_payment_url(
+        payment_url = build_payment_url(
             currency, payment_address, amount_crypto, lookup_field
         )
 
@@ -161,7 +161,7 @@ class CryptoInvoiceService:
         return result.scalar_one_or_none()
 
 
-def _format_crypto_amount(amount: Decimal) -> str:
+def format_crypto_amount(amount: Decimal) -> str:
     """
     Render amount as a plain decimal string with no trailing zeros and no
     scientific notation — required by BIP21, Litecoin URI, and Solana Pay specs.
@@ -172,14 +172,14 @@ def _format_crypto_amount(amount: Decimal) -> str:
     return s or "0"
 
 
-def _build_payment_url(
+def build_payment_url(
     currency: str,
     address: str,
     amount: Decimal,
     lookup_field: str | None = None,
 ) -> str:
     cur = currency.lower()
-    amt = _format_crypto_amount(amount)
+    amt = format_crypto_amount(amount)
     if cur == "btc":
         return f"bitcoin:{address}?amount={amt}"
     if cur == "ltc":

@@ -925,6 +925,8 @@ class CheckoutService:
         if invoice is None:
             return {"status": "not_found"}
 
+        from polar.integrations.crypto.invoice_service import build_payment_url
+
         return {
             "status": invoice.status,
             "exception_status": invoice.exception_status,
@@ -935,7 +937,12 @@ class CheckoutService:
                     "currency": pm.currency,
                     "amount": str(pm.amount),
                     "payment_address": pm.payment_address,
-                    "payment_url": pm.payment_url,
+                    # Rebuild URL from components so amount formatting is always
+                    # clean (no trailing zeros), even for invoices created before
+                    # the format fix was deployed.
+                    "payment_url": build_payment_url(
+                        pm.currency, pm.payment_address, pm.amount, pm.lookup_field
+                    ),
                     "lightning": pm.lightning,
                     "confirmations": pm.confirmations,
                 }

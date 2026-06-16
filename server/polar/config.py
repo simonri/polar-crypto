@@ -218,7 +218,7 @@ class Settings(BaseSettings):
     CRYPTO_CURRENCIES: str = "btc,ltc"
 
     # Invoice expiry in minutes (displayed countdown on checkout)
-    CRYPTO_INVOICE_EXPIRY_MINUTES: int = 15
+    CRYPTO_INVOICE_EXPIRY_MINUTES: int = 60
 
     def get_crypto_daemon_configs(self) -> dict[str, tuple[str, str | None]]:
         """Return {currency: (daemon_url, xpub)} for every enabled currency."""
