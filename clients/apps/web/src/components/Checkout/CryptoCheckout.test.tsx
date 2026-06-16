@@ -19,7 +19,7 @@ const BASE_PROPS = {
 
 const PENDING_BTC = {
   status: 'pending',
-  expiry: new Date(Date.now() + 900_000).toISOString(),
+  expiry: new Date(Date.now() + 3_600_000).toISOString(),
   payment_methods: [
     {
       currency: 'BTC',

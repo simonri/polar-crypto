@@ -151,7 +151,7 @@ class CryptoService:
         currency: str,
         amount_crypto: Decimal,
         description: str,
-        expiry_seconds: int = 900,
+        expiry_seconds: int = 3600,
     ) -> tuple[str, str]:
         """
         Ask the daemon to generate a new receiving address for this amount.

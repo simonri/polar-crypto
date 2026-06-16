@@ -132,7 +132,7 @@ class SolanaAdapter:
         self,
         amount: float,
         description: str,
-        expire_minutes: float = 15,
+        expire_minutes: float = 60,
     ) -> dict[str, Any]:
         """
         Generate a fresh reference keypair per invoice.  Only the pubkey is
