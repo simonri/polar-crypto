@@ -83,7 +83,7 @@ async def poll_pending_crypto_invoices() -> None:
     Cron job: expire stale invoices and enqueue a processing task for each
     pending/unconfirmed invoice.
     """
-    from sqlalchemy import select
+    from sqlalchemy import and_, or_, select
 
     from polar.integrations.crypto.payment_processor import _expire_stale_invoices
     from polar.kit.utils import utc_now
@@ -94,13 +94,16 @@ async def poll_pending_crypto_invoices() -> None:
         await _expire_stale_invoices(session)
 
         stmt = select(CryptoInvoice.id).where(
-            CryptoInvoice.status.in_(
-                [
-                    CryptoInvoiceStatus.pending,
-                    CryptoInvoiceStatus.unconfirmed,
-                ]
-            ),
-            CryptoInvoice.expiry > utc_now(),
+            # Pending invoices: stop queueing after expiry (no payment seen).
+            # Unconfirmed invoices: keep queueing until confirmed regardless of
+            # expiry, because the customer already sent money.
+            or_(
+                and_(
+                    CryptoInvoice.status == CryptoInvoiceStatus.pending,
+                    CryptoInvoice.expiry > utc_now(),
+                ),
+                CryptoInvoice.status == CryptoInvoiceStatus.unconfirmed,
+            )
         )
         result = await session.execute(stmt)
         invoice_ids = result.scalars().all()

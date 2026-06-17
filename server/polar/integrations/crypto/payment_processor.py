@@ -13,7 +13,7 @@ import asyncio
 from decimal import Decimal
 
 import structlog
-from sqlalchemy import select, update
+from sqlalchemy import and_, or_, select, update
 from sqlalchemy.orm import selectinload
 
 from polar.integrations.crypto.service import (
@@ -114,7 +114,9 @@ class CryptoPaymentProcessor:
 
         # Update payment method
         pm.confirmations = confirmations
-        pm.is_used = True
+        # Only mark the address as used once the invoice is fully confirmed so
+        # that the polling loop keeps rechecking it until the threshold is met.
+        pm.is_used = new_status == CryptoInvoiceStatus.complete
         tx_hashes = event.get("tx_hashes", [])
 
         # Update invoice
@@ -174,13 +176,17 @@ class CryptoPaymentProcessor:
             .where(
                 CryptoPaymentMethod.currency == currency,
                 CryptoPaymentMethod.is_used.is_(False),
-                CryptoInvoice.status.in_(
-                    [
-                        CryptoInvoiceStatus.pending,
-                        CryptoInvoiceStatus.unconfirmed,
-                    ]
+                # For pending invoices stop polling once they expire (no payment
+                # seen yet).  For unconfirmed invoices the customer already sent
+                # money so we must keep polling until confirmations are reached,
+                # regardless of the original invoice expiry.
+                or_(
+                    and_(
+                        CryptoInvoice.status == CryptoInvoiceStatus.pending,
+                        CryptoInvoice.expiry > utc_now(),
+                    ),
+                    CryptoInvoice.status == CryptoInvoiceStatus.unconfirmed,
                 ),
-                CryptoInvoice.expiry > utc_now(),
             )
             .options(selectinload(CryptoPaymentMethod.invoice))
         )
