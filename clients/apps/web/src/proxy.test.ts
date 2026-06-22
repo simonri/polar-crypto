@@ -244,27 +244,6 @@ describe('middleware function', () => {
     expect(location).toContain('return_to=%2Fdashboard%3Ffoo%3Dbar%26baz%3Dqux')
   })
 
-  it('should throw error on unexpected API response status', async () => {
-    const consoleErrorSpy = vi
-      .spyOn(console, 'error')
-      .mockImplementation(() => {})
-
-    createServerSideAPI.mockResolvedValue({
-      GET: vi.fn().mockResolvedValue({
-        data: undefined,
-        response: { ok: false, status: 500, headers: new Headers() },
-      }),
-    })
-
-    const request = new NextRequest('https://example.com/dashboard')
-    request.cookies.set('polar_session', 'valid-session-token')
-
-    await expect(proxy(request)).rejects.toThrow(
-      'Unexpected response status while fetching authenticated user',
-    )
-    consoleErrorSpy.mockRestore()
-  })
-
   it('should handle 401 responses gracefully', async () => {
     createServerSideAPI.mockResolvedValue({
       GET: vi.fn().mockResolvedValue({
@@ -282,29 +261,33 @@ describe('middleware function', () => {
     expect(response.headers.get('location')).toContain('/auth')
   })
 
-  it('should handle 429 rate-limit responses gracefully', async () => {
-    const consoleErrorSpy = vi
-      .spyOn(console, 'error')
-      .mockImplementation(() => {})
+  it.each([429, 500, 502, 503])(
+    'should handle %i upstream error gracefully (log and proceed as anonymous)',
+    async (status) => {
+      const consoleErrorSpy = vi
+        .spyOn(console, 'error')
+        .mockImplementation(() => {})
 
-    createServerSideAPI.mockResolvedValue({
-      GET: vi.fn().mockResolvedValue({
-        data: undefined,
-        response: { ok: false, status: 429, headers: new Headers() },
-      }),
-    })
+      createServerSideAPI.mockResolvedValue({
+        GET: vi.fn().mockResolvedValue({
+          data: undefined,
+          response: { ok: false, status, headers: new Headers() },
+        }),
+      })
 
-    const request = new NextRequest('https://example.com/dashboard')
-    request.cookies.set('polar_session', 'rate-limited-session-token')
+      const request = new NextRequest('https://example.com/dashboard')
+      request.cookies.set('polar_session', 'session-token')
 
-    // Must not throw: a 429 should be treated as "couldn't determine the user"
-    // and proceed as anonymous (protected route -> redirect to login).
-    const response = await proxy(request)
+      // Must not throw: transient errors mean "couldn't determine the user"
+      // and the request proceeds as anonymous (protected route -> redirect to login).
+      const response = await proxy(request)
 
-    expect(response.status).toBe(307)
-    expect(response.headers.get('location')).toContain('/auth')
-    consoleErrorSpy.mockRestore()
-  })
+      expect(response.status).toBe(307)
+      expect(response.headers.get('location')).toContain('/auth')
+      expect(consoleErrorSpy).toHaveBeenCalled()
+      consoleErrorSpy.mockRestore()
+    },
+  )
 
   it('should redirect unauthenticated /to/* requests to login preserving the deep link', async () => {
     const request = new NextRequest(
