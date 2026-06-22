@@ -192,24 +192,38 @@ class CryptoService:
         """Fetch the current status of a payment request from the daemon."""
         coin = self._coin(currency)
         try:
-            return await coin.get_request(lookup_field)
+            result = await coin.get_request(lookup_field)
         except Exception:
-            # After daemon restart, the in-memory address index may not be rebuilt
-            # from disk. Fall back to scanning list_requests to find by address or
-            # request_id.
+            # The BitcartCC daemon requires an xpub parameter to scope API calls
+            # to the right wallet. coin.server is a raw RPCProxy that doesn't add
+            # it automatically — pass coin.xpub explicitly.
+            result = None
             try:
-                all_requests: list[dict[str, Any]] = await coin.server.list_requests()
+                all_requests: list[dict[str, Any]] = await coin.server.list_requests(
+                    xpub=coin.xpub
+                )
                 for req in all_requests or []:
                     if (
                         req.get("address") == lookup_field
                         or req.get("request_id") == lookup_field
                     ):
-                        return req
+                        result = req
+                        break
             except Exception:
                 pass
-            raise CryptoServiceError(
-                f"Failed to get request status for {currency}/{lookup_field}"
-            )
+            if result is None:
+                raise CryptoServiceError(
+                    f"Failed to get request status for {currency}/{lookup_field}"
+                )
+
+        # After a daemon restart, a request that received payment before its
+        # expiry may be reported as "Expired" instead of "Paid" because the
+        # current wall-clock time is past the expiry. Trust the tx_hashes over
+        # the status string in that case.
+        if result.get("tx_hashes") and result.get("status_str") == "Expired":
+            result = {**result, "status_str": "Paid"}
+
+        return result
 
     async def broadcast_transaction(
         self,
