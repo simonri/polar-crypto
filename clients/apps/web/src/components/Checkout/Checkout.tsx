@@ -66,6 +66,31 @@ export interface CheckoutProps {
   locale?: AcceptedLocale
 }
 
+const belowSubmitText =
+  process.env.NEXT_PUBLIC_CHECKOUT_BELOW_SUBMIT_TEXT || null
+
+// Renders text with an optional inline markdown link: "prefix [label](url) suffix"
+const BelowSubmitText = ({ text }: { text: string }) => {
+  const match = text.match(/^(.*?)\[([^\]]+)\]\(([^)]+)\)(.*)$/)
+  if (!match) {
+    return (
+      <p className="dark:text-polar-500 text-center text-xs text-gray-500">
+        {text}
+      </p>
+    )
+  }
+  const [, prefix, label, href, suffix] = match
+  return (
+    <p className="dark:text-polar-500 text-center text-xs text-gray-500">
+      {prefix}
+      <a href={href} target="_blank" rel="noreferrer" className="underline">
+        {label}
+      </a>
+      {suffix}
+    </p>
+  )
+}
+
 const Checkout = ({
   embed: _embed,
   theme: _theme,
@@ -305,6 +330,13 @@ const Checkout = ({
                 )}
               </div>
             }
+            afterSubmit={
+              belowSubmitText ? (
+                <p className="dark:text-polar-500 text-center text-xs text-gray-500">
+                  {belowSubmitText}
+                </p>
+              ) : undefined
+            }
           />
         )}
       </ShadowBox>
@@ -409,6 +441,11 @@ const Checkout = ({
                     value={selectedCurrency}
                     onValueChange={setSelectedCurrency}
                   />
+                ) : undefined
+              }
+              afterSubmit={
+                belowSubmitText ? (
+                  <BelowSubmitText text={belowSubmitText} />
                 ) : undefined
               }
             />

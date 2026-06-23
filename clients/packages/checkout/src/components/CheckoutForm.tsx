@@ -30,6 +30,7 @@ interface BaseCheckoutFormProps {
   locale?: AcceptedLocale
   isWalletPayment?: boolean
   beforeSubmit?: React.ReactNode
+  afterSubmit?: React.ReactNode
 }
 
 const BaseCheckoutForm = ({
@@ -43,6 +44,7 @@ const BaseCheckoutForm = ({
   children,
   locale: localeProp,
   beforeSubmit,
+  afterSubmit,
 }: React.PropsWithChildren<BaseCheckoutFormProps>) => {
   const interval = hasProductCheckout(checkout)
     ? isLegacyRecurringProductPrice(checkout.product_price)
@@ -202,6 +204,7 @@ const BaseCheckoutForm = ({
             </p>
           )}
         </div>
+        {afterSubmit}
       </form>
     </Form>
   )
@@ -224,6 +227,7 @@ interface CheckoutFormProps {
   themePreset: ThemingPresetProps
   locale?: AcceptedLocale
   beforeSubmit?: React.ReactNode
+  afterSubmit?: React.ReactNode
 }
 
 const CheckoutForm = (props: CheckoutFormProps) => {
