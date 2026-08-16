@@ -22,9 +22,12 @@ async def process_crypto_invoice(invoice_id: uuid.UUID) -> None:
     from sqlalchemy import select
     from sqlalchemy.orm import selectinload
 
-    from polar.integrations.crypto.payment_processor import crypto_payment_processor
+    from polar.integrations.crypto.payment_processor import (
+        _is_watched,
+        crypto_payment_processor,
+    )
     from polar.integrations.crypto.service import crypto_service
-    from polar.models.crypto_invoice import CryptoInvoice, CryptoInvoiceStatus
+    from polar.models.crypto_invoice import CryptoInvoice
 
     if not crypto_service._initialized:
         crypto_service.initialize()
@@ -38,31 +41,17 @@ async def process_crypto_invoice(invoice_id: uuid.UUID) -> None:
         result = await session.execute(stmt)
         invoice = result.scalar_one_or_none()
 
-        if invoice is None or invoice.status not in (
-            CryptoInvoiceStatus.pending,
-            CryptoInvoiceStatus.unconfirmed,
-        ):
+        if invoice is None or not _is_watched(invoice):
             return
 
         for pm in invoice.payment_methods:
             if pm.is_used:
                 continue
             try:
-                status = await crypto_service.get_request_status(
-                    pm.currency, pm.lookup_field
+                processed = await crypto_payment_processor.poll_payment_method(
+                    session, invoice, pm
                 )
-                status_str = status.get("status_str") or status.get("status")
-                if status_str in ("Paid", "Confirmed", "complete"):
-                    await crypto_payment_processor._process_payment(
-                        session,
-                        invoice,
-                        pm,
-                        {
-                            "amount": status.get("amount", float(pm.amount)),
-                            "confirmations": status.get("confirmations", 1),
-                            "tx_hashes": status.get("tx_hashes", []),
-                        },
-                    )
+                if processed:
                     break
             except Exception as e:
                 log.warning(
@@ -81,11 +70,15 @@ async def process_crypto_invoice(invoice_id: uuid.UUID) -> None:
 async def poll_pending_crypto_invoices() -> None:
     """
     Cron job: expire stale invoices and enqueue a processing task for each
-    pending/unconfirmed invoice.
+    invoice whose addresses we still watch (pending, unconfirmed, and — inside
+    the monitoring window — expired and partially paid ones).
     """
-    from sqlalchemy import and_, or_, select
+    from sqlalchemy import select
 
-    from polar.integrations.crypto.payment_processor import _expire_stale_invoices
+    from polar.integrations.crypto.payment_processor import (
+        _expire_stale_invoices,
+        _watched_invoice_filter,
+    )
     from polar.kit.utils import utc_now
     from polar.models.crypto_invoice import CryptoInvoice, CryptoInvoiceStatus
     from polar.worker import enqueue_job
@@ -93,18 +86,11 @@ async def poll_pending_crypto_invoices() -> None:
     async with AsyncSessionMaker() as session:
         await _expire_stale_invoices(session)
 
-        stmt = select(CryptoInvoice.id).where(
-            # Pending invoices: stop queueing after expiry (no payment seen).
-            # Unconfirmed invoices: keep queueing until confirmed regardless of
-            # expiry, because the customer already sent money.
-            or_(
-                and_(
-                    CryptoInvoice.status == CryptoInvoiceStatus.pending,
-                    CryptoInvoice.expiry > utc_now(),
-                ),
-                CryptoInvoice.status == CryptoInvoiceStatus.unconfirmed,
-            )
-        )
+        stmt = select(CryptoInvoice.id).where(_watched_invoice_filter())
+        # Expired invoices are watched for a whole day; checking them every
+        # five minutes is plenty and keeps daemon load flat.
+        if utc_now().minute % 5 != 0:
+            stmt = stmt.where(CryptoInvoice.status != CryptoInvoiceStatus.expired)
         result = await session.execute(stmt)
         invoice_ids = result.scalars().all()
 

@@ -7,6 +7,7 @@ SQLAlchemy conventions (session managed by caller, no commit inside service).
 
 from __future__ import annotations
 
+from collections.abc import Sequence
 from datetime import timedelta
 from decimal import Decimal
 from uuid import UUID
@@ -15,11 +16,16 @@ import structlog
 from sqlalchemy import select
 from sqlalchemy.orm import selectinload
 
+from polar.config import settings
 from polar.integrations.crypto.exchange_rate import ExchangeRateService, get_precision
 from polar.integrations.crypto.service import CryptoService, crypto_service
 from polar.kit.utils import utc_now
 from polar.logging import Logger
-from polar.models.crypto_invoice import CryptoInvoice, CryptoInvoiceStatus
+from polar.models.crypto_invoice import (
+    PAYMENT_DETECTED_STATUSES,
+    CryptoInvoice,
+    CryptoInvoiceStatus,
+)
 from polar.models.crypto_payment_method import CryptoPaymentMethod
 from polar.postgres import AsyncSession
 
@@ -28,6 +34,27 @@ log: Logger = structlog.get_logger()
 
 class InvoiceCreationError(Exception):
     pass
+
+
+class NoPaymentMethodAvailableError(InvoiceCreationError):
+    """Every configured currency failed to produce a payment address."""
+
+    def __init__(self, currencies: Sequence[str]) -> None:
+        self.currencies = currencies
+        super().__init__(
+            "Could not generate a payment address for any of: "
+            + ", ".join(c.upper() for c in currencies)
+        )
+
+
+class InvoiceNotRenewableError(Exception):
+    """The invoice already has funds attached; a fresh amount makes no sense."""
+
+    def __init__(self, invoice: CryptoInvoice) -> None:
+        self.invoice = invoice
+        super().__init__(
+            f"Invoice {invoice.id} cannot be renewed in status {invoice.status}"
+        )
 
 
 class CryptoInvoiceService:
@@ -42,18 +69,30 @@ class CryptoInvoiceService:
         amount_cents: int,
         fiat_currency: str,
         buyer_email: str | None,
-        accepted_currencies: list[str],
+        accepted_currencies: Sequence[str],
         expiry_minutes: int = 60,
         exchange_rate_service: ExchangeRateService,
+        monitoring_window_hours: int | None = None,
     ) -> CryptoInvoice:
         """
         Create a CryptoInvoice and generate one CryptoPaymentMethod per
         accepted_currencies entry by calling the appropriate daemon.
+
+        A currency whose daemon fails is skipped (logged) so the customer can
+        still pay with the others. If *no* currency succeeds we raise
+        NoPaymentMethodAvailableError instead of returning a hollow invoice
+        the customer could never pay.
         """
         if not accepted_currencies:
             raise InvoiceCreationError("At least one currency must be accepted")
 
-        expiry = utc_now() + timedelta(minutes=expiry_minutes)
+        now = utc_now()
+        expiry = now + timedelta(minutes=expiry_minutes)
+        window_hours = (
+            monitoring_window_hours
+            if monitoring_window_hours is not None
+            else settings.CRYPTO_MONITORING_WINDOW_HOURS
+        )
         invoice = CryptoInvoice(
             order_id=order_id,
             price=Decimal(amount_cents) / Decimal(100),
@@ -62,10 +101,12 @@ class CryptoInvoiceService:
             exception_status="none",
             buyer_email=buyer_email,
             expiry=expiry,
+            monitoring_expiry=expiry + timedelta(hours=window_hours),
         )
         session.add(invoice)
         await session.flush()  # get invoice.id
 
+        created = 0
         for crypto in accepted_currencies:
             try:
                 await self._create_payment_method(
@@ -75,6 +116,7 @@ class CryptoInvoiceService:
                     expiry_minutes=expiry_minutes,
                     exchange_rate_service=exchange_rate_service,
                 )
+                created += 1
             except Exception as e:
                 log.warning(
                     "crypto.invoice.payment_method_failed",
@@ -84,7 +126,49 @@ class CryptoInvoiceService:
                 )
                 # Continue with other currencies even if one fails
 
+        if created == 0:
+            log.error(
+                "crypto.invoice.no_payment_method",
+                invoice_id=str(invoice.id),
+                currencies=accepted_currencies,
+            )
+            raise NoPaymentMethodAvailableError(list(accepted_currencies))
+
         return invoice
+
+    async def renew_invoice(
+        self,
+        session: AsyncSession,
+        invoice: CryptoInvoice,
+        *,
+        accepted_currencies: Sequence[str],
+        expiry_minutes: int,
+        exchange_rate_service: ExchangeRateService,
+    ) -> CryptoInvoice:
+        """
+        Replace an unpaid (pending or expired) invoice with a fresh one at the
+        current exchange rate. The old invoice is marked expired but keeps its
+        monitoring window, so a payment that lands late on the *old* addresses
+        is still matched to the same checkout.
+        """
+        if invoice.status in PAYMENT_DETECTED_STATUSES:
+            raise InvoiceNotRenewableError(invoice)
+
+        if invoice.status == CryptoInvoiceStatus.pending:
+            invoice.status = CryptoInvoiceStatus.expired
+            session.add(invoice)
+
+        # Preserve fiat price and buyer; only the crypto amounts change.
+        return await self.create_invoice(
+            session,
+            order_id=invoice.order_id,
+            amount_cents=int((invoice.price * 100).to_integral_value()),
+            fiat_currency=invoice.currency,
+            buyer_email=invoice.buyer_email,
+            accepted_currencies=accepted_currencies,
+            expiry_minutes=expiry_minutes,
+            exchange_rate_service=exchange_rate_service,
+        )
 
     async def _create_payment_method(
         self,
@@ -156,9 +240,50 @@ class CryptoInvoiceService:
             select(CryptoInvoice)
             .where(CryptoInvoice.order_id == order_id)
             .options(selectinload(CryptoInvoice.payment_methods))
+            .order_by(CryptoInvoice.created_at.desc())
+            .limit(1)
         )
         result = await session.execute(stmt)
         return result.scalar_one_or_none()
+
+    async def list_by_order_id(
+        self,
+        session: AsyncSession,
+        order_id: UUID,
+    ) -> list[CryptoInvoice]:
+        stmt = (
+            select(CryptoInvoice)
+            .where(CryptoInvoice.order_id == order_id)
+            .options(selectinload(CryptoInvoice.payment_methods))
+            .order_by(CryptoInvoice.created_at.desc())
+        )
+        result = await session.execute(stmt)
+        return list(result.scalars().all())
+
+    async def get_relevant_invoice(
+        self,
+        session: AsyncSession,
+        order_id: UUID,
+        current_invoice_id: UUID | None,
+    ) -> CryptoInvoice | None:
+        """
+        Pick the invoice the customer should be looking at.
+
+        A checkout can accumulate several invoices through renewals. If money
+        has been detected on *any* of them (including an old, expired one that
+        was paid late), that invoice wins over the current unpaid one — the
+        customer must never be shown "expired" while their funds are on-chain.
+        """
+        invoices = await self.list_by_order_id(session, order_id)
+        if not invoices:
+            return None
+        for inv in invoices:
+            if inv.status in PAYMENT_DETECTED_STATUSES:
+                return inv
+        for inv in invoices:
+            if inv.id == current_invoice_id:
+                return inv
+        return invoices[0]
 
 
 def format_crypto_amount(amount: Decimal) -> str:

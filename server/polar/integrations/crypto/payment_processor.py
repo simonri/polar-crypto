@@ -5,12 +5,31 @@ CryptoInvoice state transitions.
 Runs inside Polar's Dramatiq worker process — started at worker boot and
 long-lived for the process lifetime.  Falls back to periodic polling when
 WebSocket subscriptions are unavailable.
+
+State machine (per invoice)::
+
+    pending ──(funds seen, confs < threshold)──▶ unconfirmed ──▶ complete
+       │                                             │
+       │ (funds seen, amount short)                  │ (amount short)
+       ▼                                             ▼
+    paid_partial ◀────────────────────────────────────┘
+       │ (top-up brings total within tolerance) ──▶ unconfirmed / complete
+       │
+    expired ──(late funds, still inside monitoring window)──▶ same as pending,
+              but the invoice is re-valued at the *current* rate: if the
+              funds are worth at least the order (minus tolerance) they
+              complete with exception_status "paid_late"; otherwise the
+              invoice lands in needs_review for a human to accept or refund.
+
+Every terminal-looking state where money exists (paid_partial, needs_review,
+complete/paid_over) is surfaced to the customer; nothing is dropped silently.
 """
 
 from __future__ import annotations
 
 import asyncio
 from decimal import Decimal
+from typing import Any
 
 import structlog
 from sqlalchemy import and_, or_, select, update
@@ -32,6 +51,42 @@ log: Logger = structlog.get_logger()
 
 # Tolerance: if the received amount is within 1% of expected, treat as exact
 _PAYMENT_TOLERANCE = Decimal("0.01")
+
+# Invoice statuses whose addresses we still watch for incoming funds.
+WATCHED_STATUSES: tuple[CryptoInvoiceStatus, ...] = (
+    CryptoInvoiceStatus.pending,
+    CryptoInvoiceStatus.unconfirmed,
+    CryptoInvoiceStatus.paid_partial,
+    CryptoInvoiceStatus.expired,
+)
+
+
+def _watched_invoice_filter() -> Any:
+    """
+    SQL predicate: invoices whose payment methods should be (re)checked.
+
+    - pending: until the price lock expires (after that the cron flips them
+      to expired and they fall into the next bucket)
+    - unconfirmed: always, the customer already paid
+    - paid_partial / expired: while inside the monitoring window
+    """
+    now = utc_now()
+    return or_(
+        and_(
+            CryptoInvoice.status == CryptoInvoiceStatus.pending,
+            CryptoInvoice.expiry > now,
+        ),
+        CryptoInvoice.status == CryptoInvoiceStatus.unconfirmed,
+        and_(
+            CryptoInvoice.status.in_(
+                [CryptoInvoiceStatus.paid_partial, CryptoInvoiceStatus.expired]
+            ),
+            or_(
+                CryptoInvoice.monitoring_expiry.is_(None),
+                CryptoInvoice.monitoring_expiry > now,
+            ),
+        ),
+    )
 
 
 class CryptoPaymentProcessor:
@@ -76,10 +131,7 @@ class CryptoPaymentProcessor:
             if pm is None:
                 return
             invoice = await _get_invoice_with_methods(session, pm.invoice_id)
-            if invoice is None or invoice.status not in (
-                CryptoInvoiceStatus.pending,
-                CryptoInvoiceStatus.unconfirmed,
-            ):
+            if invoice is None or not _is_watched(invoice):
                 return
             await self._process_payment(session, invoice, pm, event)
 
@@ -90,44 +142,75 @@ class CryptoPaymentProcessor:
         pm: CryptoPaymentMethod,
         event: dict,  # type: ignore[type-arg]
     ) -> None:
+        """
+        Apply a payment observation to the invoice.
+
+        `event["amount"]` is the *cumulative* amount received on the payment
+        method's address (daemons report totals, and top-ups accumulate).
+        """
         received = Decimal(str(event.get("amount", 0)))
+        if received <= 0:
+            return
         expected = pm.amount
         confirmations = int(event.get("confirmations", 0))
         threshold = CONFIRMATION_THRESHOLDS.get(pm.currency, 1)
+        now = utc_now()
 
-        deviation = abs(received - expected) / expected if expected else Decimal(0)
-        overpaid = received > expected * (1 + _PAYMENT_TOLERANCE)
+        # Never let a smaller reading regress a larger one (daemon restarts,
+        # different code paths reporting different granularity).
+        if invoice.paid_crypto_currency == pm.currency and invoice.paid_crypto_amount:
+            received = max(received, invoice.paid_crypto_amount)
+
+        first_detection = invoice.payment_detected_at is None
+        if first_detection:
+            invoice.payment_detected_at = now
+        late = (
+            invoice.payment_detected_at is not None
+            and invoice.payment_detected_at > invoice.expiry
+        )
+
         underpaid = received < expected * (1 - _PAYMENT_TOLERANCE)
+        overpaid = received > expected * (1 + _PAYMENT_TOLERANCE)
 
-        if confirmations < threshold:
-            new_status = CryptoInvoiceStatus.unconfirmed
-            exception_status = "none"
-        elif underpaid:
-            new_status = CryptoInvoiceStatus.complete
+        exception_status = "none"
+        if underpaid:
+            new_status = CryptoInvoiceStatus.paid_partial
             exception_status = "paid_partial"
-        elif overpaid:
-            new_status = CryptoInvoiceStatus.complete
-            exception_status = "paid_over"
+        elif confirmations < threshold:
+            new_status = CryptoInvoiceStatus.unconfirmed
+            exception_status = "paid_late" if late else "none"
         else:
             new_status = CryptoInvoiceStatus.complete
-            exception_status = "none"
+            if late:
+                new_status, exception_status = await self._value_late_payment(
+                    invoice, pm, received
+                )
+            if new_status == CryptoInvoiceStatus.complete and overpaid:
+                exception_status = "paid_over"
 
         # Update payment method
         pm.confirmations = confirmations
-        # Only mark the address as used once the invoice is fully confirmed so
-        # that the polling loop keeps rechecking it until the threshold is met.
-        pm.is_used = new_status == CryptoInvoiceStatus.complete
-        tx_hashes = event.get("tx_hashes", [])
+        # Only mark the address as used once the invoice is fully settled so
+        # that the polling loop keeps rechecking it until then.
+        pm.is_used = new_status in (
+            CryptoInvoiceStatus.complete,
+            CryptoInvoiceStatus.needs_review,
+        )
+        tx_hashes = event.get("tx_hashes", []) or []
 
         # Update invoice
         invoice.status = new_status
         invoice.exception_status = exception_status
-        invoice.tx_hashes = tx_hashes
+        invoice.paid_crypto_amount = received
+        invoice.paid_crypto_currency = pm.currency
+        if tx_hashes:
+            merged = list(dict.fromkeys([*(invoice.tx_hashes or []), *tx_hashes]))
+            invoice.tx_hashes = merged
         if new_status == CryptoInvoiceStatus.complete:
-            invoice.paid_at = utc_now()
-            invoice.paid_crypto_amount = received
-            invoice.paid_crypto_currency = pm.currency
+            invoice.paid_at = now
 
+        session.add(pm)
+        session.add(invoice)
         await session.flush()
         log.info(
             "crypto.invoice.updated",
@@ -135,10 +218,58 @@ class CryptoPaymentProcessor:
             status=new_status,
             exception_status=exception_status,
             confirmations=confirmations,
+            received=str(received),
+            expected=str(expected),
+            late=late,
         )
 
         if new_status == CryptoInvoiceStatus.complete:
             await self._finalize_order(session, invoice, pm)
+        elif new_status == CryptoInvoiceStatus.needs_review:
+            log.warning(
+                "crypto.invoice.needs_review",
+                invoice_id=str(invoice.id),
+                checkout_id=str(invoice.order_id),
+                exception_status=exception_status,
+                received=str(received),
+                currency=pm.currency,
+            )
+
+    async def _value_late_payment(
+        self,
+        invoice: CryptoInvoice,
+        pm: CryptoPaymentMethod,
+        received: Decimal,
+    ) -> tuple[CryptoInvoiceStatus, str]:
+        """
+        A payment that arrived after the price lock is re-valued at today's
+        rate. Worth at least the order (minus tolerance) → accept as paid_late.
+        Otherwise → needs_review so a human can accept it or refund.
+        """
+        try:
+            from polar.integrations.crypto.exchange_rate import ExchangeRateService
+            from polar.redis import create_redis
+
+            rate_service = ExchangeRateService(create_redis("app"))
+            rate = await rate_service.get_rate(pm.currency, invoice.currency.lower())
+        except Exception as e:  # pragma: no cover - network failure path
+            log.warning(
+                "crypto.invoice.late_rate_unavailable",
+                invoice_id=str(invoice.id),
+                error=str(e),
+            )
+            return CryptoInvoiceStatus.needs_review, "paid_late_unpriced"
+
+        fiat_value = received * rate
+        if fiat_value >= invoice.price * (1 - _PAYMENT_TOLERANCE):
+            return CryptoInvoiceStatus.complete, "paid_late"
+        log.warning(
+            "crypto.invoice.late_payment_short",
+            invoice_id=str(invoice.id),
+            fiat_value=str(fiat_value),
+            price=str(invoice.price),
+        )
+        return CryptoInvoiceStatus.needs_review, "paid_late_short"
 
     async def _finalize_order(
         self,
@@ -150,6 +281,65 @@ class CryptoPaymentProcessor:
         from polar.order.service import order as order_service
 
         await order_service.confirm_order_from_crypto(session, invoice, pm)
+
+    async def poll_payment_method(
+        self,
+        session: AsyncSession,
+        invoice: CryptoInvoice,
+        pm: CryptoPaymentMethod,
+    ) -> bool:
+        """
+        Ask the daemon about one payment method and apply the result.
+        Returns True if a payment observation was processed.
+        """
+        status = await self._service.get_request_status(pm.currency, pm.lookup_field)
+        status_str = status.get("status_str") or status.get("status")
+        tx_hashes = status.get("tx_hashes", []) or []
+
+        if status_str in ("Paid", "Confirmed", "complete"):
+            # Daemons that don't report the received amount (Electrum) only
+            # flag "Paid" once at least the requested amount arrived, so the
+            # requested amount is a safe floor. Prefer the real balance when
+            # the daemon can tell us (catches overpayments).
+            amount = status.get("amount")
+            if amount is None:
+                amount = await self._service.get_address_received(
+                    pm.currency, pm.payment_address
+                )
+            if amount is None or Decimal(str(amount)) < pm.amount:
+                amount = float(pm.amount)
+            await self._process_payment(
+                session,
+                invoice,
+                pm,
+                {
+                    "amount": amount,
+                    "confirmations": status.get("confirmations", 1),
+                    "tx_hashes": tx_hashes,
+                },
+            )
+            return True
+
+        confirmations = int(status.get("confirmations", 0) or 0)
+
+        # Not "Paid" — but maybe *something* arrived (partial payment). Electrum
+        # only reports Paid for >= requested, so ask for the address balance.
+        received = await self._service.get_address_received(
+            pm.currency, pm.payment_address
+        )
+        if received is not None and received > 0:
+            await self._process_payment(
+                session,
+                invoice,
+                pm,
+                {
+                    "amount": received,
+                    "confirmations": confirmations,
+                    "tx_hashes": tx_hashes,
+                },
+            )
+            return True
+        return False
 
     async def _polling_loop(self) -> None:
         """
@@ -176,40 +366,20 @@ class CryptoPaymentProcessor:
             .where(
                 CryptoPaymentMethod.currency == currency,
                 CryptoPaymentMethod.is_used.is_(False),
-                # For pending invoices stop polling once they expire (no payment
-                # seen yet).  For unconfirmed invoices the customer already sent
-                # money so we must keep polling until confirmations are reached,
-                # regardless of the original invoice expiry.
-                or_(
-                    and_(
-                        CryptoInvoice.status == CryptoInvoiceStatus.pending,
-                        CryptoInvoice.expiry > utc_now(),
-                    ),
-                    CryptoInvoice.status == CryptoInvoiceStatus.unconfirmed,
-                ),
+                _watched_invoice_filter(),
             )
-            .options(selectinload(CryptoPaymentMethod.invoice))
+            .options(
+                selectinload(CryptoPaymentMethod.invoice).selectinload(
+                    CryptoInvoice.payment_methods
+                )
+            )
         )
         result = await session.execute(stmt)
         pms = result.scalars().all()
 
         for pm in pms:
             try:
-                status = await self._service.get_request_status(
-                    pm.currency, pm.lookup_field
-                )
-                status_str = status.get("status_str") or status.get("status")
-                if status_str in ("Paid", "Confirmed", "complete"):
-                    await self._process_payment(
-                        session,
-                        pm.invoice,
-                        pm,
-                        {
-                            "amount": status.get("amount", float(pm.amount)),
-                            "confirmations": status.get("confirmations", 1),
-                            "tx_hashes": status.get("tx_hashes", []),
-                        },
-                    )
+                await self.poll_payment_method(session, pm.invoice, pm)
             except Exception as e:
                 log.warning(
                     "crypto.processor.poll_payment_error",
@@ -220,6 +390,19 @@ class CryptoPaymentProcessor:
 
 
 # ─── Helpers ─────────────────────────────────────────────────────────────────
+
+
+def _is_watched(invoice: CryptoInvoice) -> bool:
+    if invoice.status not in WATCHED_STATUSES:
+        return False
+    if invoice.status in (
+        CryptoInvoiceStatus.expired,
+        CryptoInvoiceStatus.paid_partial,
+    ):
+        return (
+            invoice.monitoring_expiry is None or invoice.monitoring_expiry > utc_now()
+        )
+    return True
 
 
 async def _get_payment_method_by_lookup(

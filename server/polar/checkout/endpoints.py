@@ -305,6 +305,25 @@ async def client_crypto_status(
     return await checkout_service.get_crypto_invoice_status(session, checkout)
 
 
+@inner_router.post(
+    "/client/{client_secret}/crypto-invoice/renew",
+    summary="Renew Crypto Invoice",
+    include_in_schema=False,
+    tags=[APITag.private],
+)
+async def client_crypto_invoice_renew(
+    client_secret: CheckoutClientSecret,
+    session: AsyncSession = Depends(get_db_session),
+) -> dict:  # type: ignore[type-arg]
+    """
+    Replace an expired (or about-to-expire) unpaid crypto invoice with a fresh
+    one at the current exchange rate. Returns the same payload as
+    `crypto-status`.
+    """
+    checkout = await checkout_service.get_by_client_secret(session, client_secret)
+    return await checkout_service.renew_crypto_invoice(session, checkout)
+
+
 @inner_router.get("/client/{client_secret}/stream", include_in_schema=False)
 async def client_stream(
     request: Request,

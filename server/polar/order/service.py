@@ -495,10 +495,13 @@ class OrderService:
             )
             return
 
-        if invoice.exception_status == "paid_partial":
+        from polar.models.crypto_invoice import CryptoInvoiceStatus
+
+        if invoice.status != CryptoInvoiceStatus.complete:
             log.warning(
-                "crypto.order_confirm.underpaid",
+                "crypto.order_confirm.not_complete",
                 invoice_id=str(invoice.id),
+                status=invoice.status,
                 paid=str(invoice.paid_crypto_amount),
                 expected=str(payment_method.amount),
             )
@@ -517,11 +520,18 @@ class OrderService:
         try:
             await checkout_service.handle_success(session, checkout)
         except NotConfirmedCheckout:
+            # The checkout was already fulfilled — most likely a renewed
+            # invoice was paid *and* the old one received a late payment.
+            # Keep the money visible for a human instead of dropping it.
             log.warning(
                 "crypto.order_confirm.not_confirmed",
                 checkout_id=str(checkout.id),
                 status=checkout.status,
+                invoice_id=str(invoice.id),
             )
+            invoice.status = CryptoInvoiceStatus.needs_review
+            invoice.exception_status = "duplicate_payment"
+            session.add(invoice)
 
     async def create_from_checkout_subscription(
         self,

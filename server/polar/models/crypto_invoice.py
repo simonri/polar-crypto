@@ -20,9 +20,28 @@ if TYPE_CHECKING:
 class CryptoInvoiceStatus(StrEnum):
     pending = "pending"
     unconfirmed = "unconfirmed"  # on-chain, awaiting confirmations
+    # Money arrived but less than the invoiced amount (beyond tolerance).
+    # The customer can top up on the same address until monitoring_expiry.
+    paid_partial = "paid_partial"
     complete = "complete"
+    # Price lock passed without a payment being detected. Addresses are still
+    # watched until monitoring_expiry; a late payment moves it forward again.
     expired = "expired"
+    # Money arrived but a human must decide (e.g. late payment that is now
+    # worth less than the order, or a duplicate payment on a renewed invoice).
+    needs_review = "needs_review"
     invalid = "invalid"
+
+
+# Statuses in which the customer's funds have been seen on-chain.
+PAYMENT_DETECTED_STATUSES: frozenset[CryptoInvoiceStatus] = frozenset(
+    {
+        CryptoInvoiceStatus.unconfirmed,
+        CryptoInvoiceStatus.paid_partial,
+        CryptoInvoiceStatus.complete,
+        CryptoInvoiceStatus.needs_review,
+    }
+)
 
 
 class CryptoInvoice(RecordModel):
@@ -57,6 +76,15 @@ class CryptoInvoice(RecordModel):
 
     expiry: Mapped[datetime] = mapped_column(
         TIMESTAMP(timezone=True), nullable=False, index=True
+    )
+    # Until when we keep polling the addresses after `expiry` for late
+    # payments and partial-payment top-ups.
+    monitoring_expiry: Mapped[datetime | None] = mapped_column(
+        TIMESTAMP(timezone=True), nullable=True, default=None, index=True
+    )
+    # First time we saw any funds on one of the invoice's addresses.
+    payment_detected_at: Mapped[datetime | None] = mapped_column(
+        TIMESTAMP(timezone=True), nullable=True, default=None
     )
 
     paid_at: Mapped[datetime | None] = mapped_column(

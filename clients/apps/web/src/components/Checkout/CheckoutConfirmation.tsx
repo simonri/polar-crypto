@@ -14,7 +14,7 @@ import ShadowBox from '@polar-sh/ui/components/atoms/ShadowBox'
 import { useRouter } from 'next/navigation'
 import { useCallback, useEffect, useMemo, useState } from 'react'
 import LogoType from '../Brand/logos/LogoType'
-import { CryptoCheckoutStatus } from './CryptoCheckout'
+import { CryptoPaymentPanel, parseAcceptedCurrencies } from './CryptoCheckout'
 
 export interface CheckoutConfirmationProps {
   checkout: schemas['CheckoutPublic']
@@ -101,6 +101,7 @@ export const CheckoutConfirmation = ({
           <h1 className="text-2xl font-medium">
             {status === 'succeeded' && t('checkout.confirmation.successTitle')}
             {status === 'failed' && t('checkout.confirmation.failedTitle')}
+            {status === 'confirmed' && t('checkout.crypto.paymentTitle')}
           </h1>
           <p className="dark:text-polar-500 text-gray-500">
             {status === 'succeeded' &&
@@ -110,14 +111,19 @@ export const CheckoutConfirmation = ({
               })}
             {status === 'failed' &&
               t('checkout.confirmation.failedDescription')}
+            {status === 'confirmed' &&
+              hasProductCheckout(checkout) &&
+              `${checkout.organization.name} · ${checkout.product.name}`}
           </p>
           {status === 'confirmed' && (
-            <div className="w-full">
-              <CryptoCheckoutStatus
+            <div className="w-full text-left">
+              <CryptoPaymentPanel
                 clientSecret={checkout.client_secret}
-                selectedCurrency="BTC"
+                acceptedCurrencies={parseAcceptedCurrencies(
+                  checkout.payment_processor_metadata?.accepted_currencies,
+                )}
+                locale={locale}
                 onConfirmed={updateCheckout}
-                onExpired={() => {}}
               />
             </div>
           )}

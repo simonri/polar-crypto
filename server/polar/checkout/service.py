@@ -2,6 +2,7 @@ import contextlib
 import typing
 import uuid
 from collections.abc import AsyncIterator, Sequence
+from decimal import Decimal
 
 import structlog
 from pydantic import UUID4
@@ -54,6 +55,7 @@ from polar.member.service import member_service
 from polar.models import (
     Checkout,
     CheckoutLink,
+    CryptoInvoice,
     Customer,
     Discount,
     Order,
@@ -146,6 +148,23 @@ class NotOpenCheckout(CheckoutError):
         self.status = checkout.status
         message = f"Checkout {checkout.id} is not open: {checkout.status}"
         super().__init__(message, 403)
+
+
+class CryptoInvoiceNotRenewable(CheckoutError):
+    def __init__(self, checkout: Checkout, reason: str) -> None:
+        self.checkout = checkout
+        self.reason = reason
+        messages = {
+            "payment_detected": (
+                "A payment has already been detected for this checkout."
+            ),
+            "not_confirmed": (
+                f"Checkout is {checkout.status}; only a confirmed checkout "
+                "can get a fresh amount."
+            ),
+        }
+        message = messages.get(reason, "This checkout has no crypto invoice to renew.")
+        super().__init__(message, 409)
 
 
 class NotConfirmedCheckout(CheckoutError):
@@ -865,45 +884,128 @@ class CheckoutService:
         checkout: Checkout,
     ) -> None:
         """
-        Create a Bitcart crypto invoice for this checkout.
+        Create a crypto invoice for this checkout.
         The invoice addresses are stored in payment_processor_metadata;
         the frontend polls get_crypto_invoice_status() until payment confirms.
         """
         from polar.integrations.crypto.exchange_rate import ExchangeRateService
-        from polar.integrations.crypto.invoice_service import crypto_invoice_service
+        from polar.integrations.crypto.invoice_service import (
+            NoPaymentMethodAvailableError,
+            crypto_invoice_service,
+        )
         from polar.redis import create_redis
 
         redis = create_redis("app")
         rate_service = ExchangeRateService(redis)
 
-        accepted = [
+        try:
+            invoice = await crypto_invoice_service.create_invoice(
+                session,
+                order_id=checkout.id,  # use checkout.id as order_id placeholder
+                amount_cents=checkout.total_amount,
+                fiat_currency=checkout.currency,
+                buyer_email=checkout.customer_email,
+                accepted_currencies=self._crypto_accepted_currencies(),
+                expiry_minutes=settings.CRYPTO_INVOICE_EXPIRY_MINUTES,
+                exchange_rate_service=rate_service,
+            )
+        except NoPaymentMethodAvailableError as e:
+            # Fail loudly so the checkout stays open and the customer can
+            # retry, instead of confirming into an invoice nobody can pay.
+            raise PaymentError(
+                checkout,
+                "crypto_unavailable",
+                "Crypto payments are temporarily unavailable. "
+                "Please try again in a moment.",
+            ) from e
+
+        self._attach_crypto_invoice(checkout, invoice)
+        log.info(
+            "checkout.crypto.invoice_created",
+            checkout_id=str(checkout.id),
+            invoice_id=str(invoice.id),
+        )
+
+    def _crypto_accepted_currencies(self) -> Sequence[str]:
+        return [
             c.strip().lower()
             for c in settings.CRYPTO_CURRENCIES.split(",")
             if c.strip()
         ]
 
-        invoice = await crypto_invoice_service.create_invoice(
-            session,
-            order_id=checkout.id,  # use checkout.id as order_id placeholder
-            amount_cents=checkout.total_amount,
-            fiat_currency=checkout.currency,
-            buyer_email=checkout.customer_email,
-            accepted_currencies=accepted,
-            expiry_minutes=settings.CRYPTO_INVOICE_EXPIRY_MINUTES,
-            exchange_rate_service=rate_service,
-        )
-
+    def _attach_crypto_invoice(
+        self, checkout: Checkout, invoice: CryptoInvoice
+    ) -> None:
         checkout.crypto_invoice_id = invoice.id
         checkout.payment_processor_metadata = {
             **checkout.payment_processor_metadata,
             "crypto_invoice_id": str(invoice.id),
             "invoice_expiry": invoice.expiry.isoformat(),
         }
+
+    async def renew_crypto_invoice(
+        self,
+        session: AsyncSession,
+        checkout: Checkout,
+    ) -> dict:  # type: ignore[type-arg]
+        """
+        Give the customer a fresh amount after the price lock expired.
+
+        Only allowed while the checkout is confirmed-but-unpaid and no funds
+        have been detected on the current invoice. The old invoice keeps its
+        monitoring window so a late payment on its addresses still counts.
+        """
+        from polar.integrations.crypto.exchange_rate import ExchangeRateService
+        from polar.integrations.crypto.invoice_service import (
+            InvoiceNotRenewableError,
+            NoPaymentMethodAvailableError,
+            crypto_invoice_service,
+        )
+        from polar.models.crypto_invoice import PAYMENT_DETECTED_STATUSES
+        from polar.redis import create_redis
+
+        if checkout.status != CheckoutStatus.confirmed:
+            raise CryptoInvoiceNotRenewable(checkout, "not_confirmed")
+        if checkout.crypto_invoice_id is None:
+            raise CryptoInvoiceNotRenewable(checkout, "no_invoice")
+
+        # If *any* invoice for this checkout already saw money, refuse: the
+        # customer must be shown that state, not a fresh amount.
+        relevant = await crypto_invoice_service.get_relevant_invoice(
+            session, checkout.id, checkout.crypto_invoice_id
+        )
+        if relevant is None:
+            raise CryptoInvoiceNotRenewable(checkout, "no_invoice")
+        if relevant.status in PAYMENT_DETECTED_STATUSES:
+            raise CryptoInvoiceNotRenewable(checkout, "payment_detected")
+
+        rate_service = ExchangeRateService(create_redis("app"))
+        try:
+            invoice = await crypto_invoice_service.renew_invoice(
+                session,
+                relevant,
+                accepted_currencies=self._crypto_accepted_currencies(),
+                expiry_minutes=settings.CRYPTO_INVOICE_EXPIRY_MINUTES,
+                exchange_rate_service=rate_service,
+            )
+        except InvoiceNotRenewableError as e:
+            raise CryptoInvoiceNotRenewable(checkout, "payment_detected") from e
+        except NoPaymentMethodAvailableError as e:
+            raise PaymentError(
+                checkout,
+                "crypto_unavailable",
+                "Crypto payments are temporarily unavailable. "
+                "Please try again in a moment.",
+            ) from e
+
+        self._attach_crypto_invoice(checkout, invoice)
+        session.add(checkout)
         log.info(
-            "checkout.crypto.invoice_created",
+            "checkout.crypto.invoice_renewed",
             checkout_id=str(checkout.id),
             invoice_id=str(invoice.id),
         )
+        return await self.get_crypto_invoice_status(session, checkout)
 
     async def get_crypto_invoice_status(
         self,
@@ -911,31 +1013,87 @@ class CheckoutService:
         checkout: Checkout,
     ) -> dict:  # type: ignore[type-arg]
         """
-        Return the current state of the Bitcart invoice for this checkout.
+        Return the current state of the crypto invoice for this checkout.
         Used by the frontend to poll payment status.
+
+        The payload is designed so the UI never has to guess: it carries the
+        fiat amount and locked rate, confirmations vs. the required threshold,
+        the amount received so far and what is still missing, transaction
+        hashes, and both the price-lock and monitoring expiries.
         """
-        from polar.integrations.crypto.invoice_service import crypto_invoice_service
+        from polar.integrations.crypto.invoice_service import (
+            build_payment_url,
+            crypto_invoice_service,
+            format_crypto_amount,
+        )
+        from polar.integrations.crypto.service import CONFIRMATION_THRESHOLDS
+        from polar.models.crypto_invoice import CryptoInvoiceStatus
 
         if checkout.crypto_invoice_id is None:
             return {"status": "no_invoice"}
 
-        invoice = await crypto_invoice_service.get_invoice_with_methods(
-            session, checkout.crypto_invoice_id
+        invoice = await crypto_invoice_service.get_relevant_invoice(
+            session, checkout.id, checkout.crypto_invoice_id
         )
         if invoice is None:
             return {"status": "not_found"}
 
-        from polar.integrations.crypto.invoice_service import build_payment_url
+        # Surface the checkout's own terminal state so a paid checkout whose
+        # invoice bookkeeping lags is never reported as still pending.
+        status: str = invoice.status
+        if checkout.status == CheckoutStatus.succeeded:
+            status = CryptoInvoiceStatus.complete
+
+        received = invoice.paid_crypto_amount
+        received_currency = invoice.paid_crypto_currency
+        paid_method = next(
+            (
+                pm
+                for pm in invoice.payment_methods
+                if received_currency and pm.currency == received_currency
+            ),
+            None,
+        )
+        remaining: Decimal | None = None
+        if (
+            paid_method is not None
+            and received is not None
+            and invoice.status == CryptoInvoiceStatus.paid_partial
+        ):
+            remaining = max(Decimal(0), paid_method.amount - received)
 
         return {
-            "status": invoice.status,
+            "status": status,
             "exception_status": invoice.exception_status,
+            "created_at": invoice.created_at.isoformat(),
             "expiry": invoice.expiry.isoformat(),
+            "monitoring_expiry": (
+                invoice.monitoring_expiry.isoformat()
+                if invoice.monitoring_expiry
+                else None
+            ),
             "paid_at": invoice.paid_at.isoformat() if invoice.paid_at else None,
+            "payment_detected_at": (
+                invoice.payment_detected_at.isoformat()
+                if invoice.payment_detected_at
+                else None
+            ),
+            "fiat_amount": format_crypto_amount(invoice.price),
+            "fiat_currency": invoice.currency,
+            "received_amount": (
+                format_crypto_amount(received) if received is not None else None
+            ),
+            "received_currency": received_currency,
+            "remaining_amount": (
+                format_crypto_amount(remaining) if remaining is not None else None
+            ),
+            "tx_hashes": list(invoice.tx_hashes or []),
+            "customer_email": checkout.customer_email,
             "payment_methods": [
                 {
                     "currency": pm.currency,
-                    "amount": str(pm.amount),
+                    "amount": format_crypto_amount(pm.amount),
+                    "rate": format_crypto_amount(pm.rate),
                     "payment_address": pm.payment_address,
                     # Rebuild URL from components so amount formatting is always
                     # clean (no trailing zeros), even for invoices created before
@@ -945,6 +1103,9 @@ class CheckoutService:
                     ),
                     "lightning": pm.lightning,
                     "confirmations": pm.confirmations,
+                    "required_confirmations": CONFIRMATION_THRESHOLDS.get(
+                        pm.currency, 1
+                    ),
                 }
                 for pm in invoice.payment_methods
             ],

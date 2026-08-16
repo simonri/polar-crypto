@@ -283,6 +283,67 @@ export default {
         activationDeactivationFailed: 'Activation Deactivation Failed',
       },
     },
+    crypto: {
+      payWith: 'Pay with',
+      selectToken: 'Select a currency',
+      unavailable: 'temporarily unavailable',
+      recommended: 'Recommended',
+      loading: 'Preparing your payment details…',
+      loadFailed: 'We could not load your payment details.',
+      noMethods:
+        'Crypto payments are temporarily unavailable. Nothing has been charged.',
+      tryAgain: 'Try again',
+      sendExactly: 'Send exactly',
+      approxFiat: '≈ {amount}',
+      networkOnly: '{network} network only',
+      toAddress: 'To this address',
+      copyAddress: 'Copy address',
+      copyAmount: 'Copy amount',
+      copied: 'Copied',
+      openInWallet: 'Open in wallet app',
+      waiting: 'Waiting for your payment…',
+      lockedFor: 'Amount locked for {time}',
+      whyTimer:
+        'Crypto prices move, so we lock the amount for a short time. If it runs out you can get a fresh amount — nothing is charged.',
+      closeHint:
+        'We confirm automatically. Once you have sent the payment you can close this page — we will email {email}.',
+      detectedTitle: 'Payment detected',
+      detectedBody:
+        'We saw {amount} {currency} arrive. Waiting for the network to confirm it.',
+      confirmations: '{count} of {required} confirmations',
+      viewTx: 'View transaction',
+      detectedCloseHint:
+        'Safe to close this page — we will email {email} when it is confirmed. No need to send anything else.',
+      partialTitle: 'Almost there',
+      partialBody:
+        'We received {received} of {expected} {currency} — most likely your wallet or exchange took a fee from the amount.',
+      sendRemaining: 'Send the remaining',
+      sameAddress: 'To the same address as before.',
+      partialHelp:
+        'Can’t send more? Reply to the email we sent to {email} and we will sort it out — your funds are safe.',
+      reviewTitle: 'Payment received — under review',
+      reviewBody:
+        'We received {amount} {currency}, but it needs a quick check before your order completes ({reason}). You will get an email at {email} — usually within a day.',
+      reviewReasonLate:
+        'it arrived after the price lock ended and prices have moved',
+      reviewReasonDuplicate:
+        'it looks like a second payment for the same order',
+      reviewReasonGeneric: 'it could not be matched automatically',
+      completeTitle: 'Payment confirmed',
+      completeBody: 'Finishing your order…',
+      overpaidNote:
+        'You sent {amount} {currency} more than needed. The seller has been notified so the difference can be refunded — reply to your receipt email if you don’t hear back.',
+      expiredTitle: 'Price lock expired',
+      expiredBody:
+        'Crypto prices move, so the amount was locked for a limited time. Nothing was charged.',
+      renew: 'Get a fresh amount',
+      renewing: 'Getting a fresh amount…',
+      renewFailed: 'We could not get a fresh amount. Please try again.',
+      alreadySent:
+        'Already sent it? Keep this page open — payments that arrive late are still matched to your order.',
+      previousAmount: 'Previous amount (do not use)',
+      paymentTitle: 'Complete your payment',
+    },
     confirmation: {
       confirmPayment: 'Confirm payment',
       processingTitle: 'We are processing your order',

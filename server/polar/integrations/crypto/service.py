@@ -225,6 +225,43 @@ class CryptoService:
 
         return result
 
+    async def get_address_received(self, currency: str, address: str) -> Decimal | None:
+        """
+        Total amount (confirmed + unconfirmed) ever received on an address.
+
+        Used to detect *partial* payments: Electrum only reports a request as
+        "Paid" once at least the requested amount arrived, so a short payment
+        is invisible through get_request_status alone. Returns None when the
+        daemon can't answer (Solana adapter, daemon offline, unknown command).
+        """
+        coin = self._coin(currency)
+        getter = getattr(coin, "get_address_received", None)
+        if getter is not None:
+            try:
+                value = await getter(address)
+                return None if value is None else Decimal(str(value))
+            except Exception:
+                return None
+        try:
+            result = await coin.server.getaddressbalance(address, xpub=coin.xpub)
+        except Exception:
+            try:
+                result = await coin.server.getaddressbalance(address)
+            except Exception:
+                return None
+        if not isinstance(result, dict):
+            return None
+        total = Decimal(0)
+        for key in ("confirmed", "unconfirmed"):
+            raw = result.get(key)
+            if raw is None:
+                continue
+            try:
+                total += Decimal(str(raw))
+            except Exception:
+                return None
+        return total
+
     async def broadcast_transaction(
         self,
         currency: str,

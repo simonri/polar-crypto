@@ -217,8 +217,15 @@ class Settings(BaseSettings):
     # Comma-separated list of currencies enabled for payments
     CRYPTO_CURRENCIES: str = "btc,ltc"
 
-    # Invoice expiry in minutes (displayed countdown on checkout)
+    # Invoice expiry in minutes (displayed countdown on checkout).
+    # This is the *price lock*: after it passes the customer must request a
+    # fresh amount. Payments are still watched for and matched afterwards
+    # during the monitoring window below.
     CRYPTO_INVOICE_EXPIRY_MINUTES: int = 60
+
+    # How long (hours) after the price lock we keep watching an invoice's
+    # addresses for late payments and partial-payment top-ups.
+    CRYPTO_MONITORING_WINDOW_HOURS: int = 24
 
     def get_crypto_daemon_configs(self) -> dict[str, tuple[str, str | None]]:
         """Return {currency: (daemon_url, xpub)} for every enabled currency."""

@@ -26,7 +26,12 @@ import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { CheckoutDiscountInput } from './CheckoutDiscountInput'
 import { CheckoutProductDescription } from './CheckoutProductDescription'
 import { twMerge } from 'tailwind-merge'
-import { CryptoCheckoutStatus, CryptoCurrencySelector } from './CryptoCheckout'
+import {
+  CryptoCurrencySelector,
+  CryptoPaymentPanel,
+  parseAcceptedCurrencies,
+  readPersistedCurrency,
+} from './CryptoCheckout'
 
 const PaymentNotReadyBanner = ({
   organizationStatus,
@@ -172,7 +177,23 @@ const Checkout = ({
   const [cryptoPendingCheckout, setCryptoPendingCheckout] = useState<
     schemas['CheckoutPublicConfirmed'] | null
   >(null)
-  const [selectedCurrency, setSelectedCurrency] = useState('BTC')
+  // Currencies the server will actually create addresses for. Never hard-code
+  // this list client-side: an unavailable pick renders an empty payment pane.
+  const acceptedCurrencies = useMemo(
+    () =>
+      parseAcceptedCurrencies(
+        checkout.payment_processor_metadata?.accepted_currencies,
+      ),
+    [checkout.payment_processor_metadata?.accepted_currencies],
+  )
+  const [selectedCurrency, setSelectedCurrency] = useState<string>(() => {
+    const persisted =
+      typeof window !== 'undefined'
+        ? readPersistedCurrency(checkout.client_secret)
+        : null
+    if (persisted && acceptedCurrencies.includes(persisted)) return persisted
+    return acceptedCurrencies[0] ?? 'BTC'
+  })
   const loading = useMemo(
     () => confirmLoading || fullLoading,
     [confirmLoading, fullLoading],
@@ -250,23 +271,15 @@ const Checkout = ({
     setCryptoPendingCheckout(null)
   }, [cryptoPendingCheckout, checkoutConfirmedRedirect])
 
-  const onCryptoExpired = useCallback(() => {
-    setCryptoPendingCheckout(null)
-  }, [])
-
   const cryptoPaymentView = cryptoPendingCheckout ? (
-    <div className="flex flex-col gap-y-6">
-      <CryptoCurrencySelector
-        value={selectedCurrency}
-        onValueChange={setSelectedCurrency}
-      />
-      <CryptoCheckoutStatus
-        clientSecret={cryptoPendingCheckout.client_secret}
-        selectedCurrency={selectedCurrency}
-        onConfirmed={onCryptoConfirmed}
-        onExpired={onCryptoExpired}
-      />
-    </div>
+    <CryptoPaymentPanel
+      clientSecret={cryptoPendingCheckout.client_secret}
+      acceptedCurrencies={acceptedCurrencies}
+      initialCurrency={selectedCurrency}
+      locale={locale}
+      onConfirmed={onCryptoConfirmed}
+      onCurrencyChange={setSelectedCurrency}
+    />
   ) : null
 
   if (embed) {
@@ -322,12 +335,15 @@ const Checkout = ({
                       />
                     </>
                   )}
-                {checkout.payment_processor === 'crypto' && (
-                  <CryptoCurrencySelector
-                    value={selectedCurrency}
-                    onValueChange={setSelectedCurrency}
-                  />
-                )}
+                {checkout.payment_processor === 'crypto' &&
+                  acceptedCurrencies.length > 1 && (
+                    <CryptoCurrencySelector
+                      value={selectedCurrency}
+                      onValueChange={setSelectedCurrency}
+                      currencies={acceptedCurrencies}
+                      locale={locale}
+                    />
+                  )}
               </div>
             }
             afterSubmit={
@@ -375,7 +391,8 @@ const Checkout = ({
                     <CheckoutHeroPrice checkout={checkout} locale={locale} />
                   </span>
                 </div>
-                {checkout.product_price.amount_type === 'custom' &&
+                {!cryptoPendingCheckout &&
+                  checkout.product_price.amount_type === 'custom' &&
                   !checkout.amount && (
                     <CheckoutPWYWForm
                       checkout={checkout}
@@ -392,12 +409,15 @@ const Checkout = ({
                       checkout={checkout}
                       locale={locale}
                     />
-                    <CheckoutDiscountInput
-                      checkout={checkout}
-                      update={update}
-                      locale={locale}
-                      collapsible
-                    />
+                    {/* The order is locked once confirmed; editing would 403. */}
+                    {!cryptoPendingCheckout && (
+                      <CheckoutDiscountInput
+                        checkout={checkout}
+                        update={update}
+                        locale={locale}
+                        collapsible
+                      />
+                    )}
                   </div>
                 )}
                 {checkout.product.description && (
@@ -436,10 +456,13 @@ const Checkout = ({
               isUpdatePending={isUpdatePending}
               locale={locale}
               beforeSubmit={
-                checkout.payment_processor === 'crypto' ? (
+                checkout.payment_processor === 'crypto' &&
+                acceptedCurrencies.length > 1 ? (
                   <CryptoCurrencySelector
                     value={selectedCurrency}
                     onValueChange={setSelectedCurrency}
+                    currencies={acceptedCurrencies}
+                    locale={locale}
                   />
                 ) : undefined
               }
