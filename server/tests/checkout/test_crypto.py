@@ -228,6 +228,45 @@ class TestRenewCryptoInvoice:
 
 
 @pytest.mark.asyncio
+class TestPaymentInstructionsEmail:
+    async def test_sent_on_confirm(
+        self,
+        mocker: MockerFixture,
+        session: AsyncSession,
+        auth_subject: AuthSubject[Anonymous],
+        save_fixture: SaveFixture,
+        product_one_time: Product,
+    ) -> None:
+        enqueue_mock = mocker.patch("polar.email.sender.enqueue_email_template")
+        checkout = await create_checkout(save_fixture, products=[product_one_time])
+        await _confirm(session, auth_subject, checkout)
+
+        enqueue_mock.assert_called_once()
+        email = enqueue_mock.call_args[0][0]
+        assert email.template == "crypto_payment_instructions"
+        assert email.props.url == checkout.url
+        assert enqueue_mock.call_args.kwargs["to_email_addr"] == (
+            "customer@example.com"
+        )
+
+    async def test_confirm_survives_email_failure(
+        self,
+        mocker: MockerFixture,
+        session: AsyncSession,
+        auth_subject: AuthSubject[Anonymous],
+        save_fixture: SaveFixture,
+        product_one_time: Product,
+    ) -> None:
+        mocker.patch(
+            "polar.email.sender.enqueue_email_template",
+            side_effect=RuntimeError("boom"),
+        )
+        checkout = await create_checkout(save_fixture, products=[product_one_time])
+        confirmed = await _confirm(session, auth_subject, checkout)
+        assert confirmed.status == CheckoutStatus.confirmed
+
+
+@pytest.mark.asyncio
 class TestRenewEndpoint:
     async def test_not_found(self, client: AsyncClient) -> None:
         response = await client.post("/v1/checkouts/client/nope/crypto-invoice/renew")

@@ -7,6 +7,7 @@ from polar.models.checkout import CheckoutStatus
 
 class CheckoutEvent(StrEnum):
     updated = "checkout.updated"
+    crypto_invoice_updated = "checkout.crypto_invoice.updated"
     order_created = "checkout.order_created"
     subscription_created = "checkout.subscription_created"
     webhook_event_delivered = "checkout.webhook_event_delivered"
@@ -14,6 +15,10 @@ class CheckoutEvent(StrEnum):
 
 class CheckoutEventUpdatedPayload(TypedDict):
     status: CheckoutStatus
+
+
+class CheckoutEventCryptoInvoiceUpdatedPayload(TypedDict):
+    status: str
 
 
 class CheckoutEventWebhookEventDeliveredPayload(TypedDict):
@@ -25,6 +30,14 @@ async def publish_checkout_event(
     client_secret: str,
     event: Literal[CheckoutEvent.updated],
     payload: CheckoutEventUpdatedPayload,
+) -> None: ...
+
+
+@overload
+async def publish_checkout_event(
+    client_secret: str,
+    event: Literal[CheckoutEvent.crypto_invoice_updated],
+    payload: CheckoutEventCryptoInvoiceUpdatedPayload,
 ) -> None: ...
 
 
@@ -54,6 +67,7 @@ async def publish_checkout_event(
     client_secret: str,
     event: CheckoutEvent,
     payload: CheckoutEventUpdatedPayload
+    | CheckoutEventCryptoInvoiceUpdatedPayload
     | CheckoutEventWebhookEventDeliveredPayload
     | None = None,
 ) -> None:

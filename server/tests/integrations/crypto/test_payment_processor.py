@@ -448,6 +448,113 @@ class TestPollPaymentMethod:
 
 
 @pytest.mark.asyncio
+class TestSSEPublish:
+    async def test_invoice_update_published_to_checkout_channel(
+        self,
+        session: AsyncSession,
+        save_fixture: SaveFixture,
+        product_one_time: Product,
+        processor: CryptoPaymentProcessor,
+        finalize_mock: AsyncMock,
+        mocker: MockerFixture,
+    ) -> None:
+        publish_mock = mocker.patch(
+            "polar.checkout.eventstream.publish_checkout_event",
+            new_callable=AsyncMock,
+        )
+        checkout = await create_checkout(
+            save_fixture, products=[product_one_time], status=CheckoutStatus.confirmed
+        )
+        invoice, pm = await _make_invoice(save_fixture, checkout)
+
+        await processor._process_payment(
+            session, invoice, pm, {"amount": "0.001", "confirmations": 0}
+        )
+
+        publish_mock.assert_awaited_once()
+        args = publish_mock.await_args.args
+        assert args[0] == checkout.client_secret
+        assert args[2] == {"status": "unconfirmed"}
+
+    async def test_publish_failure_never_breaks_payment(
+        self,
+        session: AsyncSession,
+        save_fixture: SaveFixture,
+        product_one_time: Product,
+        processor: CryptoPaymentProcessor,
+        finalize_mock: AsyncMock,
+        mocker: MockerFixture,
+    ) -> None:
+        mocker.patch(
+            "polar.checkout.eventstream.publish_checkout_event",
+            side_effect=RuntimeError("no job queue context"),
+        )
+        checkout = await create_checkout(
+            save_fixture, products=[product_one_time], status=CheckoutStatus.confirmed
+        )
+        invoice, pm = await _make_invoice(save_fixture, checkout)
+        await processor._process_payment(
+            session, invoice, pm, {"amount": "0.001", "confirmations": 1}
+        )
+        assert _status(invoice) == CryptoInvoiceStatus.complete
+
+
+@pytest.mark.asyncio
+class TestLightning:
+    async def test_lightning_method_polled_and_completes(
+        self,
+        session: AsyncSession,
+        save_fixture: SaveFixture,
+        product_one_time: Product,
+        processor: CryptoPaymentProcessor,
+        finalize_mock: AsyncMock,
+        mocker: MockerFixture,
+    ) -> None:
+        checkout = await create_checkout(
+            save_fixture, products=[product_one_time], status=CheckoutStatus.confirmed
+        )
+        invoice, pm = await _make_invoice(save_fixture, checkout)
+        pm.lightning = True
+        pm.payment_address = "lnbc1..."
+        pm.lookup_field = "rhash123"
+        await save_fixture(pm)
+
+        mocker.patch.object(
+            processor._service,
+            "get_lightning_invoice_status",
+            AsyncMock(return_value={"status": "Paid"}),
+        )
+
+        processed = await processor.poll_payment_method(session, invoice, pm)
+        assert processed is True
+        # Lightning settles atomically at the confirmation threshold
+        assert _status(invoice) == CryptoInvoiceStatus.complete
+        finalize_mock.assert_awaited_once()
+
+    async def test_unpaid_lightning_returns_false(
+        self,
+        session: AsyncSession,
+        save_fixture: SaveFixture,
+        product_one_time: Product,
+        processor: CryptoPaymentProcessor,
+        mocker: MockerFixture,
+    ) -> None:
+        checkout = await create_checkout(
+            save_fixture, products=[product_one_time], status=CheckoutStatus.confirmed
+        )
+        invoice, pm = await _make_invoice(save_fixture, checkout)
+        pm.lightning = True
+        await save_fixture(pm)
+        mocker.patch.object(
+            processor._service,
+            "get_lightning_invoice_status",
+            AsyncMock(return_value={"status": "Pending"}),
+        )
+        assert await processor.poll_payment_method(session, invoice, pm) is False
+        assert _status(invoice) == CryptoInvoiceStatus.pending
+
+
+@pytest.mark.asyncio
 class TestExpireStaleInvoices:
     async def test_only_pending_past_expiry(
         self,

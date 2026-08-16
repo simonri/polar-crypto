@@ -177,10 +177,44 @@ describe('CryptoPaymentPanel', () => {
       BTC_METHOD.payment_address,
     )
     // …and the unavailable option is disabled, not hidden.
-    const usdc = screen
-      .getAllByRole('option')
-      .find((o) => o.getAttribute('data-value') === 'SOL_USDC')
-    expect(usdc?.getAttribute('aria-disabled')).toBe('true')
+    const usdc = screen.getByTestId('crypto-option-SOL_USDC')
+    expect(usdc.getAttribute('aria-disabled')).toBe('true')
+    expect(screen.getByText('temporarily unavailable')).toBeTruthy()
+  })
+
+  it('shows option cards with ETA, fee and network guidance', async () => {
+    stubFetch(PENDING)
+    renderPanel()
+    await screen.findByTestId('crypto-pending')
+    const usdc = screen.getByTestId('crypto-option-SOL_USDC')
+    expect(usdc.textContent).toContain('Recommended')
+    expect(usdc.textContent).toContain('Price stable')
+    expect(usdc.textContent).toContain('≈ seconds')
+    const btc = screen.getByTestId('crypto-option-BTC')
+    expect(btc.textContent).toContain('≈ 10–60 min')
+    // Cards are the selector: clicking switches the shown address
+    fireEvent.click(usdc)
+    expect(screen.getByTestId('crypto-address').textContent).toBe(
+      USDC_METHOD.payment_address,
+    )
+  })
+
+  it('explains how to pay and shows fee, rate and network guidance', async () => {
+    stubFetch(PENDING)
+    renderPanel({ initialCurrency: 'SOL_USDC' })
+    await screen.findByTestId('crypto-pending')
+    // three-step how-to
+    expect(screen.getByText(/1 · Open your wallet app/)).toBeTruthy()
+    expect(screen.getByText(/3 · Send the exact amount/)).toBeTruthy()
+    expect(screen.getByText('Don’t have a wallet?')).toBeTruthy()
+    // fee helper under the amount
+    expect(screen.getByText(/fee paid separately/)).toBeTruthy()
+    // wrong-network warning for USDC
+    expect(screen.getByText(/cannot be recovered/)).toBeTruthy()
+    // locked rate (USDC rate = 1 → $1.00)
+    expect(screen.getByTestId('crypto-rate').textContent).toContain(
+      '1 SOL_USDC = $1',
+    )
   })
 
   it('shows an error with retry when the status endpoint keeps failing', async () => {
@@ -330,6 +364,36 @@ describe('CryptoPaymentPanel', () => {
     expect(screen.getByTestId('crypto-address').textContent).toBe(
       USDC_METHOD.payment_address,
     )
+  })
+
+  it('refetches instantly when an SSE invoice event arrives', async () => {
+    const listeners: Record<string, () => void> = {}
+    const events = {
+      on: (k: string, fn: () => void) => {
+        listeners[k] = fn
+      },
+      off: (k: string) => {
+        delete listeners[k]
+      },
+    }
+    const fetchMock = stubFetch(PENDING)
+    renderPanel({ events, pollInterval: 100_000 })
+    await screen.findByTestId('crypto-pending')
+    const callsBefore = fetchMock.mock.calls.length
+
+    fetchMock.mockResolvedValue({
+      ok: true,
+      status: 200,
+      json: async () => ({
+        ...PENDING,
+        status: 'unconfirmed',
+        received_amount: '0.00123456',
+        received_currency: 'btc',
+      }),
+    } as Response)
+    listeners['checkout.crypto_invoice.updated']?.()
+    await screen.findByTestId('crypto-detected')
+    expect(fetchMock.mock.calls.length).toBeGreaterThan(callsBefore)
   })
 
   it('polls the crypto-status endpoint with the client secret', async () => {

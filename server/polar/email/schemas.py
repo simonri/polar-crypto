@@ -13,6 +13,7 @@ from polar.subscription.schemas import SubscriptionBase
 
 class EmailTemplate(StrEnum):
     login_code = "login_code"
+    crypto_payment_instructions = "crypto_payment_instructions"
     customer_email_changed_notification = "customer_email_changed_notification"
     customer_email_update_verification = "customer_email_update_verification"
     customer_session_code = "customer_session_code"
@@ -47,9 +48,19 @@ class SubscriptionEmail(SubscriptionBase): ...
 class ProductEmail(ProductBase): ...
 
 
+class CryptoPaymentEmail(BaseModel):
+    """What the customer actually sent on-chain, for the receipt."""
+
+    amount: str
+    currency: str
+    tx_hash: str | None = None
+    explorer_url: str | None = None
+
+
 class OrderEmail(OrderBase):
     description: str
     items: list[OrderItemSchema]
+    crypto_payment: CryptoPaymentEmail | None = None
 
 
 class EmailProps(BaseModel):
@@ -142,6 +153,21 @@ class OAuth2LeakedTokenEmail(BaseModel):
         EmailTemplate.oauth2_leaked_token
     )
     props: OAuth2LeakedTokenProps
+
+
+class CryptoPaymentInstructionsProps(EmailProps):
+    organization: Organization
+    product_name: str
+    amount_display: str
+    url: str
+    expiry_minutes: int
+
+
+class CryptoPaymentInstructionsEmail(BaseModel):
+    template: Literal[EmailTemplate.crypto_payment_instructions] = (
+        EmailTemplate.crypto_payment_instructions
+    )
+    props: CryptoPaymentInstructionsProps
 
 
 class OrderConfirmationProps(EmailProps):
@@ -383,6 +409,7 @@ class OrganizationAccountUnlinkEmail(BaseModel):
 
 Email = Annotated[
     LoginCodeEmail
+    | CryptoPaymentInstructionsEmail
     | CustomerEmailChangedNotificationEmail
     | CustomerEmailUpdateVerificationEmail
     | CustomerSessionCodeEmail

@@ -4,7 +4,6 @@ import type { TranslateFn } from '@polar-sh/i18n'
 import { Text } from '@polar-sh/orbit'
 import { Box } from '@polar-sh/orbit/Box'
 import { Timer } from 'lucide-react'
-import { QRCodeSVG } from 'qrcode.react'
 import { AddressBlock, CryptoAmount } from '../pieces'
 import {
   CRYPTO_NETWORK,
@@ -13,6 +12,8 @@ import {
   formatDuration,
   type CryptoPaymentMethod,
 } from '../types'
+import { HowToSteps } from './HowToSteps'
+import { QrOrWallet } from './QrOrWallet'
 
 const LOW_TIME_SECONDS = 120
 
@@ -21,6 +22,7 @@ export const PendingState = ({
   method,
   currency,
   fiat,
+  rate,
   email,
   secondsLeft,
   lockProgress,
@@ -30,6 +32,8 @@ export const PendingState = ({
   method: CryptoPaymentMethod | null
   currency: string
   fiat: string | null
+  /** Locked exchange rate, formatted as fiat (e.g. "$59,756.00"). */
+  rate: string | null
   email: string
   secondsLeft: number | null
   lockProgress: number | null
@@ -46,6 +50,8 @@ export const PendingState = ({
       rowGap="xl"
       data-testid="crypto-pending"
     >
+      <HowToSteps t={t} />
+
       {selector}
 
       {method && (
@@ -62,6 +68,9 @@ export const PendingState = ({
               copiedLabel={t('checkout.crypto.copied')}
               testId="crypto-amount"
             />
+            <Text variant="caption" color="muted">
+              {t('checkout.crypto.feeHelper')}
+            </Text>
           </Box>
 
           <Box display="flex" flexDirection="column" rowGap="s">
@@ -81,7 +90,9 @@ export const PendingState = ({
                     variant="caption"
                     color={risky ? 'warning' : 'muted'}
                   >
-                    {t('checkout.crypto.networkOnly', { network })}
+                    {t('checkout.crypto.networkOnly', {
+                      network: network,
+                    })}
                   </Text>
                 </Box>
               )}
@@ -91,29 +102,16 @@ export const PendingState = ({
               copyLabel={t('checkout.crypto.copyAddress')}
               copiedLabel={t('checkout.crypto.copied')}
             />
+            {risky && (
+              <Text variant="caption" color="danger">
+                {t('checkout.crypto.wrongNetworkWarning', {
+                  currency: 'USDC',
+                })}
+              </Text>
+            )}
           </Box>
 
-          <Box
-            display="flex"
-            flexDirection="column"
-            alignItems="center"
-            rowGap="m"
-          >
-            <a href={method.payment_url} className="rounded-xl bg-white p-3">
-              <QRCodeSVG
-                value={method.payment_url}
-                size={180}
-                level="Q"
-                marginSize={2}
-              />
-            </a>
-            <a
-              href={method.payment_url}
-              className="text-xs text-blue-600 hover:underline dark:text-blue-400"
-            >
-              {t('checkout.crypto.openInWallet')}
-            </a>
-          </Box>
+          <QrOrWallet t={t} method={method} />
         </>
       )}
 
@@ -151,6 +149,7 @@ export const PendingState = ({
           alignItems="center"
           justifyContent="between"
           columnGap="s"
+          flexWrap="wrap"
         >
           <Text color="muted">{t('checkout.crypto.waiting')}</Text>
           {secondsLeft !== null && (
@@ -173,6 +172,14 @@ export const PendingState = ({
             </Box>
           )}
         </Box>
+        {rate && method && (
+          <Text variant="caption" color="muted" data-testid="crypto-rate">
+            {t('checkout.crypto.rateLine', {
+              currency: method.currency.toUpperCase(),
+              rate,
+            })}
+          </Text>
+        )}
         {email && (
           <Text variant="caption" color="muted">
             {t('checkout.crypto.closeHint', { email })}

@@ -677,6 +677,34 @@ export interface components {
       props: components['schemas']['OrderConfirmationProps']
     }
     /** OrderConfirmationProps */
+    /**
+     * CryptoPaymentEmail
+     * @description What the customer actually sent on-chain, for the receipt.
+     */
+    CryptoPaymentEmail: {
+      /** Amount */
+      amount: string
+      /** Currency */
+      currency: string
+      /** Tx Hash */
+      tx_hash?: string | null
+      /** Explorer Url */
+      explorer_url?: string | null
+    }
+    /** CryptoPaymentInstructionsProps */
+    CryptoPaymentInstructionsProps: {
+      /** Email */
+      email: string
+      organization: components['schemas']['Organization']
+      /** Product Name */
+      product_name: string
+      /** Amount Display */
+      amount_display: string
+      /** Url */
+      url: string
+      /** Expiry Minutes */
+      expiry_minutes: number
+    }
     OrderConfirmationProps: {
       /** Email */
       email: string
@@ -817,6 +845,7 @@ export interface components {
       description: string
       /** Items */
       items: components['schemas']['OrderItemSchema'][]
+      crypto_payment?: components['schemas']['CryptoPaymentEmail'] | null
       /**
        * Refundable Amount
        * @description Amount in cents that can still be refunded (net, before taxes). Accounts for any applied customer balance and previous refunds.

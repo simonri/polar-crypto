@@ -227,6 +227,11 @@ class Settings(BaseSettings):
     # addresses for late payments and partial-payment top-ups.
     CRYPTO_MONITORING_WINDOW_HOURS: int = 24
 
+    # Also issue a Lightning invoice alongside the on-chain BTC address and
+    # embed it in a unified BIP21 QR. Requires the BTC Electrum daemon to be
+    # started with lightning support; off by default.
+    CRYPTO_BTC_LIGHTNING: bool = False
+
     def get_crypto_daemon_configs(self) -> dict[str, tuple[str, str | None]]:
         """Return {currency: (daemon_url, xpub)} for every enabled currency."""
         enabled = [

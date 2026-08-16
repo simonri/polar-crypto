@@ -14,7 +14,11 @@ import ShadowBox from '@polar-sh/ui/components/atoms/ShadowBox'
 import { useRouter } from 'next/navigation'
 import { useCallback, useEffect, useMemo, useState } from 'react'
 import LogoType from '../Brand/logos/LogoType'
-import { CryptoPaymentPanel, parseAcceptedCurrencies } from './CryptoCheckout'
+import {
+  CryptoPaidSummary,
+  CryptoPaymentPanel,
+  parseAcceptedCurrencies,
+} from './CryptoCheckout'
 
 export interface CheckoutConfirmationProps {
   checkout: schemas['CheckoutPublic']
@@ -124,9 +128,17 @@ export const CheckoutConfirmation = ({
                 )}
                 locale={locale}
                 onConfirmed={updateCheckout}
+                events={checkoutEvents}
               />
             </div>
           )}
+          {status === 'succeeded' &&
+            checkout.payment_processor === 'crypto' && (
+              <CryptoPaidSummary
+                clientSecret={checkout.client_secret}
+                locale={locale}
+              />
+            )}
           {status === 'succeeded' && (
             <p className="dark:text-polar-500 text-center text-xs text-gray-500">
               {t('checkout.footer.merchantOfRecord')}

@@ -8,8 +8,14 @@ export interface CryptoPaymentMethod {
   payment_address: string
   payment_url: string
   lightning: boolean
+  /** BOLT11 invoice attached to an on-chain BTC method (unified QR / WebLN). */
+  lightning_invoice?: string | null
   confirmations: number
   required_confirmations?: number
+  /** Solana only: what a browser wallet needs to build the transfer. */
+  rpc_url?: string
+  reference?: string
+  spl_token?: string
 }
 
 export type CryptoInvoiceStatusValue =
@@ -63,6 +69,25 @@ export const CRYPTO_NETWORK: Record<string, string> = {
 
 /** Tokens living on another chain: sending on the wrong network loses funds. */
 export const WRONG_NETWORK_RISK = new Set(['SOL_USDC'])
+
+/**
+ * Per-currency guidance for the option cards: how long a payment typically
+ * takes to confirm and what the network fee feels like. i18n key suffixes
+ * under checkout.crypto.*.
+ */
+export const CURRENCY_META: Record<
+  string,
+  {
+    etaKey: 'etaInstant' | 'etaMinutes' | 'etaSlow'
+    feeKey: 'feeNegligible' | 'feeLow' | 'feeVaries'
+    stable?: boolean
+  }
+> = {
+  SOL_USDC: { etaKey: 'etaInstant', feeKey: 'feeNegligible', stable: true },
+  SOL: { etaKey: 'etaInstant', feeKey: 'feeNegligible' },
+  LTC: { etaKey: 'etaMinutes', feeKey: 'feeLow' },
+  BTC: { etaKey: 'etaSlow', feeKey: 'feeVaries' },
+}
 
 export const iconFor = (token: string): string =>
   token.toLowerCase() === 'sol_usdc' ? 'usdc' : token.toLowerCase()

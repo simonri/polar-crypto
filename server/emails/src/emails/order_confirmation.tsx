@@ -48,6 +48,24 @@ export function OrderConfirmation({
       )}
       <Divider />
       <OrderSummary order={order} />
+      {order.crypto_payment && (
+        <Text variant="caption" align="center">
+          Paid with {order.crypto_payment.amount}{' '}
+          {order.crypto_payment.currency}
+          {order.crypto_payment.tx_hash && (
+            <>
+              {' · transaction '}
+              {order.crypto_payment.explorer_url ? (
+                <EmailLink href={order.crypto_payment.explorer_url}>
+                  {order.crypto_payment.tx_hash.slice(0, 10)}…
+                </EmailLink>
+              ) : (
+                `${order.crypto_payment.tx_hash.slice(0, 10)}…`
+              )}
+            </>
+          )}
+        </Text>
+      )}
       <FooterCustomer organization={organization} email={email} />
     </WrapperOrganization>
   )

@@ -24,7 +24,7 @@ from polar.customer_portal.schemas.order import (
     CustomerOrderPaymentConfirmation,
     CustomerOrderUpdate,
 )
-from polar.email.schemas import EmailAdapter
+from polar.email.schemas import CryptoPaymentEmail, EmailAdapter, OrderEmail
 from polar.email.sender import enqueue_email_template
 from polar.enums import (
     PaymentMode,
@@ -271,6 +271,20 @@ class SubscriptionNotTrialing(OrderError):
         self.subscription = subscription
         message = f"Subscription {subscription.id} is not in trialing status."
         super().__init__(message)
+
+
+def _explorer_url(currency: str, tx_hash: str | None) -> str | None:
+    if tx_hash is None:
+        return None
+    match currency.lower():
+        case "btc":
+            return f"https://mempool.space/tx/{tx_hash}"
+        case "ltc":
+            return f"https://litecoinspace.org/tx/{tx_hash}"
+        case "sol" | "sol_usdc":
+            return f"https://solscan.io/tx/{tx_hash}"
+        case _:
+            return None
 
 
 class OrderService:
@@ -1426,6 +1440,8 @@ class OrderService:
         if not recipients:
             return
 
+        order_email = await self._build_order_email_with_crypto(session, order)
+
         subject = subject_template.format(description=order.description)
 
         for recipient_email in recipients:
@@ -1461,7 +1477,7 @@ class OrderService:
                         "email": recipient_email,
                         "organization": organization,
                         "product": product,
-                        "order": order,
+                        "order": order_email if order_email is not None else order,
                         "subscription": subscription,
                         "url": url,
                     },
@@ -1474,6 +1490,44 @@ class OrderService:
                 to_email_addr=recipient_email,
                 subject=subject,
             )
+
+    async def _build_order_email_with_crypto(
+        self, session: AsyncSession, order: Order
+    ) -> OrderEmail | None:
+        """
+        Attach what was actually paid on-chain (coin amount + transaction) to
+        the receipt. Crypto customers and their accountants need this; the
+        fiat total alone doesn't match anything in their wallet history.
+        """
+        if order.checkout_id is None:
+            return None
+        from polar.integrations.crypto.invoice_service import (
+            crypto_invoice_service,
+            format_crypto_amount,
+        )
+
+        try:
+            invoice = await crypto_invoice_service.get_relevant_invoice(
+                session, order.checkout_id, None
+            )
+        except Exception:
+            return None
+        if (
+            invoice is None
+            or invoice.paid_crypto_amount is None
+            or invoice.paid_crypto_currency is None
+        ):
+            return None
+
+        tx_hash = invoice.tx_hashes[0] if invoice.tx_hashes else None
+        order_email = OrderEmail.model_validate(order)
+        order_email.crypto_payment = CryptoPaymentEmail(
+            amount=format_crypto_amount(invoice.paid_crypto_amount),
+            currency=invoice.paid_crypto_currency.upper(),
+            tx_hash=tx_hash,
+            explorer_url=_explorer_url(invoice.paid_crypto_currency, tx_hash),
+        )
+        return order_email
 
     async def update_refunds(
         self,

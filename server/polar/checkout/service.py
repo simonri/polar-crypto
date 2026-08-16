@@ -56,6 +56,7 @@ from polar.models import (
     Checkout,
     CheckoutLink,
     CryptoInvoice,
+    CryptoPaymentMethod,
     Customer,
     Discount,
     Order,
@@ -920,11 +921,57 @@ class CheckoutService:
             ) from e
 
         self._attach_crypto_invoice(checkout, invoice)
+        self._send_crypto_payment_instructions(checkout)
         log.info(
             "checkout.crypto.invoice_created",
             checkout_id=str(checkout.id),
             invoice_id=str(invoice.id),
         )
+
+    def _send_crypto_payment_instructions(self, checkout: Checkout) -> None:
+        """
+        Email a link back to the payment page. Covers desktop-to-phone
+        hand-off, exchange withdrawal delays and closed tabs: the page is
+        reload-safe and always shows a current amount (or a renew button).
+        """
+        if not checkout.customer_email:
+            return
+        from polar.email.schemas import EmailAdapter
+        from polar.email.sender import enqueue_email_template
+        from polar.kit.currency import format_currency
+
+        product_name = (
+            checkout.product.name if has_product_checkout(checkout) else "your order"
+        )
+        try:
+            email = EmailAdapter.validate_python(
+                {
+                    "template": "crypto_payment_instructions",
+                    "props": {
+                        "email": checkout.customer_email,
+                        "organization": checkout.organization,
+                        "product_name": product_name,
+                        "amount_display": format_currency(
+                            checkout.total_amount, checkout.currency
+                        ),
+                        "url": checkout.url,
+                        "expiry_minutes": settings.CRYPTO_INVOICE_EXPIRY_MINUTES,
+                    },
+                }
+            )
+            enqueue_email_template(
+                email,
+                **checkout.organization.email_from_reply,
+                to_email_addr=checkout.customer_email,
+                subject=f"Complete your {product_name} payment",
+            )
+        except Exception as e:
+            # Never fail a confirm because the courtesy email couldn't be built
+            log.warning(
+                "checkout.crypto.instructions_email_failed",
+                checkout_id=str(checkout.id),
+                error=str(e),
+            )
 
     def _crypto_accepted_currencies(self) -> Sequence[str]:
         return [
@@ -1022,11 +1069,9 @@ class CheckoutService:
         hashes, and both the price-lock and monitoring expiries.
         """
         from polar.integrations.crypto.invoice_service import (
-            build_payment_url,
             crypto_invoice_service,
             format_crypto_amount,
         )
-        from polar.integrations.crypto.service import CONFIRMATION_THRESHOLDS
         from polar.models.crypto_invoice import CryptoInvoiceStatus
 
         if checkout.crypto_invoice_id is None:
@@ -1090,26 +1135,78 @@ class CheckoutService:
             "tx_hashes": list(invoice.tx_hashes or []),
             "customer_email": checkout.customer_email,
             "payment_methods": [
-                {
-                    "currency": pm.currency,
-                    "amount": format_crypto_amount(pm.amount),
-                    "rate": format_crypto_amount(pm.rate),
-                    "payment_address": pm.payment_address,
-                    # Rebuild URL from components so amount formatting is always
-                    # clean (no trailing zeros), even for invoices created before
-                    # the format fix was deployed.
-                    "payment_url": build_payment_url(
-                        pm.currency, pm.payment_address, pm.amount, pm.lookup_field
-                    ),
-                    "lightning": pm.lightning,
-                    "confirmations": pm.confirmations,
-                    "required_confirmations": CONFIRMATION_THRESHOLDS.get(
-                        pm.currency, 1
-                    ),
-                }
+                self._crypto_payment_method_payload(pm, invoice)
                 for pm in invoice.payment_methods
+                if not pm.lightning
             ],
         }
+
+    def _crypto_payment_method_payload(
+        self,
+        pm: CryptoPaymentMethod,
+        invoice: CryptoInvoice,
+    ) -> dict:  # type: ignore[type-arg]
+        from polar.integrations.crypto.invoice_service import (
+            build_payment_url,
+            format_crypto_amount,
+        )
+        from polar.integrations.crypto.service import CONFIRMATION_THRESHOLDS
+
+        # A BTC method may carry a Lightning sibling: same amount, instant
+        # settlement. Exposed on the on-chain entry so the frontend can render
+        # a unified QR and a WebLN button.
+        lightning_invoice: str | None = None
+        if pm.currency == "btc":
+            sibling = next(
+                (
+                    other
+                    for other in invoice.payment_methods
+                    if other.lightning and other.currency == "btc"
+                ),
+                None,
+            )
+            if sibling is not None:
+                lightning_invoice = sibling.payment_address
+
+        payload: dict = {  # type: ignore[type-arg]
+            "currency": pm.currency,
+            "amount": format_crypto_amount(pm.amount),
+            "rate": format_crypto_amount(pm.rate),
+            "payment_address": pm.payment_address,
+            # Rebuild URL from components so amount formatting is always
+            # clean (no trailing zeros), even for invoices created before
+            # the format fix was deployed.
+            "payment_url": build_payment_url(
+                pm.currency,
+                pm.payment_address,
+                pm.amount,
+                pm.lookup_field,
+                lightning_invoice,
+            ),
+            "lightning": pm.lightning,
+            "lightning_invoice": lightning_invoice,
+            "confirmations": pm.confirmations,
+            "required_confirmations": CONFIRMATION_THRESHOLDS.get(pm.currency, 1),
+        }
+
+        # Solana methods carry what a browser wallet (Phantom) needs to build
+        # the transfer client-side: RPC endpoint, Solana Pay reference (how the
+        # backend detects the payment) and the SPL mint for USDC.
+        if pm.currency in ("sol", "sol_usdc"):
+            from polar.integrations.crypto.solana import (
+                USDC_MINT_DEVNET,
+                USDC_MINT_MAINNET,
+            )
+
+            payload["rpc_url"] = settings.CRYPTO_SOL_RPC_URL
+            payload["reference"] = pm.lookup_field
+            if pm.currency == "sol_usdc":
+                payload["spl_token"] = (
+                    USDC_MINT_DEVNET
+                    if settings.CRYPTO_SOL_NETWORK == "devnet"
+                    else USDC_MINT_MAINNET
+                )
+        return payload
 
     async def handle_success(
         self,

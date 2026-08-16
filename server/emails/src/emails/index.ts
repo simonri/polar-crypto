@@ -1,3 +1,4 @@
+import { CryptoPaymentInstructions } from './crypto_payment_instructions'
 import { CustomerEmailChangedNotification } from './customer_email_changed_notification'
 import { CustomerEmailUpdateVerification } from './customer_email_update_verification'
 import { CustomerSessionCode } from './customer_session_code'
@@ -32,6 +33,7 @@ import { WebhookEndpointDisabled } from './webhook_endpoint_disabled'
 
 const TEMPLATES: Record<string, React.FC<never>> = {
   login_code: LoginCode,
+  crypto_payment_instructions: CryptoPaymentInstructions,
   customer_email_changed_notification: CustomerEmailChangedNotification,
   customer_email_update_verification: CustomerEmailUpdateVerification,
   customer_session_code: CustomerSessionCode,

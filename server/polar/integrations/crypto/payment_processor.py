@@ -223,6 +223,8 @@ class CryptoPaymentProcessor:
             late=late,
         )
 
+        await _publish_invoice_event(session, invoice)
+
         if new_status == CryptoInvoiceStatus.complete:
             await self._finalize_order(session, invoice, pm)
         elif new_status == CryptoInvoiceStatus.needs_review:
@@ -292,6 +294,9 @@ class CryptoPaymentProcessor:
         Ask the daemon about one payment method and apply the result.
         Returns True if a payment observation was processed.
         """
+        if pm.lightning:
+            return await self._poll_lightning(session, invoice, pm)
+
         status = await self._service.get_request_status(pm.currency, pm.lookup_field)
         status_str = status.get("status_str") or status.get("status")
         tx_hashes = status.get("tx_hashes", []) or []
@@ -336,6 +341,35 @@ class CryptoPaymentProcessor:
                     "amount": received,
                     "confirmations": confirmations,
                     "tx_hashes": tx_hashes,
+                },
+            )
+            return True
+        return False
+
+    async def _poll_lightning(
+        self,
+        session: AsyncSession,
+        invoice: CryptoInvoice,
+        pm: CryptoPaymentMethod,
+    ) -> bool:
+        """
+        Lightning invoices settle atomically: either the full amount arrived
+        or nothing did. No partials, no confirmations to wait for.
+        """
+        status = await self._service.get_lightning_invoice_status(
+            pm.currency, pm.lookup_field
+        )
+        status_str = str(status.get("status_str") or status.get("status") or "").lower()
+        if status_str in ("paid", "settled", "complete"):
+            threshold = CONFIRMATION_THRESHOLDS.get(pm.currency, 1)
+            await self._process_payment(
+                session,
+                invoice,
+                pm,
+                {
+                    "amount": float(pm.amount),
+                    "confirmations": threshold,
+                    "tx_hashes": status.get("tx_hashes", []),
                 },
             )
             return True
@@ -390,6 +424,29 @@ class CryptoPaymentProcessor:
 
 
 # ─── Helpers ─────────────────────────────────────────────────────────────────
+
+
+async def _publish_invoice_event(session: AsyncSession, invoice: CryptoInvoice) -> None:
+    """
+    Push the new invoice status to the customer's browser over SSE so
+    "payment detected" appears the moment the transaction is seen, not on
+    the next poll. Best-effort: worker paths without a job-queue context
+    (e.g. the daemon WebSocket callback) just skip it.
+    """
+    from polar.checkout.eventstream import CheckoutEvent, publish_checkout_event
+    from polar.models import Checkout
+
+    try:
+        checkout = await session.get(Checkout, invoice.order_id)
+        if checkout is None:
+            return
+        await publish_checkout_event(
+            checkout.client_secret,
+            CheckoutEvent.crypto_invoice_updated,
+            {"status": str(invoice.status)},
+        )
+    except Exception as e:
+        log.debug("crypto.invoice.publish_skipped", error=str(e))
 
 
 def _is_watched(invoice: CryptoInvoice) -> bool:

@@ -107,19 +107,28 @@ const BaseCheckoutForm = ({
     }
   }, [checkout, resetField])
 
+  const isCryptoPayment =
+    checkout.payment_processor === 'crypto' && checkout.is_payment_form_required
+
   const checkoutLabel = useMemo(() => {
     if (checkout.active_trial_interval) {
       return t('checkout.cta.startTrial')
     }
 
     if (checkout.is_payment_form_required) {
+      // Crypto: the button reveals payment instructions, it does not charge.
+      // "Pay now" here breaks the card-checkout expectation that the click
+      // is the last step.
+      if (isCryptoPayment) {
+        return t('checkout.cta.continueToPayment')
+      }
       return interval
         ? t('checkout.cta.subscribeNow')
         : t('checkout.cta.payNow')
     }
 
     return t('checkout.cta.getFree')
-  }, [checkout, interval, t])
+  }, [checkout, interval, isCryptoPayment, t])
 
   return (
     <Form {...form}>
@@ -188,6 +197,11 @@ const BaseCheckoutForm = ({
           >
             {checkoutLabel}
           </Button>
+          {isCryptoPayment && (
+            <p className="dark:text-polar-500 text-center text-xs text-gray-500">
+              {t('checkout.crypto.ctaExplainer')}
+            </p>
+          )}
           {loading && loadingLabel && (
             <p className="dark:text-polar-500 text-sm text-gray-500">
               {loadingLabel}

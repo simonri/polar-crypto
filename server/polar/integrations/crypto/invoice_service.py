@@ -216,6 +216,46 @@ class CryptoInvoiceService:
             address=payment_address,
             amount=str(amount_crypto),
         )
+
+        # Optionally issue a Lightning invoice alongside the on-chain BTC
+        # address: seconds instead of 10-60 minutes for typical order sizes.
+        # A daemon without lightning support degrades to on-chain only.
+        if currency.lower() == "btc" and settings.CRYPTO_BTC_LIGHTNING:
+            try:
+                bolt11, rhash = await self._service.add_lightning_invoice(
+                    currency,
+                    amount_crypto,
+                    f"Polar checkout {invoice.order_id}",
+                    expiry_seconds=expiry_minutes * 60,
+                )
+                ln = CryptoPaymentMethod(
+                    invoice_id=invoice.id,
+                    currency=currency.lower(),
+                    amount=amount_crypto,
+                    rate=rate,
+                    payment_address=bolt11,
+                    lookup_field=rhash,
+                    payment_url=f"lightning:{bolt11}",
+                    lightning=True,
+                    confirmations=0,
+                    is_used=False,
+                )
+                session.add(ln)
+                # Unified BIP21 QR: on-chain address + lightning fallback
+                pm.payment_url = build_payment_url(
+                    currency, payment_address, amount_crypto, lookup_field, bolt11
+                )
+                log.info(
+                    "crypto.payment_method.lightning_created",
+                    invoice_id=str(invoice.id),
+                )
+            except Exception as e:
+                log.warning(
+                    "crypto.payment_method.lightning_failed",
+                    invoice_id=str(invoice.id),
+                    error=str(e),
+                )
+
         return pm
 
     async def get_invoice_with_methods(
@@ -302,11 +342,13 @@ def build_payment_url(
     address: str,
     amount: Decimal,
     lookup_field: str | None = None,
+    lightning_invoice: str | None = None,
 ) -> str:
     cur = currency.lower()
     amt = format_crypto_amount(amount)
     if cur == "btc":
-        return f"bitcoin:{address}?amount={amt}"
+        ln = f"&lightning={lightning_invoice}" if lightning_invoice else ""
+        return f"bitcoin:{address}?amount={amt}{ln}"
     if cur == "ltc":
         return f"litecoin:{address}?amount={amt}"
     if cur in ("eth", "matic", "bnb"):

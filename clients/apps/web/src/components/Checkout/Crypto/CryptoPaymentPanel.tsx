@@ -8,14 +8,14 @@ import {
 } from '@polar-sh/i18n'
 import { Button, Text } from '@polar-sh/orbit'
 import { Box } from '@polar-sh/orbit/Box'
-import { CryptoCurrencySelector } from './CryptoCurrencySelector'
+import { CryptoCurrencyCards } from './CryptoCurrencyCards'
 import { Notice } from './pieces'
 import { DetectedState, ReviewState } from './states/DetectedState'
 import { ExpiredState } from './states/ExpiredState'
 import { PartialState } from './states/PartialState'
 import { PendingState } from './states/PendingState'
 import { formatCryptoAmount } from './types'
-import { useCryptoInvoice } from './useCryptoInvoice'
+import { useCryptoInvoice, type CryptoInvoiceEvents } from './useCryptoInvoice'
 
 const formatFiat = (
   amount: string | undefined,
@@ -43,6 +43,8 @@ export interface CryptoPaymentPanelProps {
   onCurrencyChange?: (currency: string) => void
   /** Polling interval in ms; exposed for tests. */
   pollInterval?: number
+  /** SSE emitter for this checkout (useCheckoutClientSSE). */
+  events?: CryptoInvoiceEvents
 }
 
 /**
@@ -61,6 +63,7 @@ export function CryptoPaymentPanel({
   onConfirmed,
   onCurrencyChange,
   pollInterval,
+  events,
 }: CryptoPaymentPanelProps) {
   const t = useTranslations(locale)
   const inv = useCryptoInvoice({
@@ -70,10 +73,12 @@ export function CryptoPaymentPanel({
     onConfirmed,
     onCurrencyChange,
     pollInterval,
+    events,
   })
   const { data } = inv
 
   const fiat = formatFiat(data?.fiat_amount, data?.fiat_currency, locale)
+  const rate = formatFiat(inv.method?.rate, data?.fiat_currency, locale)
 
   if (inv.state.kind === 'loading') {
     return (
@@ -202,11 +207,12 @@ export function CryptoPaymentPanel({
       method={inv.method}
       currency={inv.currency ?? ''}
       fiat={fiat}
+      rate={rate}
       email={email}
       secondsLeft={inv.secondsLeft}
       lockProgress={inv.lockProgress}
       selector={
-        <CryptoCurrencySelector
+        <CryptoCurrencyCards
           value={inv.currency ?? ''}
           onValueChange={inv.changeCurrency}
           currencies={inv.availableCodes}

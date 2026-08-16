@@ -225,6 +225,54 @@ class CryptoService:
 
         return result
 
+    async def add_lightning_invoice(
+        self,
+        currency: str,
+        amount_crypto: Decimal,
+        description: str,
+        expiry_seconds: int = 3600,
+    ) -> tuple[str, str]:
+        """
+        Ask the daemon for a BOLT11 lightning invoice.
+        Returns (bolt11, rhash/lookup_field). Raises CryptoServiceError when
+        the daemon has no lightning support.
+        """
+        coin = self._coin(currency)
+        try:
+            result = await coin.add_invoice(
+                float(amount_crypto), description, expiry_seconds / 60
+            )
+            bolt11: str = (
+                result.get("invoice")
+                or result.get("lightning_invoice")
+                or result.get("URI", "")
+            )
+            if not bolt11:
+                raise CryptoServiceError("Daemon returned no lightning invoice")
+            rhash = str(
+                result.get("rhash") or result.get("id") or result.get("ID") or bolt11
+            )
+            return bolt11, rhash
+        except CryptoServiceError:
+            raise
+        except Exception as e:
+            raise CryptoServiceError(
+                f"Failed to create lightning invoice for {currency}: {e}"
+            ) from e
+
+    async def get_lightning_invoice_status(
+        self, currency: str, rhash: str
+    ) -> dict[str, Any]:
+        """Fetch the status of a lightning invoice from the daemon."""
+        coin = self._coin(currency)
+        try:
+            result = await coin.get_invoice(rhash)
+        except Exception as e:
+            raise CryptoServiceError(
+                f"Failed to get lightning invoice status for {currency}/{rhash}: {e}"
+            ) from e
+        return dict(result) if isinstance(result, dict) else {"status_str": result}
+
     async def get_address_received(self, currency: str, address: str) -> Decimal | None:
         """
         Total amount (confirmed + unconfirmed) ever received on an address.

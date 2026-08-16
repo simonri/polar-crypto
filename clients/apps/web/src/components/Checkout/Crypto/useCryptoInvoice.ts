@@ -21,6 +21,12 @@ const TERMINAL: string[] = ['complete', 'no_invoice']
 /** Consecutive failed polls before we show an error instead of a skeleton. */
 const FAILURES_BEFORE_ERROR = 3
 
+/** Minimal emitter surface (matches eventemitter3 / useCheckoutClientSSE). */
+export interface CryptoInvoiceEvents {
+  on(event: string, listener: () => void): unknown
+  off(event: string, listener: () => void): unknown
+}
+
 export interface UseCryptoInvoiceOptions {
   clientSecret: string
   acceptedCurrencies: string[]
@@ -28,6 +34,12 @@ export interface UseCryptoInvoiceOptions {
   onConfirmed: () => void | Promise<void>
   onCurrencyChange?: (currency: string) => void
   pollInterval?: number
+  /**
+   * Server-sent events for this checkout. When provided, invoice updates
+   * arrive pushed the moment the chain sees them and polling drops to a
+   * slow fallback.
+   */
+  events?: CryptoInvoiceEvents
 }
 
 /**
@@ -41,8 +53,11 @@ export function useCryptoInvoice({
   initialCurrency,
   onConfirmed,
   onCurrencyChange,
-  pollInterval = 5000,
+  pollInterval,
+  events,
 }: UseCryptoInvoiceOptions) {
+  // SSE pushes updates instantly; polling is only the safety net then.
+  const effectivePollInterval = pollInterval ?? (events ? 30_000 : 5_000)
   const [state, setState] = useState<FetchState>({ kind: 'loading' })
   const [failures, setFailures] = useState(0)
   const [now, setNow] = useState(() => Date.now())
@@ -86,9 +101,22 @@ export function useCryptoInvoice({
 
   useEffect(() => {
     fetchStatus()
-    const interval = setInterval(fetchStatus, pollInterval)
+    const interval = setInterval(fetchStatus, effectivePollInterval)
     return () => clearInterval(interval)
-  }, [fetchStatus, pollInterval])
+  }, [fetchStatus, effectivePollInterval])
+
+  // Instant updates over SSE: "payment detected" should appear the moment
+  // the transaction hits the chain, not on the next poll.
+  useEffect(() => {
+    if (!events) return
+    const onUpdate = () => void fetchStatus()
+    events.on('checkout.crypto_invoice.updated', onUpdate)
+    events.on('checkout.updated', onUpdate)
+    return () => {
+      events.off('checkout.crypto_invoice.updated', onUpdate)
+      events.off('checkout.updated', onUpdate)
+    }
+  }, [events, fetchStatus])
 
   useEffect(() => {
     if (state.kind !== 'ready' && failures >= FAILURES_BEFORE_ERROR) {
@@ -100,6 +128,39 @@ export function useCryptoInvoice({
     const id = setInterval(() => setNow(Date.now()), 1000)
     return () => clearInterval(id)
   }, [])
+
+  // Surface progress in the tab title (people wait in another tab) and via a
+  // browser notification when permission was already granted — never prompt.
+  const statusRef = useRef<string | null>(null)
+  const titleRef = useRef<string | null>(null)
+  useEffect(() => {
+    const status = state.kind === 'ready' ? state.data.status : null
+    if (status === null || status === statusRef.current) return
+    const prev = statusRef.current
+    statusRef.current = status
+    if (typeof document === 'undefined') return
+    if (titleRef.current === null) titleRef.current = document.title
+    if (status === 'unconfirmed') {
+      document.title = `⏳ ${titleRef.current}`
+    } else if (status === 'complete') {
+      document.title = `✓ ${titleRef.current}`
+      if (
+        prev !== null &&
+        typeof Notification !== 'undefined' &&
+        Notification.permission === 'granted'
+      ) {
+        try {
+          new Notification('Payment confirmed', {
+            body: 'Your crypto payment is confirmed — finishing your order.',
+          })
+        } catch {
+          // Notification constructor unavailable (e.g. some mobile browsers)
+        }
+      }
+    } else if (titleRef.current !== null) {
+      document.title = titleRef.current
+    }
+  }, [state])
 
   const retry = useCallback(() => {
     setState({ kind: 'loading' })

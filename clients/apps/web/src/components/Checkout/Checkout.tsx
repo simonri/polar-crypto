@@ -16,7 +16,7 @@ import { hasProductCheckout } from '@polar-sh/checkout/guards'
 import { useCheckoutFulfillmentListener } from '@polar-sh/checkout/hooks'
 import { useCheckout, useCheckoutForm } from '@polar-sh/checkout/providers'
 import { ClientResponseError, type schemas } from '@polar-sh/client'
-import { AcceptedLocale } from '@polar-sh/i18n'
+import { AcceptedLocale, useTranslations } from '@polar-sh/i18n'
 import Alert from '@polar-sh/ui/components/atoms/Alert'
 import ShadowBox from '@polar-sh/ui/components/atoms/ShadowBox'
 import { getThemePreset } from '@polar-sh/ui/hooks/theming'
@@ -26,12 +26,31 @@ import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { CheckoutDiscountInput } from './CheckoutDiscountInput'
 import { CheckoutProductDescription } from './CheckoutProductDescription'
 import { twMerge } from 'tailwind-merge'
+import { useCheckoutClientSSE } from '@/hooks/sse'
 import {
-  CryptoCurrencySelector,
+  CRYPTO_LABELS,
   CryptoPaymentPanel,
   parseAcceptedCurrencies,
   readPersistedCurrency,
 } from './CryptoCheckout'
+
+// Tell people the payment rail before they commit their email — nobody
+// should discover "crypto only" after pressing the button.
+const AcceptedCryptoHint = ({
+  currencies,
+  label,
+}: {
+  currencies: string[]
+  label: (names: string) => string
+}) => {
+  if (currencies.length === 0) return null
+  const names = currencies
+    .map((c) => (CRYPTO_LABELS[c] ?? c).replace(' (', ' ('))
+    .join(', ')
+  return (
+    <p className="dark:text-polar-500 text-xs text-gray-500">{label(names)}</p>
+  )
+}
 
 const PaymentNotReadyBanner = ({
   organizationStatus,
@@ -115,6 +134,7 @@ const Checkout = ({
   const { resolvedTheme } = useTheme()
   const theme = _theme || (resolvedTheme as 'light' | 'dark')
   const locale: AcceptedLocale = _locale || 'en'
+  const t = useTranslations(locale)
   const posthog = usePostHog()
 
   const openedTrackedRef = useRef(false)
@@ -194,6 +214,7 @@ const Checkout = ({
     if (persisted && acceptedCurrencies.includes(persisted)) return persisted
     return acceptedCurrencies[0] ?? 'BTC'
   })
+  const checkoutEvents = useCheckoutClientSSE(checkout.client_secret)
   const loading = useMemo(
     () => confirmLoading || fullLoading,
     [confirmLoading, fullLoading],
@@ -279,6 +300,7 @@ const Checkout = ({
       locale={locale}
       onConfirmed={onCryptoConfirmed}
       onCurrencyChange={setSelectedCurrency}
+      events={checkoutEvents}
     />
   ) : null
 
@@ -335,15 +357,14 @@ const Checkout = ({
                       />
                     </>
                   )}
-                {checkout.payment_processor === 'crypto' &&
-                  acceptedCurrencies.length > 1 && (
-                    <CryptoCurrencySelector
-                      value={selectedCurrency}
-                      onValueChange={setSelectedCurrency}
-                      currencies={acceptedCurrencies}
-                      locale={locale}
-                    />
-                  )}
+                {checkout.payment_processor === 'crypto' && (
+                  <AcceptedCryptoHint
+                    currencies={acceptedCurrencies}
+                    label={(names) =>
+                      t('checkout.crypto.acceptedHint', { currencies: names })
+                    }
+                  />
+                )}
               </div>
             }
             afterSubmit={
@@ -456,13 +477,12 @@ const Checkout = ({
               isUpdatePending={isUpdatePending}
               locale={locale}
               beforeSubmit={
-                checkout.payment_processor === 'crypto' &&
-                acceptedCurrencies.length > 1 ? (
-                  <CryptoCurrencySelector
-                    value={selectedCurrency}
-                    onValueChange={setSelectedCurrency}
+                checkout.payment_processor === 'crypto' ? (
+                  <AcceptedCryptoHint
                     currencies={acceptedCurrencies}
-                    locale={locale}
+                    label={(names) =>
+                      t('checkout.crypto.acceptedHint', { currencies: names })
+                    }
                   />
                 ) : undefined
               }
