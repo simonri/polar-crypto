@@ -303,14 +303,12 @@ export default {
       waiting: 'Waiting for your payment…',
       lockedFor: 'Amount locked for {time}',
       whyTimer: 'Prices move, so this amount is only valid for a short time.',
-      closeHint:
-        'You can close this page after sending. We will email {email}.',
+      closeHint: 'You can close this page after sending.',
       detectedTitle: 'Payment detected',
       detectedBody: 'We saw {amount} {currency} arrive, confirming now.',
       confirmations: '{count} of {required} confirmations',
       viewTx: 'View transaction',
-      detectedCloseHint:
-        'Safe to close this page. We will email {email} once confirmed.',
+      detectedCloseHint: 'Safe to close this page.',
       partialTitle: 'Almost there',
       partialBody:
         'We received {received} of {expected} {currency}, likely a network fee.',

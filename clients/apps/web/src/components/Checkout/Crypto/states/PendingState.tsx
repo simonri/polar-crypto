@@ -21,7 +21,6 @@ export const PendingState = ({
   method,
   currency,
   fiat,
-  email,
   secondsLeft,
   lockProgress,
   selector,
@@ -30,7 +29,6 @@ export const PendingState = ({
   method: CryptoPaymentMethod | null
   currency: string
   fiat: string | null
-  email: string
   secondsLeft: number | null
   lockProgress: number | null
   selector: React.ReactNode
@@ -133,11 +131,9 @@ export const PendingState = ({
             </Box>
           )}
         </Box>
-        {email && (
-          <Text variant="caption" color="muted">
-            {t('checkout.crypto.closeHint', { email })}
-          </Text>
-        )}
+        <Text variant="caption" color="muted">
+          {t('checkout.crypto.closeHint')}
+        </Text>
       </Box>
 
       <NoWalletHelp t={t} />

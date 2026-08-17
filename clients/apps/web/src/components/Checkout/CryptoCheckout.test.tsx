@@ -121,15 +121,15 @@ describe('helpers', () => {
     expect(formatCryptoAmount('49.000000')).toBe('49')
     expect(formatCryptoAmount(1e-7)).toBe('0.0000001')
   })
-  it('orders currencies easiest-first', () => {
-    expect(sortCurrencies(['BTC', 'LTC', 'SOL_USDC'])).toEqual([
+  it('orders currencies BTC-first (default, recommended)', () => {
+    expect(sortCurrencies(['LTC', 'SOL_USDC', 'BTC'])).toEqual([
+      'BTC',
       'SOL_USDC',
       'LTC',
-      'BTC',
     ])
   })
   it('parses accepted currencies metadata', () => {
-    expect(parseAcceptedCurrencies('btc, ltc')).toEqual(['LTC', 'BTC'])
+    expect(parseAcceptedCurrencies('ltc, btc')).toEqual(['BTC', 'LTC'])
     expect(parseAcceptedCurrencies(undefined)).toEqual([])
   })
 })
@@ -182,16 +182,17 @@ describe('CryptoPaymentPanel', () => {
     expect(screen.getByText('temporarily unavailable')).toBeTruthy()
   })
 
-  it('shows option cards with ETA and network guidance', async () => {
+  it('shows option cards with ETA and network guidance, BTC recommended', async () => {
     stubFetch(PENDING)
     renderPanel()
     await screen.findByTestId('crypto-pending')
+    const btc = screen.getByTestId('crypto-option-BTC')
+    expect(btc.textContent).toContain('Recommended')
+    expect(btc.textContent).toContain('≈ 10–60 min')
     const usdc = screen.getByTestId('crypto-option-SOL_USDC')
-    expect(usdc.textContent).toContain('Recommended')
+    expect(usdc.textContent).not.toContain('Recommended')
     expect(usdc.textContent).toContain('Price stable')
     expect(usdc.textContent).toContain('≈ seconds')
-    const btc = screen.getByTestId('crypto-option-BTC')
-    expect(btc.textContent).toContain('≈ 10–60 min')
     // Cards are the selector: clicking switches the shown address
     fireEvent.click(usdc)
     expect(screen.getByTestId('crypto-address').textContent).toBe(

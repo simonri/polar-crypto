@@ -147,7 +147,6 @@ export function CryptoPaymentPanel({
         data={data}
         paidMethod={inv.paidMethod}
         currency={inv.receivedCurrency}
-        email={email}
       />
     )
   }
@@ -206,7 +205,6 @@ export function CryptoPaymentPanel({
       method={inv.method}
       currency={inv.currency ?? ''}
       fiat={fiat}
-      email={email}
       secondsLeft={inv.secondsLeft}
       lockProgress={inv.lockProgress}
       selector={

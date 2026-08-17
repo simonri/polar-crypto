@@ -17,13 +17,11 @@ export const DetectedState = ({
   data,
   paidMethod,
   currency,
-  email,
 }: {
   t: TranslateFn
   data: CryptoInvoiceStatus
   paidMethod: CryptoPaymentMethod | null
   currency: string
-  email: string
 }) => {
   const required = Math.max(1, paidMethod?.required_confirmations ?? 1)
   const confs = paidMethod?.confirmations ?? 0
@@ -67,7 +65,7 @@ export const DetectedState = ({
         label={t('checkout.crypto.viewTx')}
       />
       <Text variant="caption" color="muted">
-        {t('checkout.crypto.detectedCloseHint', { email })}
+        {t('checkout.crypto.detectedCloseHint')}
       </Text>
     </Box>
   )

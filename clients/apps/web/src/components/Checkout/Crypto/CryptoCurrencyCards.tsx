@@ -79,7 +79,10 @@ export function CryptoCurrencyCards({
               columnGap="m"
               padding="m"
               borderRadius="m"
-              borderWidth={selected ? 2 : 1}
+              // Constant width: a border that only grows on selection eats
+              // into the padding and reflows the text inside by a pixel or
+              // two. Only the colour should change.
+              borderWidth={2}
               borderStyle="solid"
               borderColor={selected ? 'border-warning' : 'border-primary'}
               backgroundColor={
@@ -93,7 +96,7 @@ export function CryptoCurrencyCards({
               <Box display="flex" flexDirection="column">
                 <Box display="flex" alignItems="center" columnGap="s">
                   <Text as="span">{CRYPTO_LABELS[token] ?? token}</Text>
-                  {meta?.stable && !isUnavailable && (
+                  {meta?.recommended && !isUnavailable && (
                     <Box
                       as="span"
                       backgroundColor="background-success"

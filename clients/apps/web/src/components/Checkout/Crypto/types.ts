@@ -48,10 +48,10 @@ export interface CryptoInvoiceStatus {
 }
 
 /**
- * Display order: easiest for a first-timer first (stable price, fast, cheap).
- * The server decides which of these are actually offered.
+ * Display order: BTC first (the default, recommended option), then the
+ * alternatives. The server decides which of these are actually offered.
  */
-export const CURRENCY_ORDER = ['SOL_USDC', 'SOL', 'LTC', 'BTC']
+export const CURRENCY_ORDER = ['BTC', 'SOL_USDC', 'SOL', 'LTC']
 
 export const CRYPTO_LABELS: Record<string, string> = {
   BTC: 'Bitcoin',
@@ -73,19 +73,22 @@ export const CRYPTO_NETWORK: Record<string, string> = {
 
 /**
  * Per-currency guidance for the option cards: how long a payment typically
- * takes to confirm. i18n key suffix under checkout.crypto.*.
+ * takes to confirm. i18n key suffix under checkout.crypto.*. `recommended`
+ * drives the "Recommended" tag; `stable` is a separate, purely descriptive
+ * "Price stable" line (only true for USDC).
  */
 export const CURRENCY_META: Record<
   string,
   {
     etaKey: 'etaInstant' | 'etaMinutes' | 'etaSlow'
     stable?: boolean
+    recommended?: boolean
   }
 > = {
+  BTC: { etaKey: 'etaSlow', recommended: true },
   SOL_USDC: { etaKey: 'etaInstant', stable: true },
   SOL: { etaKey: 'etaInstant' },
   LTC: { etaKey: 'etaMinutes' },
-  BTC: { etaKey: 'etaSlow' },
 }
 
 export const iconFor = (token: string): string =>
