@@ -206,27 +206,29 @@ class SolanaAdapter:
 
     async def balance(self) -> dict[str, Decimal]:
         if self.currency == "sol_usdc":
-            try:
-                result = await self._rpc(
-                    "getTokenAccountBalance",
-                    [self._merchant_ata_str, {"commitment": "confirmed"}],
-                )
-                value = (result or {}).get("value") or {}
-                raw = int(value.get("amount", "0"))
-                amount = Decimal(raw) / Decimal(10**6)
-            except CryptoServiceError as e:
-                # ATA not yet initialised — Solana returns "could not find account".
-                # Treat as zero balance rather than offline so the backoffice shows
-                # the wallet as Online with 0 USDC until first funding.
-                if "could not find account" in str(e).lower():
-                    log.info(
-                        "solana.balance.ata_not_initialized",
-                        ata=self._merchant_ata_str,
-                        note="Initialize by sending any USDC to the merchant wallet",
-                    )
-                    amount = Decimal(0)
-                else:
-                    raise
+            # A wallet can hold the same mint across more than one token
+            # account (funds received before the account existed, sent by a
+            # tool that doesn't default to the canonical Associated Token
+            # Account, an old pre-ATA `spl-token create-account`, etc).
+            # Checking only the canonical ATA under-reports real balance in
+            # that case, so sum every token account for this mint instead.
+            # Unlike getTokenAccountBalance on a single address, this RPC call
+            # doesn't error when there are no matches: it just returns an
+            # empty list, so no not-found handling is needed here.
+            result = await self._rpc(
+                "getTokenAccountsByOwner",
+                [
+                    self._merchant_pubkey_str,
+                    {"mint": self._usdc_mint_str},
+                    {"encoding": "jsonParsed", "commitment": "confirmed"},
+                ],
+            )
+            accounts = (result or {}).get("value") or []
+            amount = Decimal(0)
+            for acc in accounts:
+                info = acc["account"]["data"]["parsed"]["info"]
+                raw = int(info["tokenAmount"]["amount"])
+                amount += Decimal(raw) / Decimal(10**6)
         else:
             result = await self._rpc(
                 "getBalance",
