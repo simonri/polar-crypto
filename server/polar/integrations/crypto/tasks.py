@@ -70,8 +70,8 @@ async def process_crypto_invoice(invoice_id: uuid.UUID) -> None:
 async def poll_pending_crypto_invoices() -> None:
     """
     Cron job: expire stale invoices and enqueue a processing task for each
-    invoice whose addresses we still watch (pending, unconfirmed, and — inside
-    the monitoring window — expired and partially paid ones).
+    invoice whose addresses we still watch (pending, unconfirmed, and, inside
+    the monitoring window, expired and partially paid ones).
     """
     from sqlalchemy import select
 

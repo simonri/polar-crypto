@@ -199,22 +199,19 @@ describe('CryptoPaymentPanel', () => {
     )
   })
 
-  it('explains how to pay and shows fee, rate and network guidance', async () => {
+  it('explains how to pay and shows fee and network guidance, using USDC not the internal code', async () => {
     stubFetch(PENDING)
     renderPanel({ initialCurrency: 'SOL_USDC' })
     await screen.findByTestId('crypto-pending')
-    // three-step how-to
-    expect(screen.getByText(/1 · Open your wallet app/)).toBeTruthy()
-    expect(screen.getByText(/3 · Send the exact amount/)).toBeTruthy()
+    // one small, closed-by-default help link, not a step-by-step block
     expect(screen.getByText('Don’t have a wallet?')).toBeTruthy()
     // fee helper under the amount
-    expect(screen.getByText(/fee paid separately/)).toBeTruthy()
-    // wrong-network warning for USDC
-    expect(screen.getByText(/cannot be recovered/)).toBeTruthy()
-    // locked rate (USDC rate = 1 → $1.00)
-    expect(screen.getByTestId('crypto-rate').textContent).toContain(
-      '1 SOL_USDC = $1',
-    )
+    expect(screen.getByText(/Some wallets add a small fee/)).toBeTruthy()
+    // wrong-network warning for USDC uses the display symbol, not SOL_USDC
+    const warning = screen.getByText(/Only send USDC on Solana/)
+    expect(warning).toBeTruthy()
+    expect(screen.queryByText(/SOL_USDC/)).toBeNull()
+    expect(screen.getByTestId('crypto-amount').textContent).toContain('USDC')
   })
 
   it('shows an error with retry when the status endpoint keeps failing', async () => {
@@ -319,7 +316,7 @@ describe('CryptoPaymentPanel', () => {
     })
     renderPanel()
     await screen.findByTestId('crypto-review')
-    expect(screen.getByText(/arrived after the price lock/)).toBeTruthy()
+    expect(screen.getByText(/arrived after prices had moved/)).toBeTruthy()
   })
 
   it('offers a fresh amount when expired and renews via the endpoint', async () => {

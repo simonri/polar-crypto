@@ -26,9 +26,8 @@ export function CryptoPaymentInstructions({
         <Text as="span" weight="medium">
           {product_name}
         </Text>{' '}
-        ({amount_display}) is waiting for a crypto payment. The link below
-        always shows a current amount and address — use it to pay from another
-        device, or to pick up where you left off.
+        ({amount_display}) is waiting for payment. Use the link below to pay
+        from another device, or to pick up where you left off.
       </Intro>
       <Button href={url}>Open payment page</Button>
       <Text variant="caption" align="center">

@@ -534,7 +534,7 @@ class OrderService:
         try:
             await checkout_service.handle_success(session, checkout)
         except NotConfirmedCheckout:
-            # The checkout was already fulfilled — most likely a renewed
+            # The checkout was already fulfilled, most likely a renewed
             # invoice was paid *and* the old one received a late payment.
             # Keep the money visible for a human instead of dropping it.
             log.warning(

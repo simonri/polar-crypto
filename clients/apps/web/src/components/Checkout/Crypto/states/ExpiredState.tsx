@@ -4,7 +4,11 @@ import type { TranslateFn } from '@polar-sh/i18n'
 import { Button, Text } from '@polar-sh/orbit'
 import { Box } from '@polar-sh/orbit/Box'
 import { Notice } from '../pieces'
-import { formatCryptoAmount, type CryptoPaymentMethod } from '../types'
+import {
+  displaySymbol,
+  formatCryptoAmount,
+  type CryptoPaymentMethod,
+} from '../types'
 
 /** Price lock ran out with no funds seen: offer a fresh amount, never a dead end. */
 export const ExpiredState = ({
@@ -46,7 +50,7 @@ export const ExpiredState = ({
         <Text as="p" variant="heading-xxs" lineThrough>
           {formatCryptoAmount(method.amount)}{' '}
           <Text as="span" color="muted">
-            {method.currency.toUpperCase()}
+            {displaySymbol(method.currency)}
           </Text>
         </Text>
       </Box>

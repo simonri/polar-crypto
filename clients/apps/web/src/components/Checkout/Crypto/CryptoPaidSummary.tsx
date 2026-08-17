@@ -11,6 +11,7 @@ import { Box } from '@polar-sh/orbit/Box'
 import { ExternalLink } from 'lucide-react'
 import { useEffect, useState } from 'react'
 import {
+  displaySymbol,
   explorerUrl,
   formatCryptoAmount,
   type CryptoInvoiceStatus,
@@ -72,7 +73,7 @@ export const CryptoPaidSummary = ({
       <Text variant="caption" color="muted">
         {t('checkout.crypto.paidCrypto', {
           amount: formatCryptoAmount(status.received_amount),
-          currency,
+          currency: displaySymbol(currency),
         })}
       </Text>
       {txUrl && (

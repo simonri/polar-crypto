@@ -327,7 +327,7 @@ class CryptoPaymentProcessor:
 
         confirmations = int(status.get("confirmations", 0) or 0)
 
-        # Not "Paid" — but maybe *something* arrived (partial payment). Electrum
+        # Not "Paid", but maybe *something* arrived (partial payment). Electrum
         # only reports Paid for >= requested, so ask for the address balance.
         received = await self._service.get_address_received(
             pm.currency, pm.payment_address

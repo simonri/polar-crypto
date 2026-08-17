@@ -7,7 +7,7 @@ import {
 } from '@polar-sh/i18n'
 import { Text } from '@polar-sh/orbit'
 import { Box } from '@polar-sh/orbit/Box'
-import { CryptoTokenIcon } from './CryptoCurrencySelector'
+import { CryptoTokenIcon } from './CryptoTokenIcon'
 import {
   CRYPTO_LABELS,
   CRYPTO_NETWORK,
@@ -16,10 +16,9 @@ import {
 } from './types'
 
 /**
- * The coin choice as option cards instead of a blind dropdown: each card says
- * what a first-timer needs to decide — how fast it settles, what the fee feels
- * like, whether the price is stable — with the easiest option first and
- * recommended.
+ * The coin choice as option cards instead of a blind dropdown. Each card
+ * shows what a first-timer needs to decide: speed, fee, price stability.
+ * Easiest option first, marked Recommended.
  */
 export function CryptoCurrencyCards({
   value,

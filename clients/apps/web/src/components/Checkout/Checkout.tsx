@@ -34,7 +34,7 @@ import {
   readPersistedCurrency,
 } from './CryptoCheckout'
 
-// Tell people the payment rail before they commit their email — nobody
+// Tell people the payment rail before they commit their email. Nobody
 // should discover "crypto only" after pressing the button.
 const AcceptedCryptoHint = ({
   currencies,

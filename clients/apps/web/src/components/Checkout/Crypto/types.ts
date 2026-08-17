@@ -54,11 +54,15 @@ export interface CryptoInvoiceStatus {
 export const CURRENCY_ORDER = ['SOL_USDC', 'SOL', 'LTC', 'BTC']
 
 export const CRYPTO_LABELS: Record<string, string> = {
-  BTC: 'Bitcoin (BTC)',
-  LTC: 'Litecoin (LTC)',
-  SOL: 'Solana (SOL)',
-  SOL_USDC: 'USDC on Solana',
+  BTC: 'Bitcoin',
+  LTC: 'Litecoin',
+  SOL: 'Solana',
+  SOL_USDC: 'USDC',
 }
+
+/** Short display symbol for amounts and inline text (never the internal code). */
+export const displaySymbol = (currency: string): string =>
+  currency.toUpperCase() === 'SOL_USDC' ? 'USDC' : currency.toUpperCase()
 
 export const CRYPTO_NETWORK: Record<string, string> = {
   BTC: 'Bitcoin',
@@ -147,7 +151,7 @@ export const persistCurrency = (clientSecret: string, currency: string) => {
   try {
     window.localStorage.setItem(storageKey(clientSecret), currency)
   } catch {
-    // Private mode / disabled storage — the choice just won't survive reload.
+    // Private mode / disabled storage: the choice just won't survive reload.
   }
 }
 

@@ -175,7 +175,7 @@ def _render_exceptions(request: Request, exceptions: list[CryptoInvoice]) -> Non
             )
         if not exceptions:
             with tag.div(classes="alert alert-success"):
-                text("No exceptions — every detected payment completed.")
+                text("No exceptions: every detected payment completed.")
             return
         with tag.div(classes="overflow-x-auto"):
             with tag.table(classes="table table-zebra"):
@@ -217,12 +217,12 @@ def _render_exceptions(request: Request, exceptions: list[CryptoInvoice]) -> Non
                             with tag.td(classes="font-mono"):
                                 text(f"{inv.paid_crypto_amount or 0} {cur}")
                             with tag.td(classes="font-mono"):
-                                text(f"{pm.amount} {cur}" if pm else "—")
+                                text(f"{pm.amount} {cur}" if pm else "-")
                             with tag.td(classes="text-xs"):
                                 text(
                                     inv.payment_detected_at.strftime("%Y-%m-%d %H:%M")
                                     if inv.payment_detected_at
-                                    else "—"
+                                    else "-"
                                 )
                             with tag.td():
                                 with button(

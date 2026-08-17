@@ -5,6 +5,7 @@ import { Text } from '@polar-sh/orbit'
 import { Box } from '@polar-sh/orbit/Box'
 import { AddressBlock, CryptoAmount, Notice } from '../pieces'
 import {
+  displaySymbol,
   formatCryptoAmount,
   type CryptoInvoiceStatus,
   type CryptoPaymentMethod,
@@ -25,6 +26,7 @@ export const PartialState = ({
   email: string
 }) => {
   const remaining = formatCryptoAmount(data.remaining_amount ?? '0')
+  const symbol = displaySymbol(currency)
   return (
     <Box
       display="flex"
@@ -36,14 +38,14 @@ export const PartialState = ({
         {t('checkout.crypto.partialBody', {
           received: formatCryptoAmount(data.received_amount ?? '0'),
           expected: formatCryptoAmount(paidMethod.amount),
-          currency,
+          currency: symbol,
         })}
       </Notice>
       <Box display="flex" flexDirection="column" rowGap="s">
         <Text variant="label">{t('checkout.crypto.sendRemaining')}</Text>
         <CryptoAmount
           amount={remaining}
-          currency={currency}
+          currency={symbol}
           copyLabel={t('checkout.crypto.copyAmount')}
           copiedLabel={t('checkout.crypto.copied')}
           testId="crypto-remaining"

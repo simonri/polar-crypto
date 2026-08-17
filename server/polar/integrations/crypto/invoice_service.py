@@ -311,7 +311,7 @@ class CryptoInvoiceService:
 
         A checkout can accumulate several invoices through renewals. If money
         has been detected on *any* of them (including an old, expired one that
-        was paid late), that invoice wins over the current unpaid one — the
+        was paid late), that invoice wins over the current unpaid one. The
         customer must never be shown "expired" while their funds are on-chain.
         """
         invoices = await self.list_by_order_id(session, order_id)

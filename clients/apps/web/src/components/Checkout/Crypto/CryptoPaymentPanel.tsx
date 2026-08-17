@@ -14,7 +14,7 @@ import { DetectedState, ReviewState } from './states/DetectedState'
 import { ExpiredState } from './states/ExpiredState'
 import { PartialState } from './states/PartialState'
 import { PendingState } from './states/PendingState'
-import { formatCryptoAmount } from './types'
+import { displaySymbol, formatCryptoAmount } from './types'
 import { useCryptoInvoice, type CryptoInvoiceEvents } from './useCryptoInvoice'
 
 const formatFiat = (
@@ -78,7 +78,6 @@ export function CryptoPaymentPanel({
   const { data } = inv
 
   const fiat = formatFiat(data?.fiat_amount, data?.fiat_currency, locale)
-  const rate = formatFiat(inv.method?.rate, data?.fiat_currency, locale)
 
   if (inv.state.kind === 'loading') {
     return (
@@ -131,7 +130,7 @@ export function CryptoPaymentPanel({
           <Notice tone="warn" testId="crypto-overpaid">
             {t('checkout.crypto.overpaidNote', {
               amount: formatCryptoAmount(over),
-              currency: inv.receivedCurrency,
+              currency: displaySymbol(inv.receivedCurrency),
             })}
           </Notice>
         )}
@@ -207,7 +206,6 @@ export function CryptoPaymentPanel({
       method={inv.method}
       currency={inv.currency ?? ''}
       fiat={fiat}
-      rate={rate}
       email={email}
       secondsLeft={inv.secondsLeft}
       lockProgress={inv.lockProgress}

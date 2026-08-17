@@ -8,11 +8,12 @@ import { AddressBlock, CryptoAmount } from '../pieces'
 import {
   CRYPTO_NETWORK,
   WRONG_NETWORK_RISK,
+  displaySymbol,
   formatCryptoAmount,
   formatDuration,
   type CryptoPaymentMethod,
 } from '../types'
-import { HowToSteps } from './HowToSteps'
+import { NoWalletHelp } from './NoWalletHelp'
 import { QrOrWallet } from './QrOrWallet'
 
 const LOW_TIME_SECONDS = 120
@@ -22,7 +23,6 @@ export const PendingState = ({
   method,
   currency,
   fiat,
-  rate,
   email,
   secondsLeft,
   lockProgress,
@@ -32,13 +32,12 @@ export const PendingState = ({
   method: CryptoPaymentMethod | null
   currency: string
   fiat: string | null
-  /** Locked exchange rate, formatted as fiat (e.g. "$59,756.00"). */
-  rate: string | null
   email: string
   secondsLeft: number | null
   lockProgress: number | null
   selector: React.ReactNode
 }) => {
+  const symbol = displaySymbol(currency)
   const network = CRYPTO_NETWORK[currency]
   const risky = WRONG_NETWORK_RISK.has(currency)
   const lowTime = secondsLeft !== null && secondsLeft <= LOW_TIME_SECONDS
@@ -50,8 +49,6 @@ export const PendingState = ({
       rowGap="xl"
       data-testid="crypto-pending"
     >
-      <HowToSteps t={t} />
-
       {selector}
 
       {method && (
@@ -60,7 +57,7 @@ export const PendingState = ({
             <Text variant="label">{t('checkout.crypto.sendExactly')}</Text>
             <CryptoAmount
               amount={formatCryptoAmount(method.amount)}
-              currency={method.currency.toUpperCase()}
+              currency={symbol}
               approx={
                 fiat ? t('checkout.crypto.approxFiat', { amount: fiat }) : null
               }
@@ -74,38 +71,17 @@ export const PendingState = ({
           </Box>
 
           <Box display="flex" flexDirection="column" rowGap="s">
-            <Box display="flex" alignItems="center" columnGap="s">
-              <Text variant="label">{t('checkout.crypto.toAddress')}</Text>
-              {network && (
-                <Box
-                  as="span"
-                  borderRadius="s"
-                  paddingHorizontal="xs"
-                  backgroundColor={
-                    risky ? 'background-warning' : 'background-secondary'
-                  }
-                >
-                  <Text
-                    as="span"
-                    variant="caption"
-                    color={risky ? 'warning' : 'muted'}
-                  >
-                    {t('checkout.crypto.networkOnly', {
-                      network: network,
-                    })}
-                  </Text>
-                </Box>
-              )}
-            </Box>
+            <Text variant="label">{t('checkout.crypto.toAddress')}</Text>
             <AddressBlock
               address={method.payment_address}
               copyLabel={t('checkout.crypto.copyAddress')}
               copiedLabel={t('checkout.crypto.copied')}
             />
             {risky && (
-              <Text variant="caption" color="danger">
-                {t('checkout.crypto.wrongNetworkWarning', {
-                  currency: 'USDC',
+              <Text variant="caption" color="warning">
+                {t('checkout.crypto.networkWarning', {
+                  currency: symbol,
+                  network,
                 })}
               </Text>
             )}
@@ -172,20 +148,14 @@ export const PendingState = ({
             </Box>
           )}
         </Box>
-        {rate && method && (
-          <Text variant="caption" color="muted" data-testid="crypto-rate">
-            {t('checkout.crypto.rateLine', {
-              currency: method.currency.toUpperCase(),
-              rate,
-            })}
-          </Text>
-        )}
         {email && (
           <Text variant="caption" color="muted">
             {t('checkout.crypto.closeHint', { email })}
           </Text>
         )}
       </Box>
+
+      <NoWalletHelp t={t} />
     </Box>
   )
 }

@@ -11,9 +11,9 @@ import { WalletPay } from '../WalletPay'
 /**
  * The "how do I actually pay" block, ordered by device:
  *
- * - Phone (coarse pointer): wallets live on this same device, so a QR of the
- *   own screen is useless — "Open in wallet app" is the primary button and
- *   the QR hides behind a toggle for the desktop-wallet-nearby case.
+ * - Phone (coarse pointer): wallets live on this same device, so a QR of
+ *   the own screen is useless. "Open in wallet app" is the primary button
+ *   and the QR hides behind a toggle for the desktop-wallet-nearby case.
  * - Desktop: the QR is primary (scan with the phone), the deep link secondary.
  *
  * Browser-wallet one-click buttons (Phantom / WebLN) render above either.

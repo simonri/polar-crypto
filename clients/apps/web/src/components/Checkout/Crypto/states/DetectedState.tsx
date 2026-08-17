@@ -5,6 +5,7 @@ import { Text } from '@polar-sh/orbit'
 import { Box } from '@polar-sh/orbit/Box'
 import { Notice, TxLinks } from '../pieces'
 import {
+  displaySymbol,
   formatCryptoAmount,
   type CryptoInvoiceStatus,
   type CryptoPaymentMethod,
@@ -36,7 +37,7 @@ export const DetectedState = ({
       <Notice tone="good" title={t('checkout.crypto.detectedTitle')}>
         {t('checkout.crypto.detectedBody', {
           amount: formatCryptoAmount(data.received_amount ?? '0'),
-          currency,
+          currency: displaySymbol(currency),
         })}
       </Notice>
       <Box display="flex" flexDirection="column" rowGap="s">
@@ -99,7 +100,7 @@ export const ReviewState = ({
       <Notice tone="info" title={t('checkout.crypto.reviewTitle')}>
         {t('checkout.crypto.reviewBody', {
           amount: formatCryptoAmount(data.received_amount ?? '0'),
-          currency,
+          currency: displaySymbol(currency),
           reason,
           email,
         })}

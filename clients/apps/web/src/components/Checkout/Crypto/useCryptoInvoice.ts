@@ -130,7 +130,7 @@ export function useCryptoInvoice({
   }, [])
 
   // Surface progress in the tab title (people wait in another tab) and via a
-  // browser notification when permission was already granted — never prompt.
+  // browser notification when permission was already granted. Never prompt.
   const statusRef = useRef<string | null>(null)
   const titleRef = useRef<string | null>(null)
   useEffect(() => {
@@ -151,7 +151,7 @@ export function useCryptoInvoice({
       ) {
         try {
           new Notification('Payment confirmed', {
-            body: 'Your crypto payment is confirmed — finishing your order.',
+            body: 'Your crypto payment is confirmed. Finishing your order.',
           })
         } catch {
           // Notification constructor unavailable (e.g. some mobile browsers)
@@ -180,7 +180,7 @@ export function useCryptoInvoice({
       applyStatus((await res.json()) as CryptoInvoiceStatus)
     } catch {
       setRenewFailed(true)
-      // A 409 means money arrived in the meantime — refresh to show it.
+      // A 409 means money arrived in the meantime. Refresh to show it.
       void fetchStatus()
     } finally {
       setRenewing(false)
