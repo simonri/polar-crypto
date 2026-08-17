@@ -60,15 +60,32 @@ async function payWithPhantom(
     ? new web3.PublicKey(method.reference)
     : null
 
-  let instruction
+  const instructions: InstanceType<typeof web3.TransactionInstruction>[] = []
+  let transferInstruction
+
   if (method.spl_token) {
     const spl = await import('@solana/spl-token')
     const mint = new web3.PublicKey(method.spl_token)
     const source = spl.getAssociatedTokenAddressSync(mint, payer)
     const destination = spl.getAssociatedTokenAddressSync(mint, recipient)
+    // The merchant's token account for this mint may not exist on-chain yet
+    // (e.g. their very first payment in this currency). A wallet's own Send
+    // screen creates it automatically; a hand-built instruction doesn't
+    // unless we add this explicitly. Without it, simulation shows the
+    // transfer failing and Phantom blocks the request outright. Idempotent:
+    // a no-op, still paid by the customer as part of the same transaction,
+    // if the account already exists.
+    instructions.push(
+      spl.createAssociatedTokenAccountIdempotentInstruction(
+        payer,
+        destination,
+        recipient,
+        mint,
+      ),
+    )
     // USDC has 6 decimals on Solana
     const amount = BigInt(Math.round(parseFloat(method.amount) * 1e6))
-    instruction = spl.createTransferCheckedInstruction(
+    transferInstruction = spl.createTransferCheckedInstruction(
       source,
       mint,
       destination,
@@ -77,21 +94,22 @@ async function payWithPhantom(
       6,
     )
   } else {
-    instruction = web3.SystemProgram.transfer({
+    transferInstruction = web3.SystemProgram.transfer({
       fromPubkey: payer,
       toPubkey: recipient,
       lamports: Math.round(parseFloat(method.amount) * web3.LAMPORTS_PER_SOL),
     })
   }
   if (reference) {
-    instruction.keys.push({
+    transferInstruction.keys.push({
       pubkey: reference,
       isSigner: false,
       isWritable: false,
     })
   }
+  instructions.push(transferInstruction)
 
-  const transaction = new web3.Transaction().add(instruction)
+  const transaction = new web3.Transaction().add(...instructions)
   transaction.feePayer = payer
   transaction.recentBlockhash = (
     await connection.getLatestBlockhash()
