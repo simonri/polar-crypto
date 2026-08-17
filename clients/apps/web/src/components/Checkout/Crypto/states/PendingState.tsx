@@ -6,8 +6,6 @@ import { Box } from '@polar-sh/orbit/Box'
 import { Timer } from 'lucide-react'
 import { AddressBlock, CryptoAmount } from '../pieces'
 import {
-  CRYPTO_NETWORK,
-  WRONG_NETWORK_RISK,
   displaySymbol,
   formatCryptoAmount,
   formatDuration,
@@ -38,8 +36,6 @@ export const PendingState = ({
   selector: React.ReactNode
 }) => {
   const symbol = displaySymbol(currency)
-  const network = CRYPTO_NETWORK[currency]
-  const risky = WRONG_NETWORK_RISK.has(currency)
   const lowTime = secondsLeft !== null && secondsLeft <= LOW_TIME_SECONDS
 
   return (
@@ -65,9 +61,6 @@ export const PendingState = ({
               copiedLabel={t('checkout.crypto.copied')}
               testId="crypto-amount"
             />
-            <Text variant="caption" color="muted">
-              {t('checkout.crypto.feeHelper')}
-            </Text>
           </Box>
 
           <Box display="flex" flexDirection="column" rowGap="s">
@@ -77,14 +70,6 @@ export const PendingState = ({
               copyLabel={t('checkout.crypto.copyAddress')}
               copiedLabel={t('checkout.crypto.copied')}
             />
-            {risky && (
-              <Text variant="caption" color="warning">
-                {t('checkout.crypto.networkWarning', {
-                  currency: symbol,
-                  network,
-                })}
-              </Text>
-            )}
           </Box>
 
           <QrOrWallet t={t} method={method} />

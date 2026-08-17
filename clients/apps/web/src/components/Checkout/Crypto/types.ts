@@ -71,26 +71,21 @@ export const CRYPTO_NETWORK: Record<string, string> = {
   SOL_USDC: 'Solana',
 }
 
-/** Tokens living on another chain: sending on the wrong network loses funds. */
-export const WRONG_NETWORK_RISK = new Set(['SOL_USDC'])
-
 /**
  * Per-currency guidance for the option cards: how long a payment typically
- * takes to confirm and what the network fee feels like. i18n key suffixes
- * under checkout.crypto.*.
+ * takes to confirm. i18n key suffix under checkout.crypto.*.
  */
 export const CURRENCY_META: Record<
   string,
   {
     etaKey: 'etaInstant' | 'etaMinutes' | 'etaSlow'
-    feeKey: 'feeNegligible' | 'feeLow' | 'feeVaries'
     stable?: boolean
   }
 > = {
-  SOL_USDC: { etaKey: 'etaInstant', feeKey: 'feeNegligible', stable: true },
-  SOL: { etaKey: 'etaInstant', feeKey: 'feeNegligible' },
-  LTC: { etaKey: 'etaMinutes', feeKey: 'feeLow' },
-  BTC: { etaKey: 'etaSlow', feeKey: 'feeVaries' },
+  SOL_USDC: { etaKey: 'etaInstant', stable: true },
+  SOL: { etaKey: 'etaInstant' },
+  LTC: { etaKey: 'etaMinutes' },
+  BTC: { etaKey: 'etaSlow' },
 }
 
 export const iconFor = (token: string): string =>

@@ -182,7 +182,7 @@ describe('CryptoPaymentPanel', () => {
     expect(screen.getByText('temporarily unavailable')).toBeTruthy()
   })
 
-  it('shows option cards with ETA, fee and network guidance', async () => {
+  it('shows option cards with ETA and network guidance', async () => {
     stubFetch(PENDING)
     renderPanel()
     await screen.findByTestId('crypto-pending')
@@ -199,19 +199,20 @@ describe('CryptoPaymentPanel', () => {
     )
   })
 
-  it('explains how to pay and shows fee and network guidance, using USDC not the internal code', async () => {
+  it('shows USDC everywhere, never the internal SOL_USDC code, and no network warning', async () => {
     stubFetch(PENDING)
     renderPanel({ initialCurrency: 'SOL_USDC' })
     await screen.findByTestId('crypto-pending')
     // one small, closed-by-default help link, not a step-by-step block
     expect(screen.getByText('Don’t have a wallet?')).toBeTruthy()
-    // fee helper under the amount
-    expect(screen.getByText(/Some wallets add a small fee/)).toBeTruthy()
-    // wrong-network warning for USDC uses the display symbol, not SOL_USDC
-    const warning = screen.getByText(/Only send USDC on Solana/)
-    expect(warning).toBeTruthy()
-    expect(screen.queryByText(/SOL_USDC/)).toBeNull()
     expect(screen.getByTestId('crypto-amount').textContent).toContain('USDC')
+    expect(screen.queryByText(/SOL_USDC/)).toBeNull()
+    // no "wrong network" scare copy
+    expect(screen.queryByText(/cannot be recovered/)).toBeNull()
+    expect(screen.queryByText(/Only send/)).toBeNull()
+    // address is plain text, not split into colored head/tail spans
+    const address = screen.getByTestId('crypto-address')
+    expect(address.querySelector('span')).toBeNull()
   })
 
   it('shows an error with retry when the status endpoint keeps failing', async () => {

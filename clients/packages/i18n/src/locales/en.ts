@@ -342,10 +342,6 @@ export default {
       ctaExplainer:
         'You’ll get a payment address on the next step. Nothing is charged until you send it.',
       acceptedHint: 'You can pay with {currencies}.',
-      feeHelper:
-        'Some wallets add a small fee. Make sure the full amount arrives.',
-      networkWarning:
-        'Only send {currency} on {network}. Other networks lose the funds.',
       noWallet: 'Don’t have a wallet?',
       noWalletHelp:
         'Install a wallet app, such as Phantom or Muun, then send crypto to it. Or pay from an exchange account by choosing “Withdraw” or “Send” to this address.',
@@ -355,9 +351,6 @@ export default {
       etaInstant: '≈ seconds',
       etaMinutes: '≈ 2–15 min',
       etaSlow: '≈ 10–60 min',
-      feeNegligible: 'fee ≈ $0.001',
-      feeLow: 'low fee',
-      feeVaries: 'fee varies',
       priceStable: 'Price stable',
       networkLabel: '{network} network',
       payWithPhantom: 'Pay with Phantom',

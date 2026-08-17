@@ -17,7 +17,7 @@ import {
 
 /**
  * The coin choice as option cards instead of a blind dropdown. Each card
- * shows what a first-timer needs to decide: speed, fee, price stability.
+ * shows what a first-timer needs to decide: speed and price stability.
  * Easiest option first, marked Recommended.
  */
 export function CryptoCurrencyCards({
@@ -116,7 +116,6 @@ export function CryptoCurrencyCards({
                         meta?.stable
                           ? t('checkout.crypto.priceStable')
                           : undefined,
-                        meta ? t(`checkout.crypto.${meta.feeKey}`) : undefined,
                       ]
                         .filter(Boolean)
                         .join(' · ')}

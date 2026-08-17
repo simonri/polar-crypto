@@ -112,9 +112,6 @@ export const AddressBlock = ({
   copyLabel: string
   copiedLabel: string
 }) => {
-  const head = address.slice(0, 4)
-  const tail = address.slice(-4)
-  const middle = address.slice(4, -4)
   return (
     <Box
       display="flex"
@@ -129,18 +126,12 @@ export const AddressBlock = ({
       paddingVertical="s"
     >
       {/* Plain element: a 44-char address must break anywhere, which no
-          Text prop expresses; the pieces inside carry the design tokens. */}
+          Text prop expresses. */}
       <code
         className="font-mono text-xs leading-relaxed break-all"
         data-testid="crypto-address"
       >
-        <Text as="span" variant="mono" color="accent">
-          <strong>{head}</strong>
-        </Text>
-        {middle}
-        <Text as="span" variant="mono" color="accent">
-          <strong>{tail}</strong>
-        </Text>
+        {address}
       </code>
       <Box display="flex" justifyContent="start">
         <CopyButton
