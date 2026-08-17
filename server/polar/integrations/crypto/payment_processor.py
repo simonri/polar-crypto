@@ -156,6 +156,36 @@ class CryptoPaymentProcessor:
         threshold = CONFIRMATION_THRESHOLDS.get(pm.currency, 1)
         now = utc_now()
 
+        # Wallets can reuse an address across unrelated invoices (Electrum
+        # gap-limit exhaustion, wallet restore, etc). If this address was
+        # already claimed by a *different* payment method, the balance we're
+        # seeing likely belongs to that other invoice, not this one. One
+        # real payment must never auto-complete more than one invoice.
+        # Confirmed in production 2026-08-17: a single reused address fanned
+        # out to 34 unrelated invoices before this guard existed.
+        collision = await _find_address_claim(
+            session, pm.currency, pm.payment_address, exclude_id=pm.id
+        )
+        if collision is not None:
+            log.warning(
+                "crypto.invoice.address_reuse_detected",
+                invoice_id=str(invoice.id),
+                payment_method_id=str(pm.id),
+                currency=pm.currency,
+                address=pm.payment_address,
+                claimed_by_payment_method_id=str(collision),
+            )
+            invoice.status = CryptoInvoiceStatus.needs_review
+            invoice.exception_status = "address_reused"
+            invoice.paid_crypto_amount = received
+            invoice.paid_crypto_currency = pm.currency
+            pm.is_used = True
+            session.add(pm)
+            session.add(invoice)
+            await session.flush()
+            await _publish_invoice_event(session, invoice)
+            return
+
         # Never let a smaller reading regress a larger one (daemon restarts,
         # different code paths reporting different granularity).
         if invoice.paid_crypto_currency == pm.currency and invoice.paid_crypto_amount:
@@ -304,14 +334,20 @@ class CryptoPaymentProcessor:
         if status_str in ("Paid", "Confirmed", "complete"):
             # Daemons that don't report the received amount (Electrum) only
             # flag "Paid" once at least the requested amount arrived, so the
-            # requested amount is a safe floor. Prefer the real balance when
-            # the daemon can tell us (catches overpayments).
+            # requested amount is a safe floor -- but only when we truly have
+            # no other signal. If the daemon or the real address balance
+            # *does* report a number, trust it even when it's smaller than
+            # requested: silently rounding a short amount up to "fully paid"
+            # is exactly how the 2026-08-17 address-reuse incident produced
+            # false completions (a stale "Paid" status with no real amount
+            # behind it). A short amount should surface as paid_partial, not
+            # get upgraded into paid_late/complete.
             amount = status.get("amount")
             if amount is None:
                 amount = await self._service.get_address_received(
                     pm.currency, pm.payment_address
                 )
-            if amount is None or Decimal(str(amount)) < pm.amount:
+            if amount is None:
                 amount = float(pm.amount)
             await self._process_payment(
                 session,
@@ -460,6 +496,29 @@ def _is_watched(invoice: CryptoInvoice) -> bool:
             invoice.monitoring_expiry is None or invoice.monitoring_expiry > utc_now()
         )
     return True
+
+
+async def _find_address_claim(
+    session: AsyncSession,
+    currency: str,
+    payment_address: str,
+    *,
+    exclude_id: object,
+) -> object | None:
+    """
+    Return the id of another payment method already marked `is_used` on this
+    same (currency, address), if any. A daemon-issued address is supposed to
+    be unique per invoice; when the wallet reuses one anyway, only the first
+    payment method to observe funds on it may claim them.
+    """
+    stmt = select(CryptoPaymentMethod.id).where(
+        CryptoPaymentMethod.currency == currency.lower(),
+        CryptoPaymentMethod.payment_address == payment_address,
+        CryptoPaymentMethod.is_used.is_(True),
+        CryptoPaymentMethod.id != exclude_id,
+    )
+    result = await session.execute(stmt)
+    return result.scalar_one_or_none()
 
 
 async def _get_payment_method_by_lookup(

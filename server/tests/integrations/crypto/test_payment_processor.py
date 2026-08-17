@@ -500,6 +500,146 @@ class TestSSEPublish:
 
 
 @pytest.mark.asyncio
+class TestAddressReuse:
+    """
+    Reproduces the 2026-08-17 incident: a wallet reused one BTC address
+    across many invoices, and one real payment auto-completed all of them.
+    """
+
+    async def test_second_invoice_on_a_claimed_address_needs_review(
+        self,
+        session: AsyncSession,
+        save_fixture: SaveFixture,
+        product_one_time: Product,
+        processor: CryptoPaymentProcessor,
+        finalize_mock: AsyncMock,
+    ) -> None:
+        checkout = await create_checkout(
+            save_fixture, products=[product_one_time], status=CheckoutStatus.confirmed
+        )
+        shared_address = "bc1qshared-address-reused-by-two-invoices"
+
+        invoice_a, pm_a = await _make_invoice(save_fixture, checkout)
+        pm_a.payment_address = shared_address
+        await save_fixture(pm_a)
+        await processor._process_payment(
+            session, invoice_a, pm_a, {"amount": "0.001", "confirmations": 1}
+        )
+        assert _status(invoice_a) == CryptoInvoiceStatus.complete
+        assert pm_a.is_used is True
+        finalize_mock.assert_awaited_once()
+
+        # A second, unrelated invoice was handed the *same* address by the
+        # daemon. The same on-chain funds must not also complete this one.
+        invoice_b, pm_b = await _make_invoice(save_fixture, checkout)
+        pm_b.payment_address = shared_address
+        await save_fixture(pm_b)
+        await processor._process_payment(
+            session, invoice_b, pm_b, {"amount": "0.001", "confirmations": 1}
+        )
+
+        assert _status(invoice_b) == CryptoInvoiceStatus.needs_review
+        assert invoice_b.exception_status == "address_reused"
+        assert pm_b.is_used is True
+        # Only the first invoice's payment triggered order fulfillment.
+        finalize_mock.assert_awaited_once()
+
+    async def test_unclaimed_shared_address_still_completes_normally(
+        self,
+        session: AsyncSession,
+        save_fixture: SaveFixture,
+        product_one_time: Product,
+        processor: CryptoPaymentProcessor,
+        finalize_mock: AsyncMock,
+    ) -> None:
+        """Sharing a `payment_address` value is only a problem once one of
+        the invoices has actually claimed it (is_used=True). An address
+        that simply hasn't been used yet by anyone is not a collision."""
+        checkout = await create_checkout(
+            save_fixture, products=[product_one_time], status=CheckoutStatus.confirmed
+        )
+        invoice, pm = await _make_invoice(save_fixture, checkout)
+
+        await processor._process_payment(
+            session, invoice, pm, {"amount": "0.001", "confirmations": 1}
+        )
+
+        assert _status(invoice) == CryptoInvoiceStatus.complete
+        finalize_mock.assert_awaited_once()
+
+
+@pytest.mark.asyncio
+class TestPollAmountFallback:
+    """
+    The secondary bug that let the address-reuse incident produce full
+    "complete" results instead of merely ambiguous ones: a "Paid" status
+    with no trustworthy amount was silently upgraded to the full requested
+    amount, even when a real (smaller) amount was available.
+    """
+
+    async def test_short_reported_amount_is_trusted_not_rounded_up(
+        self,
+        session: AsyncSession,
+        save_fixture: SaveFixture,
+        product_one_time: Product,
+        processor: CryptoPaymentProcessor,
+        finalize_mock: AsyncMock,
+        mocker: MockerFixture,
+    ) -> None:
+        checkout = await create_checkout(
+            save_fixture, products=[product_one_time], status=CheckoutStatus.confirmed
+        )
+        invoice, pm = await _make_invoice(
+            save_fixture, checkout, amount=Decimal("0.001")
+        )
+        mocker.patch.object(
+            processor._service,
+            "get_request_status",
+            AsyncMock(return_value={"status_str": "Paid", "amount": "0.0002"}),
+        )
+
+        await processor.poll_payment_method(session, invoice, pm)
+
+        # A real (short) amount must be trusted as-is, landing in
+        # paid_partial, not silently upgraded to "fully paid".
+        assert _status(invoice) == CryptoInvoiceStatus.paid_partial
+        assert invoice.paid_crypto_amount == Decimal("0.0002")
+        finalize_mock.assert_not_awaited()
+
+    async def test_no_amount_at_all_still_falls_back_to_requested(
+        self,
+        session: AsyncSession,
+        save_fixture: SaveFixture,
+        product_one_time: Product,
+        processor: CryptoPaymentProcessor,
+        finalize_mock: AsyncMock,
+        mocker: MockerFixture,
+    ) -> None:
+        """Daemons that never report an amount at all (only a boolean-ish
+        Paid) still get the safe-floor fallback -- this is the legitimate
+        case the original fallback was written for."""
+        checkout = await create_checkout(
+            save_fixture, products=[product_one_time], status=CheckoutStatus.confirmed
+        )
+        invoice, pm = await _make_invoice(
+            save_fixture, checkout, amount=Decimal("0.001")
+        )
+        mocker.patch.object(
+            processor._service,
+            "get_request_status",
+            AsyncMock(return_value={"status_str": "Paid"}),
+        )
+        mocker.patch.object(
+            processor._service, "get_address_received", AsyncMock(return_value=None)
+        )
+
+        await processor.poll_payment_method(session, invoice, pm)
+
+        assert _status(invoice) == CryptoInvoiceStatus.complete
+        finalize_mock.assert_awaited_once()
+
+
+@pytest.mark.asyncio
 class TestLightning:
     async def test_lightning_method_polled_and_completes(
         self,
