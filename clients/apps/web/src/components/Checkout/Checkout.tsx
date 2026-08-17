@@ -27,28 +27,38 @@ import { CheckoutDiscountInput } from './CheckoutDiscountInput'
 import { CheckoutProductDescription } from './CheckoutProductDescription'
 import { twMerge } from 'tailwind-merge'
 import { useCheckoutClientSSE } from '@/hooks/sse'
+import { Text } from '@polar-sh/orbit'
+import { Box } from '@polar-sh/orbit/Box'
 import {
-  CRYPTO_LABELS,
   CryptoPaymentPanel,
+  CryptoTokenIcon,
   parseAcceptedCurrencies,
   readPersistedCurrency,
 } from './CryptoCheckout'
 
-// Tell people the payment rail before they commit their email. Nobody
-// should discover "crypto only" after pressing the button.
+// Tell people the payment rail before they commit their email, with the
+// coins' own logos so it reads as a real, recognizable payment method
+// rather than a line of text. Nobody should discover "crypto only" after
+// pressing the button.
 const AcceptedCryptoHint = ({
   currencies,
   label,
 }: {
   currencies: string[]
-  label: (names: string) => string
+  label: string
 }) => {
   if (currencies.length === 0) return null
-  const names = currencies
-    .map((c) => (CRYPTO_LABELS[c] ?? c).replace(' (', ' ('))
-    .join(', ')
   return (
-    <p className="dark:text-polar-500 text-xs text-gray-500">{label(names)}</p>
+    <Box display="flex" alignItems="center" columnGap="s">
+      <Box display="flex" alignItems="center" columnGap="xs">
+        {currencies.map((c) => (
+          <CryptoTokenIcon key={c} token={c} />
+        ))}
+      </Box>
+      <Text variant="caption" color="muted">
+        {label}
+      </Text>
+    </Box>
   )
 }
 
@@ -360,9 +370,7 @@ const Checkout = ({
                 {checkout.payment_processor === 'crypto' && (
                   <AcceptedCryptoHint
                     currencies={acceptedCurrencies}
-                    label={(names) =>
-                      t('checkout.crypto.acceptedHint', { currencies: names })
-                    }
+                    label={t('checkout.crypto.acceptedHint')}
                   />
                 )}
               </div>
@@ -381,16 +389,16 @@ const Checkout = ({
   }
 
   const orgHeader = (
-    <div className="flex flex-row items-center gap-x-4">
+    <div className="flex flex-row items-center gap-x-3">
       {checkout.return_url && (
         <Link
           href={checkout.return_url}
-          className="dark:text-polar-500 text-gray-600"
+          className="dark:text-polar-500 shrink-0 text-gray-600"
         >
           <ArrowLeft size={20} />
         </Link>
       )}
-      <span className="text-sm dark:text-white">
+      <span className="text-base font-medium dark:text-white">
         {checkout.organization.name}
       </span>
     </div>
@@ -398,7 +406,7 @@ const Checkout = ({
 
   return (
     <div className="md:grid md:min-h-screen md:grid-cols-2">
-      <div className="md:flex md:justify-end">
+      <div className="md:flex md:items-center md:justify-end">
         <div className="mx-auto flex w-full max-w-[480px] flex-col gap-y-8 px-4 py-6 md:mx-0 md:py-12 md:pr-12 md:pl-4">
           {orgHeader}
           <div className="flex flex-col gap-y-8 md:sticky md:top-8">
@@ -453,8 +461,25 @@ const Checkout = ({
           </div>
         </div>
       </div>
-      <div className="dark:md:bg-polar-900 md:bg-white">
-        <div className="mx-auto flex w-full max-w-[480px] flex-col gap-y-8 px-4 py-6 md:mx-0 md:py-12 md:pr-4 md:pl-12">
+      <div className="dark:md:bg-polar-900 md:flex md:items-center md:bg-white">
+        <Box
+          display="flex"
+          flexDirection="column"
+          rowGap="xl"
+          width="100%"
+          maxWidth={480}
+          marginHorizontal="auto"
+          padding={{ base: 'l', md: '2xl' }}
+          marginVertical={{ base: 'none', md: '2xl' }}
+          borderRadius={{ base: 'none', md: 'l' }}
+          borderWidth={{ base: 0, md: 1 }}
+          borderStyle="solid"
+          borderColor="border-primary"
+          backgroundColor={{
+            base: 'background-primary',
+            md: 'background-card',
+          }}
+        >
           {shouldBlockCheckout && (
             <PaymentNotReadyBanner
               organizationStatus={paymentStatus?.organization_status}
@@ -480,9 +505,7 @@ const Checkout = ({
                 checkout.payment_processor === 'crypto' ? (
                   <AcceptedCryptoHint
                     currencies={acceptedCurrencies}
-                    label={(names) =>
-                      t('checkout.crypto.acceptedHint', { currencies: names })
-                    }
+                    label={t('checkout.crypto.acceptedHint')}
                   />
                 ) : undefined
               }
@@ -493,7 +516,7 @@ const Checkout = ({
               }
             />
           )}
-        </div>
+        </Box>
       </div>
     </div>
   )

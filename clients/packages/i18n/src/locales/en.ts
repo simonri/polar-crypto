@@ -339,7 +339,7 @@ export default {
       paymentTitle: 'Complete your payment',
       ctaExplainer:
         'You’ll get a payment address on the next step. Nothing is charged until you send it.',
-      acceptedHint: 'You can pay with {currencies}.',
+      acceptedHint: 'You can pay with crypto',
       noWallet: 'Don’t have a wallet?',
       noWalletHelp:
         'Install a wallet app, such as Phantom or Muun, then send crypto to it. Or pay from an exchange account by choosing “Withdraw” or “Send” to this address.',

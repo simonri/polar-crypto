@@ -1,6 +1,7 @@
 // Barrel for the crypto payment UI. Implementation lives in ./Crypto/.
 export { CryptoCurrencyCards } from './Crypto/CryptoCurrencyCards'
 export { CryptoPaidSummary } from './Crypto/CryptoPaidSummary'
+export { CryptoTokenIcon } from './Crypto/CryptoTokenIcon'
 export {
   CryptoPaymentPanel,
   type CryptoPaymentPanelProps,
