@@ -100,7 +100,10 @@ services:
       - BTC_LOGIN=${POLAR_CRYPTO_DAEMON_RPC_USER}
       - BTC_PASSWORD=${POLAR_CRYPTO_DAEMON_RPC_PASS}
     volumes:
-      - btc_daemon_data:/root/.electrum
+      # The bitcart images run as user `electrum` and symlink ~/.electrum -> /data.
+      # Mounting anywhere else leaves the wallet (and its address reservations)
+      # in the container's writable layer, lost on every recreate.
+      - btc_daemon_data:/data
 
   ltc-daemon:
     image: bitcartcc/bitcart-ltc:stable
@@ -110,7 +113,7 @@ services:
       - LTC_LOGIN=${POLAR_CRYPTO_DAEMON_RPC_USER}
       - LTC_PASSWORD=${POLAR_CRYPTO_DAEMON_RPC_PASS}
     volumes:
-      - ltc_daemon_data:/root/.electrum-ltc
+      - ltc_daemon_data:/data
 
 networks:
   traefik:

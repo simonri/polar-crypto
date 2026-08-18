@@ -78,6 +78,11 @@ class SolanaAdapter:
     currency must be "sol" or "sol_usdc".
     """
 
+    # Every invoice pays to the same merchant wallet; invoices are told apart
+    # by the per-invoice reference key, not by the address. CryptoService uses
+    # this to skip the address-uniqueness guard that protects HD-wallet chains.
+    SHARED_RECEIVE_ADDRESS = True
+
     def __init__(
         self,
         currency: str,

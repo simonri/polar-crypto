@@ -2,6 +2,7 @@
 External service mocks for E2E tests.
 """
 
+import itertools
 from typing import Any
 from unittest.mock import AsyncMock, MagicMock
 
@@ -62,7 +63,16 @@ def mock_crypto_service(mocker: MockerFixture) -> MagicMock:
     mock = MagicMock(spec=CryptoService)
     mock._initialized = True
     mock.supported_currencies.return_value = ["btc"]
-    mock.add_payment_request = AsyncMock(return_value=("bc1qtest...", "req_test"))
+    # Distinct address per call: the invoice service refuses to hand a
+    # customer an address that another live invoice is already watching.
+    counter = itertools.count(1)
+
+    async def _add_payment_request(**kwargs: object) -> tuple[str, str]:
+        n = next(counter)
+        return (f"bc1qtest{n}", f"req_test{n}")
+
+    mock.add_payment_request = AsyncMock(side_effect=_add_payment_request)
+    mock.has_per_invoice_addresses = MagicMock(return_value=True)
     mock.get_request_status = AsyncMock(return_value={"status": "pending"})
     mock.broadcast_transaction = AsyncMock(return_value="txhash_test")
     mock.validate_address = AsyncMock(return_value=True)

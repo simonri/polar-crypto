@@ -68,7 +68,10 @@ services:
     ports:
       - "${POLAR_CRYPTO_BTC_DAEMON_PORT:-5000}:5000"
     volumes:
-      - btc_daemon_data:/root/.electrum
+      # The bitcart images run as user `electrum` and symlink ~/.electrum -> /data.
+      # Mounting anywhere else leaves the wallet (and its address reservations)
+      # in the container's writable layer, lost on every recreate.
+      - btc_daemon_data:/data
     profiles:
       - crypto
 
@@ -83,7 +86,7 @@ services:
     ports:
       - "${POLAR_CRYPTO_ETH_DAEMON_PORT:-5001}:5000"
     volumes:
-      - eth_daemon_data:/root/.ethereum
+      - eth_daemon_data:/data
     profiles:
       - crypto
 
@@ -97,7 +100,7 @@ services:
     ports:
       - "${POLAR_CRYPTO_LTC_DAEMON_PORT:-5002}:5001"
     volumes:
-      - ltc_daemon_data:/root/.electrum-ltc
+      - ltc_daemon_data:/data
     profiles:
       - crypto
 

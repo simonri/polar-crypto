@@ -146,6 +146,17 @@ class CryptoService:
             raise DaemonUnavailableError(currency)
         return coin
 
+    def has_per_invoice_addresses(self, currency: str) -> bool:
+        """
+        True when the daemon hands out a distinct receiving address per
+        request (HD wallets: BTC, LTC, ...). False for adapters that pay
+        into one shared wallet and distinguish invoices another way (Solana
+        Pay reference keys). Only per-invoice chains need the address
+        uniqueness guard at invoice creation.
+        """
+        coin = self._coin(currency)
+        return not getattr(coin, "SHARED_RECEIVE_ADDRESS", False)
+
     async def add_payment_request(
         self,
         currency: str,
