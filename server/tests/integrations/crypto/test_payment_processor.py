@@ -502,11 +502,35 @@ class TestSSEPublish:
 @pytest.mark.asyncio
 class TestAddressReuse:
     """
-    Reproduces the 2026-08-17 incident: a wallet reused one BTC address
+    Reproduces the 2026-08-17 incident: the wallet reused one BTC address
     across many invoices, and one real payment auto-completed all of them.
+    Every watcher of a shared address sees the same cumulative balance, so
+    the processor has to arbitrate who the money belongs to.
     """
 
-    async def test_second_invoice_on_a_claimed_address_needs_review(
+    async def _pair(
+        self,
+        save_fixture: SaveFixture,
+        product_one_time: Product,
+        *,
+        first: dict[str, Any] | None = None,
+        second: dict[str, Any] | None = None,
+    ) -> tuple[
+        tuple[CryptoInvoice, CryptoPaymentMethod],
+        tuple[CryptoInvoice, CryptoPaymentMethod],
+    ]:
+        checkout = await create_checkout(
+            save_fixture, products=[product_one_time], status=CheckoutStatus.confirmed
+        )
+        shared_address = "bc1qshared-address-reused-by-two-invoices"
+        a = await _make_invoice(save_fixture, checkout, **(first or {}))
+        b = await _make_invoice(save_fixture, checkout, **(second or {}))
+        for _, pm in (a, b):
+            pm.payment_address = shared_address
+            await save_fixture(pm)
+        return a, b
+
+    async def test_funds_already_claimed_by_another_invoice_are_ignored(
         self,
         session: AsyncSession,
         save_fixture: SaveFixture,
@@ -514,34 +538,136 @@ class TestAddressReuse:
         processor: CryptoPaymentProcessor,
         finalize_mock: AsyncMock,
     ) -> None:
-        checkout = await create_checkout(
-            save_fixture, products=[product_one_time], status=CheckoutStatus.confirmed
+        (invoice_a, pm_a), (invoice_b, pm_b) = await self._pair(
+            save_fixture, product_one_time
         )
-        shared_address = "bc1qshared-address-reused-by-two-invoices"
-
-        invoice_a, pm_a = await _make_invoice(save_fixture, checkout)
-        pm_a.payment_address = shared_address
-        await save_fixture(pm_a)
         await processor._process_payment(
             session, invoice_a, pm_a, {"amount": "0.001", "confirmations": 1}
         )
         assert _status(invoice_a) == CryptoInvoiceStatus.complete
         assert pm_a.is_used is True
-        finalize_mock.assert_awaited_once()
 
-        # A second, unrelated invoice was handed the *same* address by the
-        # daemon. The same on-chain funds must not also complete this one.
-        invoice_b, pm_b = await _make_invoice(save_fixture, checkout)
-        pm_b.payment_address = shared_address
-        await save_fixture(pm_b)
+        # Same balance observed through the second invoice: not its money.
         await processor._process_payment(
             session, invoice_b, pm_b, {"amount": "0.001", "confirmations": 1}
         )
+        assert _status(invoice_b) == CryptoInvoiceStatus.pending
+        assert invoice_b.exception_status == "none"
+        assert invoice_b.paid_crypto_amount is None
+        assert pm_b.is_used is False
+        finalize_mock.assert_awaited_once()
 
+    async def test_surplus_over_the_claimed_amount_needs_review(
+        self,
+        session: AsyncSession,
+        save_fixture: SaveFixture,
+        product_one_time: Product,
+        processor: CryptoPaymentProcessor,
+        finalize_mock: AsyncMock,
+    ) -> None:
+        (invoice_a, pm_a), (invoice_b, pm_b) = await self._pair(
+            save_fixture, product_one_time
+        )
+        await processor._process_payment(
+            session, invoice_a, pm_a, {"amount": "0.001", "confirmations": 1}
+        )
+        # A second payment landed on the shared address on top of A's.
+        await processor._process_payment(
+            session, invoice_b, pm_b, {"amount": "0.0025", "confirmations": 1}
+        )
         assert _status(invoice_b) == CryptoInvoiceStatus.needs_review
         assert invoice_b.exception_status == "address_reused"
+        assert invoice_b.paid_crypto_amount == Decimal("0.0015")
         assert pm_b.is_used is True
-        # Only the first invoice's payment triggered order fulfillment.
+        finalize_mock.assert_awaited_once()
+
+    async def test_late_claimant_defers_to_the_live_invoice(
+        self,
+        session: AsyncSession,
+        save_fixture: SaveFixture,
+        product_one_time: Product,
+        processor: CryptoPaymentProcessor,
+        finalize_mock: AsyncMock,
+    ) -> None:
+        """
+        The post-guard failure of 2026-08-18: an expired invoice polled first
+        and completed on funds that exactly matched a newer, still-open
+        invoice on the same address. Amount match and liveness both point at
+        the newer invoice, so the old one must stand aside.
+        """
+        (invoice_old, pm_old), (invoice_new, pm_new) = await self._pair(
+            save_fixture,
+            product_one_time,
+            first={
+                "status": CryptoInvoiceStatus.expired,
+                "expiry_delta": timedelta(hours=-2),
+                "amount": Decimal("0.0009"),
+            },
+            second={"amount": Decimal("0.001")},
+        )
+        await processor._process_payment(
+            session, invoice_old, pm_old, {"amount": "0.001", "confirmations": 1}
+        )
+        assert _status(invoice_old) == CryptoInvoiceStatus.expired
+        assert invoice_old.paid_crypto_amount is None
+        assert pm_old.is_used is False
+        finalize_mock.assert_not_awaited()
+
+        await processor._process_payment(
+            session, invoice_new, pm_new, {"amount": "0.001", "confirmations": 1}
+        )
+        assert _status(invoice_new) == CryptoInvoiceStatus.complete
+        assert pm_new.is_used is True
+        finalize_mock.assert_awaited_once()
+
+        # And now the old invoice sees fully-claimed funds: still nothing.
+        await processor._process_payment(
+            session, invoice_old, pm_old, {"amount": "0.001", "confirmations": 1}
+        )
+        assert _status(invoice_old) == CryptoInvoiceStatus.expired
+        finalize_mock.assert_awaited_once()
+
+    async def test_matching_amount_beats_liveness(
+        self,
+        session: AsyncSession,
+        save_fixture: SaveFixture,
+        product_one_time: Product,
+        processor: CryptoPaymentProcessor,
+        finalize_mock: AsyncMock,
+        mocker: MockerFixture,
+    ) -> None:
+        """A late payer who sends exactly their old amount is a better match
+        than a fresh invoice for a different amount on the same address."""
+        (invoice_old, pm_old), (invoice_new, pm_new) = await self._pair(
+            save_fixture,
+            product_one_time,
+            first={
+                "status": CryptoInvoiceStatus.expired,
+                "expiry_delta": timedelta(hours=-2),
+                "amount": Decimal("0.001"),
+            },
+            second={"amount": Decimal("0.002")},
+        )
+        rate_service = MagicMock()
+        rate_service.get_rate = AsyncMock(return_value=Decimal("50000"))
+        mocker.patch(
+            "polar.integrations.crypto.exchange_rate.ExchangeRateService",
+            return_value=rate_service,
+        )
+        mocker.patch("polar.redis.create_redis")
+
+        # The live invoice sees the funds first but they are not its amount.
+        await processor._process_payment(
+            session, invoice_new, pm_new, {"amount": "0.001", "confirmations": 1}
+        )
+        assert _status(invoice_new) == CryptoInvoiceStatus.pending
+        assert invoice_new.paid_crypto_amount is None
+
+        await processor._process_payment(
+            session, invoice_old, pm_old, {"amount": "0.001", "confirmations": 1}
+        )
+        assert _status(invoice_old) == CryptoInvoiceStatus.complete
+        assert invoice_old.exception_status == "paid_late"
         finalize_mock.assert_awaited_once()
 
     async def test_unclaimed_shared_address_still_completes_normally(
@@ -552,9 +678,7 @@ class TestAddressReuse:
         processor: CryptoPaymentProcessor,
         finalize_mock: AsyncMock,
     ) -> None:
-        """Sharing a `payment_address` value is only a problem once one of
-        the invoices has actually claimed it (is_used=True). An address
-        that simply hasn't been used yet by anyone is not a collision."""
+        """No other watcher, no other claim: business as usual."""
         checkout = await create_checkout(
             save_fixture, products=[product_one_time], status=CheckoutStatus.confirmed
         )

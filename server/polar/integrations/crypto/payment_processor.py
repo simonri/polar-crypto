@@ -28,8 +28,9 @@ complete/paid_over) is surfaced to the customer; nothing is dropped silently.
 from __future__ import annotations
 
 import asyncio
+from dataclasses import dataclass
 from decimal import Decimal
-from typing import Any
+from typing import Any, Literal
 
 import structlog
 from sqlalchemy import and_, or_, select, update
@@ -156,28 +157,50 @@ class CryptoPaymentProcessor:
         threshold = CONFIRMATION_THRESHOLDS.get(pm.currency, 1)
         now = utc_now()
 
-        # Wallets can reuse an address across unrelated invoices (Electrum
-        # gap-limit exhaustion, wallet restore, etc). If this address was
-        # already claimed by a *different* payment method, the balance we're
-        # seeing likely belongs to that other invoice, not this one. One
-        # real payment must never auto-complete more than one invoice.
-        # Confirmed in production 2026-08-17: a single reused address fanned
-        # out to 34 unrelated invoices before this guard existed.
-        collision = await _find_address_claim(
-            session, pm.currency, pm.payment_address, exclude_id=pm.id
-        )
-        if collision is not None:
+        # HD wallets recycle addresses, and until 2026-08-18 the daemon was
+        # allowed to hand the same address to a new checkout while an older
+        # invoice was still inside its late-payment window. On such a shared
+        # address every watcher sees the same balance, so Polar arbitrates:
+        # funds already claimed by another invoice are not ours, and among
+        # unclaimed watchers the best-matching one gets to claim first.
+        verdict = await _arbitrate_shared_address(session, invoice, pm, received)
+        if verdict.kind == "ignore":
+            log.info(
+                "crypto.invoice.address_funds_claimed_elsewhere",
+                invoice_id=str(invoice.id),
+                currency=pm.currency,
+                address=pm.payment_address,
+                received=str(received),
+                claimed_by_others=str(verdict.claimed_by_others),
+            )
+            return
+        if verdict.kind == "defer":
+            log.info(
+                "crypto.invoice.address_claim_deferred",
+                invoice_id=str(invoice.id),
+                currency=pm.currency,
+                address=pm.payment_address,
+                received=str(received),
+                deferred_to_payment_method_id=str(verdict.preferred_id),
+            )
+            return
+        if verdict.kind == "excess":
+            # Someone else already claimed part of this address's balance and
+            # yet there is money on top of it. That surplus may be a genuine
+            # late payment for this invoice or a third party's; a human decides.
             log.warning(
                 "crypto.invoice.address_reuse_detected",
                 invoice_id=str(invoice.id),
                 payment_method_id=str(pm.id),
                 currency=pm.currency,
                 address=pm.payment_address,
-                claimed_by_payment_method_id=str(collision),
+                received=str(received),
+                claimed_by_others=str(verdict.claimed_by_others),
+                excess=str(verdict.amount),
             )
             invoice.status = CryptoInvoiceStatus.needs_review
             invoice.exception_status = "address_reused"
-            invoice.paid_crypto_amount = received
+            invoice.paid_crypto_amount = verdict.amount
             invoice.paid_crypto_currency = pm.currency
             pm.is_used = True
             session.add(pm)
@@ -498,27 +521,96 @@ def _is_watched(invoice: CryptoInvoice) -> bool:
     return True
 
 
-async def _find_address_claim(
+@dataclass(frozen=True)
+class _ClaimVerdict:
+    """
+    claim:  this invoice may apply `amount` as its received funds
+    ignore: everything on the address is already accounted for by others
+    excess: others claimed part of it; `amount` is the unexplained surplus
+    defer:  another still-unclaimed watcher is a better match; let it go first
+    """
+
+    kind: Literal["claim", "ignore", "excess", "defer"]
+    amount: Decimal
+    claimed_by_others: Decimal = Decimal(0)
+    preferred_id: object | None = None
+
+
+def _amount_matches(received: Decimal, expected: Decimal) -> bool:
+    return abs(received - expected) <= expected * _PAYMENT_TOLERANCE
+
+
+def _is_live(invoice: CryptoInvoice, now: Any) -> bool:
+    """Still inside its price lock, or already holding funds it is settling."""
+    if invoice.status == CryptoInvoiceStatus.pending:
+        return invoice.expiry > now
+    return invoice.status in (
+        CryptoInvoiceStatus.unconfirmed,
+        CryptoInvoiceStatus.paid_partial,
+    )
+
+
+async def _arbitrate_shared_address(
     session: AsyncSession,
-    currency: str,
-    payment_address: str,
-    *,
-    exclude_id: object,
-) -> object | None:
+    invoice: CryptoInvoice,
+    pm: CryptoPaymentMethod,
+    received: Decimal,
+) -> _ClaimVerdict:
     """
-    Return the id of another payment method already marked `is_used` on this
-    same (currency, address), if any. A daemon-issued address is supposed to
-    be unique per invoice; when the wallet reuses one anyway, only the first
-    payment method to observe funds on it may claim them.
+    Decide what `received` (the cumulative balance of pm's address) means
+    for this invoice when other invoices share the same address.
+
+    1. Funds already claimed by another payment method on the address are
+       subtracted. Nothing left over: ignore. Something left over: surface it
+       as an `address_reused` exception rather than auto-completing.
+    2. Among watchers that have not claimed yet, prefer the invoice whose
+       expected amount matches the funds, then the one still inside its price
+       lock (or already holding funds) over a late claimant. This invoice
+       only claims if no other watcher outranks it.
     """
-    stmt = select(CryptoPaymentMethod.id).where(
-        CryptoPaymentMethod.currency == currency.lower(),
-        CryptoPaymentMethod.payment_address == payment_address,
-        CryptoPaymentMethod.is_used.is_(True),
-        CryptoPaymentMethod.id != exclude_id,
+    stmt = (
+        select(CryptoPaymentMethod)
+        .join(CryptoInvoice, CryptoInvoice.id == CryptoPaymentMethod.invoice_id)
+        .where(
+            CryptoPaymentMethod.currency == pm.currency,
+            CryptoPaymentMethod.payment_address == pm.payment_address,
+            CryptoPaymentMethod.id != pm.id,
+        )
+        .options(selectinload(CryptoPaymentMethod.invoice))
     )
     result = await session.execute(stmt)
-    return result.scalar_one_or_none()
+    others = list(result.scalars().all())
+    if not others:
+        return _ClaimVerdict("claim", received)
+
+    claimed = Decimal(0)
+    for other in others:
+        if not other.is_used:
+            continue
+        other_invoice = other.invoice
+        if (
+            other_invoice.paid_crypto_currency == pm.currency
+            and other_invoice.paid_crypto_amount
+        ):
+            claimed += other_invoice.paid_crypto_amount
+    if claimed > 0:
+        excess = received - claimed
+        if excess <= pm.amount * _PAYMENT_TOLERANCE:
+            return _ClaimVerdict("ignore", Decimal(0), claimed_by_others=claimed)
+        return _ClaimVerdict("excess", excess, claimed_by_others=claimed)
+
+    now = utc_now()
+
+    def rank(candidate_invoice: CryptoInvoice, expected: Decimal) -> tuple[bool, bool]:
+        return (_amount_matches(received, expected), _is_live(candidate_invoice, now))
+
+    mine = rank(invoice, pm.amount)
+    for other in others:
+        if not _is_watched(other.invoice):
+            continue
+        if rank(other.invoice, other.amount) > mine:
+            return _ClaimVerdict("defer", Decimal(0), preferred_id=other.id)
+    return _ClaimVerdict("claim", received)
 
 
 async def _get_payment_method_by_lookup(
