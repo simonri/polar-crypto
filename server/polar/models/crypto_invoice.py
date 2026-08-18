@@ -68,8 +68,10 @@ class CryptoInvoice(RecordModel):
     status: Mapped[CryptoInvoiceStatus] = mapped_column(
         String(20), nullable=False, default=CryptoInvoiceStatus.pending, index=True
     )
+    # Long enough for the backoffice "accepted_<reason>" prefix on every reason
+    # (e.g. accepted_paid_late_unpriced, accepted_duplicate_payment).
     exception_status: Mapped[str] = mapped_column(
-        String(20), nullable=False, default="none"
+        String(40), nullable=False, default="none"
     )
 
     buyer_email: Mapped[str | None] = mapped_column(String(320), nullable=True)
